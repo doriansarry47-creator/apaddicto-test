@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { Navigation } from "@/components/navigation";
 import { ExerciseCard } from "@/components/exercise-card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,15 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function Exercises() {
   const [selectedCategory, setSelectedCategory] = useState<keyof typeof categories>('craving_reduction');
+  const [location] = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const category = params.get('category');
+    if (category && categories[category as keyof typeof categories]) {
+      setSelectedCategory(category as keyof typeof categories);
+    }
+  }, [location.search]);
   const [selectedLevel, setSelectedLevel] = useState<keyof typeof levels | 'all'>('all');
   const { toast } = useToast();
 

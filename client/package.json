@@ -4,5 +4,7 @@
   "scripts": {
     "build": "cd .. && npm run build"
   },
-  "dependencies": {}
+  "dependencies": {
+    "vite": "^7.1.5"
+  }
 }

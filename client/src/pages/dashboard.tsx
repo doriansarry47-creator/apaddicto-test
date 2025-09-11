@@ -273,29 +273,35 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2" data-testid="button-craving-exercises">
-                  <span className="material-icons text-destructive">emergency</span>
-                  <div className="text-center">
-                    <div className="font-medium">Réduction Craving</div>
-                    <div className="text-xs text-muted-foreground">Exercices ciblés</div>
-                  </div>
-                </Button>
+                <Link to="/exercises?category=craving" className="w-full">
+                  <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2 w-full" data-testid="button-craving-exercises">
+                    <span className="material-icons text-destructive">emergency</span>
+                    <div className="text-center">
+                      <div className="font-medium">Réduction Craving</div>
+                      <div className="text-xs text-muted-foreground">Exercices ciblés</div>
+                    </div>
+                  </Button>
+                </Link>
                 
-                <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2" data-testid="button-breathing-exercises">
-                  <span className="material-icons text-secondary">air</span>
-                  <div className="text-center">
-                    <div className="font-medium">Respiration</div>
-                    <div className="text-xs text-muted-foreground">Techniques guidées</div>
-                  </div>
-                </Button>
+                <Link to="/exercises?category=breathing" className="w-full">
+                  <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2 w-full" data-testid="button-breathing-exercises">
+                    <span className="material-icons text-secondary">air</span>
+                    <div className="text-center">
+                      <div className="font-medium">Respiration</div>
+                      <div className="text-xs text-muted-foreground">Techniques guidées</div>
+                    </div>
+                  </Button>
+                </Link>
                 
-                <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2" data-testid="button-relaxation-exercises">
-                  <span className="material-icons text-primary">self_improvement</span>
-                  <div className="text-center">
-                    <div className="font-medium">Relaxation</div>
-                    <div className="text-xs text-muted-foreground">Détente profonde</div>
-                  </div>
-                </Button>
+                <Link to="/exercises?category=relaxation" className="w-full">
+                  <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2 w-full" data-testid="button-relaxation-exercises">
+                    <span className="material-icons text-primary">self_improvement</span>
+                    <div className="text-center">
+                      <div className="font-medium">Relaxation</div>
+                      <div className="text-xs text-muted-foreground">Détente profonde</div>
+                    </div>
+                  </Button>
+                </Link>
               </div>
             </CardContent>
           </Card>
