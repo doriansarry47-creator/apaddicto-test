@@ -83,9 +83,7 @@ export default function Dashboard() {
             <h1 className="text-4xl md:text-6xl font-bold text-primary mb-4">
               Bienvenue dans Apaddicto
             </h1>
-            <p className="text-xl md:text-2xl text-muted-foreground mb-6">
-              Votre compagnon pour une thérapie sportive personnalisée
-            </p>
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <div className="flex items-center gap-2 text-lg">
                 <span className="material-icons text-primary">fitness_center</span>
