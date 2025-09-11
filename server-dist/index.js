@@ -1205,11 +1205,7 @@ app.get("/api/health", (_req, res) => {
 registerRoutes(app);
 app.use("/api", debugTablesRouter);
 var pool2 = new Pool4({
-  user: process.env.DB_USER || "postgres",
-  host: process.env.DB_HOST || "localhost",
-  database: process.env.DB_NAME || "apaddcito",
-  password: process.env.DB_PASSWORD || "ton_mot_de_passe",
-  port: Number(process.env.DB_PORT) || 5432
+  connectionString: process.env.DATABASE_URL
 });
 app.get("/api/tables", async (_req, res) => {
   try {
