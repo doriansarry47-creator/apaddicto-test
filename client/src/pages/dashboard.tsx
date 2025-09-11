@@ -77,6 +77,37 @@ export default function Dashboard() {
     <>
       <Navigation />
       <main className="container mx-auto px-4 py-6 pb-20 md:pb-6">
+        {/* Hero Section - Page d'accueil personnalisée */}
+        <section className="text-center mb-12 py-8">
+          <div className="max-w-4xl mx-auto">
+            <h1 className="text-4xl md:text-6xl font-bold text-primary mb-4">
+              Bienvenue dans Apaddicto
+            </h1>
+            <p className="text-xl md:text-2xl text-muted-foreground mb-6">
+              Votre compagnon pour une thérapie sportive personnalisée
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <div className="flex items-center gap-2 text-lg">
+                <span className="material-icons text-primary">fitness_center</span>
+                <span>Exercices ciblés</span>
+              </div>
+              <div className="flex items-center gap-2 text-lg">
+                <span className="material-icons text-secondary">psychology</span>
+                <span>Suivi personnalisé</span>
+              </div>
+              <div className="flex items-center gap-2 text-lg">
+                <span className="material-icons text-warning">emoji_events</span>
+                <span>Motivation quotidienne</span>
+              </div>
+            </div>
+            {user && (
+              <div className="mt-6 p-4 bg-primary/10 rounded-lg">
+                <p className="text-lg font-medium">Bonjour {user.firstName || 'Champion'} ! 👋</p>
+                <p className="text-muted-foreground">Prêt(e) à continuer votre parcours de rétablissement ?</p>
+              </div>
+            )}
+          </div>
+        </section>
         
         {/* Dashboard Overview Cards */}
         <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
