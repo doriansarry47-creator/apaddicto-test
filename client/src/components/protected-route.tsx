@@ -1,15 +1,27 @@
 import { useAuthQuery } from "@/hooks/use-auth.ts";
 import { Redirect } from "wouter";
 import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 
 interface ProtectedRouteProps {
   children: ReactNode;
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { data: user, isLoading } = useAuthQuery();
+  const { data: user, isLoading, isError } = useAuthQuery();
+  const [showLoading, setShowLoading] = useState(true);
 
-  if (isLoading) {
+  useEffect(() => {
+    if (!isLoading) {
+      // Small delay to prevent flash
+      const timer = setTimeout(() => {
+        setShowLoading(false);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading]);
+
+  if (isLoading || showLoading) {
     // You can render a loading spinner here
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -18,7 +30,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  if (!user) {
+  if (!user || isError) {
     // User is not authenticated, redirect to login
     return <Redirect to="/login" />;
   }

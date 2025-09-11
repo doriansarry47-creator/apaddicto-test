@@ -63,6 +63,8 @@ export function useAuthQuery() {
     },
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
   });
 }
 
@@ -89,7 +91,10 @@ export function useLoginMutation() {
     },
     onSuccess: (data) => {
       queryClient.setQueryData(["auth", "me"], data?.user || null);
-      queryClient.invalidateQueries({ queryKey: ["auth"] });
+      // Pas d'invalidation immédiate pour éviter le flash
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["auth"] });
+      }, 100);
     },
   });
 }
