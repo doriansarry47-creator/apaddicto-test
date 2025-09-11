@@ -1,0 +1,33 @@
+diff --git a/vercel.json b/vercel.json
+index e69de29..aabbcc1 100644
+--- a/vercel.json
++++ b/vercel.json
+@@ -0,0 +1,15 @@
++{
++  "version": 2,
++  "buildCommand": "npm run vercel-build",
++  "outputDirectory": "dist/public",
++  "rewrites": [
++    { "source": "/api/(.*)", "destination": "/api" },
++    { "source": "/((?!api).*)", "destination": "/" }
++  ],
++  "env": {
++    "NODE_ENV": "production"
++  }
++}
++
++
++
+diff --git a/package.json b/package.json
+--- a/package.json
++++ b/package.json
+@@
+   "scripts": {
+     "dev": "node server/index.js",
+     "build": "tsc",
+     "start": "node dist/server/index.js"
+   },
++  "engines": {
++    "node": "20.x"
++  },
+   "dependencies": {
