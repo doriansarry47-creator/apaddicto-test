@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+//
+// TABLES PRINCIPALES
+//
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  firstName String?
+  lastName  String?
+  role      String   @default("patient")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  beckAnalyses BeckAnalysis[]
+  sessions     Session[]
+}
+
+model Patient {
+  id        String   @id @default(uuid())
+  firstName String
+  lastName  String
+  birthDate DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  analyses BeckAnalysis[]
+}
+
+model BeckAnalysis {
+  id        String   @id @default(uuid())
+  score     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Foreign keys
+  user   User?    @relation(fields: [userId], references: [id])
+  userId String?
+  patient   Patient? @relation(fields: [patientId], references: [id])
+  patientId String?
+}
+
+//
+// TABLE DE SESSION (express-session avec Prisma)
+//
+model Session {
+  id        String   @id @default(uuid())
+  sid       String   @unique
+  data      String
+  expiresAt DateTime
+
+  // Relation vers User (optionnel, selon si tu attaches les sessions à un utilisateur)
+  user   User?   @relation(fields: [userId], references: [id])
+  userId String?
+}
+
+//
+// EXEMPLE SUPPLÉMENTAIRE : Logs (si tu veux suivre les actions)
+//
+model Log {
+  id        String   @id @default(uuid())
+  message   String
+  level     String   @default("info")
+  createdAt DateTime @default(now())
+}
