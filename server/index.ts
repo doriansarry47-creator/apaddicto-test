@@ -5,7 +5,7 @@ import cors from 'cors';
 import { registerRoutes } from './routes.js';
 import './migrate.js';
 import { debugTablesRouter } from './debugTables.js';
-import { Pool } from 'pg';
+import { getPool } from './db.js';
 
 // === INITIALISATION EXPRESS ===
 const app = express();
@@ -32,11 +32,17 @@ app.use(session({
   },
 }));
 
-// === ENDPOINTS DE BASE ===
-app.get('/', (_req, res) => {
-  res.send('API Apaddcito est en ligne !');
-});
+// === MIDDLEWARE POUR SERVIR LES FICHIERS STATIQUES ===
+import path from 'path';
+import { fileURLToPath } from 'url';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Servir les fichiers statiques du frontend depuis le dossier dist
+app.use(express.static(path.join(__dirname, '..', 'dist')));
+
+// === ENDPOINTS DE BASE ===
 app.get('/api/health', (_req, res) => {
   res.json({
     status: 'ok',
@@ -50,13 +56,8 @@ registerRoutes(app);
 app.use('/api', debugTablesRouter);
 
 // === CONNEXION POSTGRES ===
-const pool = new Pool({
-  user: process.env.DB_USER || 'postgres',
-  host: process.env.DB_HOST || 'localhost',
-  database: process.env.DB_NAME || 'apaddcito',
-  password: process.env.DB_PASSWORD || 'ton_mot_de_passe',
-  port: Number(process.env.DB_PORT) || 5432,
-});
+// Utiliser la configuration de db.ts qui utilise DATABASE_URL
+const pool = getPool();
 
 // === ENDPOINT POUR LISTER LES TABLES ===
 app.get('/api/tables', async (_req, res) => {
@@ -100,6 +101,16 @@ app.get('/api/data', async (_req, res) => {
     console.error(err);
     res.status(500).json({ message: 'Erreur serveur' });
   }
+});
+
+// === ROUTE CATCH-ALL POUR LE FRONTEND (SPA) ===
+app.get('*', (req, res) => {
+  // Éviter de servir index.html pour les routes API
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ message: 'Route API non trouvée' });
+  }
+  // Servir index.html pour toutes les autres routes (SPA routing)
+  res.sendFile(path.join(__dirname, '..', 'dist', 'index.html'));
 });
 
 // === MIDDLEWARE DE GESTION D'ERREURS ===
