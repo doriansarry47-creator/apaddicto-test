@@ -242,10 +242,6 @@ export default function ManageContent() {
             <div className="text-2xl font-bold text-purple-600">
               {content?.filter(c => c.type === 'interactive').length || 0}
             </div>
-            <CardContent className="p-4">
-            <div className="text-2xl font-bold text-purple-600">
-              {content?.filter(c => c.type === 'interactive').length || 0}
-            </div>
             <div className="text-sm text-muted-foreground">Interactifs</div>
           </CardContent>
         </Card>
