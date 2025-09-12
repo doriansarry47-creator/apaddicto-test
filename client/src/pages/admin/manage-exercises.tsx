@@ -3,8 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertExerciseSchema } from "../../../shared/schema";
-import type { Exercise, InsertExercise, EmergencyRoutine, InsertEmergencyRoutine } from "../../../shared/schema";
-import { z } from "zod";
+import type { Exercise, InsertExercise } from "../../../shared/schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,8 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Edit, Clock, Target, Activity, AlertTriangle, Settings } from "lucide-react";
-import { toast } from "sonner";
+import { Plus, Trash2, Edit, Activity, AlertTriangle, Filter, Image } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
 type FormData = InsertExercise;
@@ -55,38 +54,44 @@ export default function ManageExercises() {
 
   const mutation = useMutation({
     mutationFn: async (newExercise: InsertExercise) => {
-      // Si une image est sélectionnée, l'uploader d'abord
       let imageUrl = newExercise.imageUrl;
       if (selectedImage) {
         const formData = new FormData();
-        formData.append('image', selectedImage);
-        
+        formData.append("image", selectedImage);
+
         try {
-          const uploadResponse = await fetch('/api/admin/media/upload', {
-            method: 'POST',
+          const uploadResponse = await fetch("/api/admin/media/upload", {
+            method: "POST",
             body: formData,
           });
-          
+
           if (uploadResponse.ok) {
             const uploadResult = await uploadResponse.json();
             imageUrl = uploadResult.url;
           }
         } catch (error) {
-          console.warn('Image upload failed, proceeding without image');
+          console.warn("Image upload failed, proceeding without image");
         }
       }
-      
+
       return apiRequest("POST", "/api/exercises", { ...newExercise, imageUrl });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "exercises"] });
-      toast({ title: "Succès", description: "Exercice créé avec succès." });
+      toast({
+        title: "Succès",
+        description: "Exercice créé avec succès.",
+      });
       reset();
       setSelectedImage(null);
       setImagePreview(null);
     },
-    onError: (error) => {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    onError: (error: any) => {
+      toast({
+        title: "Erreur",
+        description: error?.message ?? "Une erreur est survenue",
+        variant: "destructive",
+      });
     },
   });
 
@@ -94,10 +99,17 @@ export default function ManageExercises() {
     mutationFn: (exerciseId: string) => apiRequest("DELETE", `/api/admin/exercises/${exerciseId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "exercises"] });
-      toast({ title: "Succès", description: "Exercice supprimé avec succès." });
+      toast({
+        title: "Succès",
+        description: "Exercice supprimé avec succès.",
+      });
     },
-    onError: (error) => {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    onError: (error: any) => {
+      toast({
+        title: "Erreur",
+        description: error?.message ?? "Une erreur est survenue",
+        variant: "destructive",
+      });
     },
   });
 
@@ -113,11 +125,12 @@ export default function ManageExercises() {
     }
   };
 
-  const filteredExercises = exercises?.filter(exercise => {
-    const matchesCategory = categoryFilter === "all" || exercise.category === categoryFilter;
-    const matchesDifficulty = difficultyFilter === "all" || exercise.difficulty === difficultyFilter;
-    return matchesCategory && matchesDifficulty;
-  }) || [];
+  const filteredExercises =
+    exercises?.filter((exercise) => {
+      const matchesCategory = categoryFilter === "all" || exercise.category === categoryFilter;
+      const matchesDifficulty = difficultyFilter === "all" || exercise.difficulty === difficultyFilter;
+      return matchesCategory && matchesDifficulty;
+    }) || [];
 
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(insertExerciseSchema),
@@ -144,10 +157,11 @@ export default function ManageExercises() {
           </TabsTrigger>
           <TabsTrigger value="emergency-routines" className="flex items-center space-x-2">
             <AlertTriangle className="h-4 w-4" />
-            <span>Routines d'Urgence</span>
+            <span>Routines d\'Urgence</span>
           </TabsTrigger>
         </TabsList>
 
+        {/* Onglet exercices */}
         <TabsContent value="exercises" className="mt-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-semibold">Gestion des Exercices</h2>
@@ -157,111 +171,24 @@ export default function ManageExercises() {
             </Button>
           </div>
 
-      {/* Filtres */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Filter className="h-5 w-5" />
-            <span>Filtres</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="category-filter">Catégorie</Label>
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Toutes les catégories" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Toutes les catégories</SelectItem>
-                  {EXERCISE_CATEGORIES.map((category) => (
-                    <SelectItem key={category.value} value={category.value}>
-                      {category.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="difficulty-filter">Difficulté</Label>
-              <Select value={difficultyFilter} onValueChange={setDifficultyFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Tous les niveaux" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous les niveaux</SelectItem>
-                  {DIFFICULTY_LEVELS.map((level) => (
-                    <SelectItem key={level.value} value={level.value}>
-                      {level.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Statistiques */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-primary">{filteredExercises.length}</div>
-            <div className="text-sm text-muted-foreground">Exercices affichés</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-green-600">
-              {exercises?.filter(e => e.difficulty === 'beginner').length || 0}
-            </div>
-            <div className="text-sm text-muted-foreground">Débutant</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-orange-600">
-              {exercises?.filter(e => e.difficulty === 'intermediate').length || 0}
-            </div>
-            <div className="text-sm text-muted-foreground">Intermédiaire</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-red-600">
-              {exercises?.filter(e => e.difficulty === 'advanced').length || 0}
-            </div>
-            <div className="text-sm text-muted-foreground">Avancé</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Formulaire de création */}
-        <div className="lg:col-span-1">
-          <Card>
+          {/* Filtres */}
+          <Card className="mb-6">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <Plus className="h-5 w-5" />
-                <span>Créer un Exercice</span>
+                <Filter className="h-5 w-5" />
+                <span>Filtres</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="title">Titre</Label>
-                  <Input id="title" {...register("title")} placeholder="Nom de l'exercice" />
-                  {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title.message}</p>}
-                </div>
-                
-                <div>
-                  <Label htmlFor="category">Catégorie</Label>
-                  <Select onValueChange={(value) => setValue("category", value)}>
+                  <Label htmlFor="category-filter">Catégorie</Label>
+                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner une catégorie" />
+                      <SelectValue placeholder="Toutes les catégories" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="all">Toutes les catégories</SelectItem>
                       {EXERCISE_CATEGORIES.map((category) => (
                         <SelectItem key={category.value} value={category.value}>
                           {category.label}
@@ -269,16 +196,15 @@ export default function ManageExercises() {
                       ))}
                     </SelectContent>
                   </Select>
-                  {errors.category && <p className="text-red-500 text-xs mt-1">{errors.category.message}</p>}
                 </div>
-
                 <div>
-                  <Label htmlFor="difficulty">Difficulté</Label>
-                  <Select onValueChange={(value) => setValue("difficulty", value)}>
+                  <Label htmlFor="difficulty-filter">Difficulté</Label>
+                  <Select value={difficultyFilter} onValueChange={setDifficultyFilter}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un niveau" />
+                      <SelectValue placeholder="Tous les niveaux" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="all">Tous les niveaux</SelectItem>
                       {DIFFICULTY_LEVELS.map((level) => (
                         <SelectItem key={level.value} value={level.value}>
                           {level.label}
@@ -286,184 +212,379 @@ export default function ManageExercises() {
                       ))}
                     </SelectContent>
                   </Select>
-                  {errors.difficulty && <p className="text-red-500 text-xs mt-1">{errors.difficulty.message}</p>}
                 </div>
-
-                <div>
-                  <Label htmlFor="duration">Durée (minutes)</Label>
-                  <Input 
-                    id="duration" 
-                    type="number" 
-                    {...register("duration", { valueAsNumber: true })} 
-                    placeholder="15"
-                  />
-                  {errors.duration && <p className="text-red-500 text-xs mt-1">{errors.duration.message}</p>}
-                </div>
-
-                <div>
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea 
-                    id="description" 
-                    {...register("description")} 
-                    placeholder="Description de l'exercice"
-                    rows={3}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="instructions">Instructions</Label>
-                  <Textarea 
-                    id="instructions" 
-                    {...register("instructions")} 
-                    placeholder="Instructions détaillées"
-                    rows={4}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="benefits">Bénéfices</Label>
-                  <Textarea 
-                    id="benefits" 
-                    {...register("benefits")} 
-                    placeholder="Bénéfices de cet exercice"
-                    rows={3}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="image">Image</Label>
-                  <div className="space-y-2">
-                    <Input
-                      id="image"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      className="cursor-pointer"
-                    />
-                    {imagePreview && (
-                      <div className="relative">
-                        <img 
-                          src={imagePreview} 
-                          alt="Aperçu" 
-                          className="w-full h-32 object-cover rounded-md"
-                        />
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          className="absolute top-2 right-2"
-                          onClick={() => {
-                            setSelectedImage(null);
-                            setImagePreview(null);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <Button type="submit" disabled={mutation.isPending} className="w-full">
-                  {mutation.isPending ? "Création..." : "Créer l'Exercice"}
-                </Button>
-              </form>
+              </div>
             </CardContent>
           </Card>
-        </div>
 
-        {/* Liste des exercices */}
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Exercices Existants</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <p>Chargement des exercices...</p>
-              ) : (
-                <div className="space-y-4">
-                  {filteredExercises.map((exercise) => (
-                    <div key={exercise.id} className="border p-4 rounded-lg">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <h3 className="font-bold text-lg">{exercise.title}</h3>
-                            <Badge variant="outline">
-                              {EXERCISE_CATEGORIES.find(c => c.value === exercise.category)?.label || exercise.category}
-                            </Badge>
-                            <Badge variant={
-                              exercise.difficulty === 'beginner' ? 'default' :
-                              exercise.difficulty === 'intermediate' ? 'secondary' : 'destructive'
-                            }>
-                              {DIFFICULTY_LEVELS.find(d => d.value === exercise.difficulty)?.label || exercise.difficulty}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground mb-2">
-                            {exercise.description}
-                          </p>
-                          <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                            <span>{exercise.duration} minutes</span>
-                            {exercise.imageUrl && (
-                              <span className="flex items-center space-x-1">
-                                <Image className="h-4 w-4" />
-                                <span>Image</span>
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex space-x-2">
-                          <Button variant="outline" size="sm">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="destructive" size="sm">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Êtes-vous sûr de vouloir supprimer l'exercice "{exercise.title}" ?
-                                  Cette action est irréversible.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => deleteExerciseMutation.mutate(exercise.id)}
-                                  disabled={deleteExerciseMutation.isPending}
-                                >
-                                  {deleteExerciseMutation.isPending ? "Suppression..." : "Supprimer"}
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </div>
-                      {exercise.imageUrl && (
-                        <div className="mt-3">
-                          <img 
-                            src={exercise.imageUrl} 
-                            alt={exercise.title}
-                            className="w-full h-32 object-cover rounded-md"
-                          />
-                        </div>
-                      )}
+          {/* Statistiques */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <Card>
+              <CardContent className="p-4">
+                <div className="text-2xl font-bold text-primary">{filteredExercises.length}</div>
+                <div className="text-sm text-muted-foreground">Exercices affichés</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <div className="text-2xl font-bold text-green-600">
+                  {exercises?.filter(e => e.difficulty === "beginner").length || 0}
+                </div>
+                <div className="text-sm text-muted-foreground">Débutant</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <div className="text-2xl font-bold text-orange-600">
+                  {exercises?.filter(e => e.difficulty === "intermediate").length || 0}
+                </div>
+                <div className="text-sm text-muted-foreground">Intermédiaire</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <div className="text-2xl font-bold text-red-600">
+                  {exercises?.filter(e => e.difficulty === "advanced").length || 0}
+                </div>
+                <div className="text-sm text-muted-foreground">Avancé</div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Formulaire de création */}
+            <div className="lg:col-span-1">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Plus className="h-5 w-5" />
+                    <span>Créer un Exercice</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                    <div>
+                      <Label htmlFor="title">Titre</Label>
+                      <Input id="title" {...register("title")} placeholder="Nom de l\'exercice" />
+                      {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title.message}</p>}
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+
+                    <div>
+                      <Label htmlFor="category">Catégorie</Label>
+                      <Select onValueChange={(value) => setValue("category", value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner une catégorie" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {EXERCISE_CATEGORIES.map((category) => (
+                            <SelectItem key={category.value} value={category.value}>
+                              {category.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.category && <p className="text-red-500 text-xs mt-1">{errors.category.message}</p>}
+                    </div>
+
+                    <div>
+                      <Label htmlFor="difficulty">Difficulté</Label>
+                      <Select onValueChange={(value) => setValue("difficulty", value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner un niveau" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {DIFFICULTY_LEVELS.map((level) => (
+                            <SelectItem key={level.value} value={level.value}>
+                              {level.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.difficulty && <p className="text-red-500 text-xs mt-1">{errors.difficulty.message}</p>}
+                    </div>
+
+                    <div>
+                      <Label htmlFor="duration">Durée (minutes)</Label>
+                      <Input
+                        id="duration"
+                        type="number"
+                        {...register("duration", { valueAsNumber: true })}
+                        placeholder="15"
+                      />
+                      {errors.duration && <p className="text-red-500 text-xs mt-1">{errors.duration.message}</p>}
+                    </div>
+
+                    <div>
+                      <Label htmlFor="description">Description</Label>
+                      <Textarea
+                        id="description"
+                        {...register("description")}
+                        placeholder="Description de l\'exercice"
+                        rows={3}
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="instructions">Instructions</Label>
+                      <Textarea
+                        id="instructions"
+                        {...register("instructions")}
+                        placeholder="Instructions détaillées"
+                        rows={4}
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="benefits">Bénéfices</Label>
+                      <Textarea
+                        id="benefits"
+                        {...register("benefits")}
+                        placeholder="Bénéfices de cet exercice"
+                        rows={3}
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="image">Image</Label>
+                      <div className="space-y-2">
+                        <Input
+                          id="image"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageChange}
+                          className="cursor-pointer"
+                        />
+                        {imagePreview && (
+                          <div className="relative">
+                            <img
+                              src={imagePreview}
+                              alt="Aperçu"
+                              className="w-full h-32 object-cover rounded-md"
+                            />
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              className="absolute top-2 right-2"
+                              onClick={() => {
+                                setSelectedImage(null);
+                                setImagePreview(null);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <Button type="submit" disabled={mutation.isPending} className="w-full">
+                      {mutation.isPending ? "Création..." : "Créer l\'Exercice"}
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Liste des exercices */}
+            <div className="lg:col-span-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Exercices Existants</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {isLoading ? (
+                    <p>Chargement des exercices...</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {filteredExercises.map((exercise) => (
+                        <div key={exercise.id} className="border p-4 rounded-lg">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-2 mb-2">
+                                <h3 className="font-bold text-lg">{exercise.title}</h3>
+                                <Badge variant="outline">
+                                  {EXERCISE_CATEGORIES.find(c => c.value === exercise.category)?.label || exercise.category}
+                                </Badge>
+                                <Badge
+                                  variant={
+                                    exercise.difficulty === "beginner"
+                                      ? "default"
+                                      : exercise.difficulty === "intermediate"
+                                      ? "secondary"
+                                      : "destructive"
+                                  }
+                                >
+                                  {DIFFICULTY_LEVELS.find(d => d.value === exercise.difficulty)?.label || exercise.difficulty}
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-muted-foreground mb-2">
+                                {exercise.description}
+                              </p>
+                              <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                                <div className="flex items-center space-x-1">
+                                  <Clock className="h-4 w-4" />
+                                  <span>{exercise.duration} min</span>
+                                </div>
+                                <div className="flex items-center space-x-1">
+                                  <Target className="h-4 w-4" />
+                                  <span>{exercise.instructions}</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex space-x-2">
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="outline" size="icon">
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Modifier l\'exercice</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Cette action ne peut pas être annulée. Cela modifiera
+                                      définitivement l\'exercice.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <form
+                                    onSubmit={handleSubmit((data) => {
+                                      // Logic for updating exercise
+                                      console.log("Update data:", data);
+                                    })}
+                                    className="space-y-4"
+                                  >
+                                    <div>
+                                      <Label htmlFor="edit-title">Titre</Label>
+                                      <Input
+                                        id="edit-title"
+                                        defaultValue={exercise.title}
+                                        {...register("title")}
+                                      />
+                                    </div>
+                                    <div>
+                                      <Label htmlFor="edit-category">Catégorie</Label>
+                                      <Select
+                                        defaultValue={exercise.category}
+                                        onValueChange={(value) => setValue("category", value)}
+                                      >
+                                        <SelectTrigger>
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {EXERCISE_CATEGORIES.map((category) => (
+                                            <SelectItem
+                                              key={category.value}
+                                              value={category.value}
+                                            >
+                                              {category.label}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <div>
+                                      <Label htmlFor="edit-difficulty">Difficulté</Label>
+                                      <Select
+                                        defaultValue={exercise.difficulty}
+                                        onValueChange={(value) => setValue("difficulty", value)}
+                                      >
+                                        <SelectTrigger>
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {DIFFICULTY_LEVELS.map((level) => (
+                                            <SelectItem
+                                              key={level.value}
+                                              value={level.value}
+                                            >
+                                              {level.label}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <div>
+                                      <Label htmlFor="edit-duration">Durée (minutes)</Label>
+                                      <Input
+                                        id="edit-duration"
+                                        type="number"
+                                        defaultValue={exercise.duration}
+                                        {...register("duration", { valueAsNumber: true })}
+                                      />
+                                    </div>
+                                    <div>
+                                      <Label htmlFor="edit-description">Description</Label>
+                                      <Textarea
+                                        id="edit-description"
+                                        defaultValue={exercise.description}
+                                        {...register("description")}
+                                      />
+                                    </div>
+                                    <div>
+                                      <Label htmlFor="edit-instructions">Instructions</Label>
+                                      <Textarea
+                                        id="edit-instructions"
+                                        defaultValue={exercise.instructions}
+                                        {...register("instructions")}
+                                      />
+                                    </div>
+                                    <div>
+                                      <Label htmlFor="edit-benefits">Bénéfices</Label>
+                                      <Textarea
+                                        id="edit-benefits"
+                                        defaultValue={exercise.benefits}
+                                        {...register("benefits")}
+                                      />
+                                    </div>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                      <Button type="submit">Sauvegarder</Button>
+                                    </AlertDialogFooter>
+                                  </form>
+                                </AlertDialogContent>
+                              </AlertDialog>
+
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="destructive" size="icon">
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Cette action ne peut pas être annulée. Cela supprimera
+                                      définitivement cet exercice de nos serveurs.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => deleteExerciseMutation.mutate(exercise.id)}
+                                    >
+                                      Continuer
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </TabsContent>
 
+        {/* Onglet routines d\'urgence */}
         <TabsContent value="emergency-routines" className="mt-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-semibold">Gestion des Routines d'Urgence</h2>
+            <h2 className="text-2xl font-semibold">Gestion des Routines d\'Urgence</h2>
             <Button className="flex items-center space-x-2">
               <Plus className="h-4 w-4" />
               <span>Nouvelle Routine</span>
@@ -472,25 +593,15 @@ export default function ManageExercises() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <AlertTriangle className="h-5 w-5" />
-                <span>Routines d'Urgence</span>
-              </CardTitle>
-              <CardDescription>
-                Gérez les routines d'urgence disponibles pour aider les patients en cas de craving intense.
-              </CardDescription>
+              <CardTitle>Routines d\'Urgence Existantes</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8 text-gray-500">
-                <AlertTriangle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Fonctionnalité en cours de développement</p>
-                <p className="text-sm">Les routines d'urgence seront bientôt disponibles</p>
-              </div>
+              <p>Fonctionnalité à venir...</p>
             </CardContent>
           </Card>
         </TabsContent>
-
       </Tabs>
     </div>
   );
 }
+
