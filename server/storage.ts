@@ -41,11 +41,13 @@ export interface IStorage {
   getExercises(): Promise<Exercise[]>;
   getAllExercises(): Promise<Exercise[]>;
   createExercise(exercise: InsertExercise): Promise<Exercise>;
+  deleteExercise(exerciseId: string): Promise<void>;
   
   // Psychoeducation operations
   getPsychoEducationContent(): Promise<PsychoEducationContent[]>;
   getAllPsychoEducationContent(): Promise<PsychoEducationContent[]>;
   createPsychoEducationContent(content: InsertPsychoEducationContent): Promise<PsychoEducationContent>;
+  deletePsychoEducationContent(contentId: string): Promise<void>;
 
   // Craving operations
   createCravingEntry(entry: InsertCravingEntry): Promise<CravingEntry>;
@@ -130,6 +132,10 @@ export class DbStorage implements IStorage {
     return getDB().insert(exercises).values(insertExercise).returning().then(rows => rows[0]);
   }
 
+  async deleteExercise(exerciseId: string): Promise<void> {
+    await getDB().delete(exercises).where(eq(exercises.id, exerciseId));
+  }
+
   async getPsychoEducationContent(): Promise<PsychoEducationContent[]> {
     return getDB().select().from(psychoEducationContent).where(eq(psychoEducationContent.isActive, true)).orderBy(psychoEducationContent.title);
   }
@@ -140,6 +146,10 @@ export class DbStorage implements IStorage {
 
   async createPsychoEducationContent(insertContent: InsertPsychoEducationContent): Promise<PsychoEducationContent> {
     return getDB().insert(psychoEducationContent).values(insertContent).returning().then(rows => rows[0]);
+  }
+
+  async deletePsychoEducationContent(contentId: string): Promise<void> {
+    await getDB().delete(psychoEducationContent).where(eq(psychoEducationContent.id, contentId));
   }
 
   async createCravingEntry(insertEntry: InsertCravingEntry): Promise<CravingEntry> {

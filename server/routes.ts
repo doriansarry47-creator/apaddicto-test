@@ -412,4 +412,26 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Admin - Supprimer un exercice
+  app.delete("/api/admin/exercises/:exerciseId", requireAdmin, async (req, res) => {
+    try {
+      const { exerciseId } = req.params;
+      await storage.deleteExercise(exerciseId);
+      res.json({ message: "Exercise deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete exercise" });
+    }
+  });
+
+  // Admin - Supprimer du contenu psycho-éducationnel
+  app.delete("/api/admin/psycho-education/:contentId", requireAdmin, async (req, res) => {
+    try {
+      const { contentId } = req.params;
+      await storage.deletePsychoEducationContent(contentId);
+      res.json({ message: "Content deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete content" });
+    }
+  });
+
 }

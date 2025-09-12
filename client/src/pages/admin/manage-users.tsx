@@ -4,6 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,6 +33,7 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { Users, UserCheck, UserX, Filter, Download } from "lucide-react";
 
 interface AdminUser {
   id: string;
@@ -43,6 +52,8 @@ export default function ManageUsers() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [activityFilter, setActivityFilter] = useState<string>("all");
 
   const { data: users, isLoading } = useQuery<AdminUser[]>({
     queryKey: ["admin", "users"],
@@ -61,10 +72,38 @@ export default function ManageUsers() {
     },
   });
 
-  const filteredUsers = users?.filter(user => 
-    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    `${user.firstName} ${user.lastName}`.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  const filteredUsers = users?.filter(user => {
+    // Filtre par terme de recherche
+    const matchesSearch = user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      `${user.firstName} ${user.lastName}`.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Filtre par rôle
+    const matchesRole = roleFilter === "all" || user.role === roleFilter;
+    
+    // Filtre par activité
+    let matchesActivity = true;
+    if (activityFilter === "active") {
+      if (!user.lastLoginAt) {
+        matchesActivity = false;
+      } else {
+        const lastLogin = new Date(user.lastLoginAt);
+        const now = new Date();
+        const diffDays = Math.ceil(Math.abs(now.getTime() - lastLogin.getTime()) / (1000 * 60 * 60 * 24));
+        matchesActivity = diffDays <= 7;
+      }
+    } else if (activityFilter === "inactive") {
+      if (!user.lastLoginAt) {
+        matchesActivity = true;
+      } else {
+        const lastLogin = new Date(user.lastLoginAt);
+        const now = new Date();
+        const diffDays = Math.ceil(Math.abs(now.getTime() - lastLogin.getTime()) / (1000 * 60 * 60 * 24));
+        matchesActivity = diffDays > 7;
+      }
+    }
+    
+    return matchesSearch && matchesRole && matchesActivity;
+  }) || [];
 
   const getInactivityDays = (lastLoginAt: string | null) => {
     if (!lastLoginAt) return "Jamais connecté";
@@ -90,53 +129,124 @@ export default function ManageUsers() {
   return (
     <div className="container mx-auto px-4 py-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Gestion des Utilisateurs</h1>
-        <div className="flex items-center space-x-4">
-          <Input
-            placeholder="Rechercher un utilisateur..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-64"
-          />
+        <div className="flex items-center space-x-2">
+          <Users className="h-8 w-8 text-primary" />
+          <h1 className="text-3xl font-bold">Gestion des Utilisateurs</h1>
         </div>
+        <Button variant="outline" className="flex items-center space-x-2">
+          <Download className="h-4 w-4" />
+          <span>Exporter</span>
+        </Button>
       </div>
 
+      {/* Filtres */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Filter className="h-5 w-5" />
+            <span>Filtres</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="search">Rechercher</Label>
+              <Input
+                id="search"
+                placeholder="Nom, prénom ou email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="role">Rôle</Label>
+              <Select value={roleFilter} onValueChange={setRoleFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Tous les rôles" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les rôles</SelectItem>
+                  <SelectItem value="patient">Patients</SelectItem>
+                  <SelectItem value="admin">Administrateurs</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="activity">Activité</Label>
+              <Select value={activityFilter} onValueChange={setActivityFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Toute activité" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toute activité</SelectItem>
+                  <SelectItem value="active">Actifs (7 derniers jours)</SelectItem>
+                  <SelectItem value="inactive">Inactifs (+ de 7 jours)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Statistiques */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-primary">{users?.length || 0}</div>
-            <div className="text-sm text-muted-foreground">Total utilisateurs</div>
+            <div className="flex items-center space-x-2">
+              <Users className="h-5 w-5 text-primary" />
+              <div>
+                <div className="text-2xl font-bold text-primary">{filteredUsers.length}</div>
+                <div className="text-sm text-muted-foreground">Utilisateurs affichés</div>
+              </div>
+            </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-green-600">
-              {users?.filter(u => u.role === 'patient').length || 0}
+            <div className="flex items-center space-x-2">
+              <UserCheck className="h-5 w-5 text-green-600" />
+              <div>
+                <div className="text-2xl font-bold text-green-600">
+                  {filteredUsers.filter(u => u.role === 'patient').length}
+                </div>
+                <div className="text-sm text-muted-foreground">Patients</div>
+              </div>
             </div>
-            <div className="text-sm text-muted-foreground">Patients</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-blue-600">
-              {users?.filter(u => u.role === 'admin').length || 0}
+            <div className="flex items-center space-x-2">
+              <UserX className="h-5 w-5 text-blue-600" />
+              <div>
+                <div className="text-2xl font-bold text-blue-600">
+                  {filteredUsers.filter(u => u.role === 'admin').length}
+                </div>
+                <div className="text-sm text-muted-foreground">Administrateurs</div>
+              </div>
             </div>
-            <div className="text-sm text-muted-foreground">Administrateurs</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold text-orange-600">
-              {users?.filter(u => {
+              {filteredUsers.filter(u => {
                 if (!u.lastLoginAt) return true;
                 const lastLogin = new Date(u.lastLoginAt);
                 const now = new Date();
                 const diffDays = Math.ceil(Math.abs(now.getTime() - lastLogin.getTime()) / (1000 * 60 * 60 * 24));
                 return diffDays > 7;
-              }).length || 0}
+              }).length}
             </div>
             <div className="text-sm text-muted-foreground">Inactifs (7+ jours)</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-purple-600">
+              {users?.length || 0}
+            </div>
+            <div className="text-sm text-muted-foreground">Total général</div>
           </CardContent>
         </Card>
       </div>
