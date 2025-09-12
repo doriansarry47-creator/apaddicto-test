@@ -242,6 +242,10 @@ export default function ManageContent() {
             <div className="text-2xl font-bold text-purple-600">
               {content?.filter(c => c.type === 'interactive').length || 0}
             </div>
+            <CardContent className="p-4">
+            <div className="text-2xl font-bold text-purple-600">
+              {content?.filter(c => c.type === 'interactive').length || 0}
+            </div>
             <div className="text-sm text-muted-foreground">Interactifs</div>
           </CardContent>
         </Card>
@@ -398,15 +402,15 @@ export default function ManageContent() {
           </Card>
         </div>
 
-        {/* Liste du contenu */}
+        {/* Liste des contenus */}
         <div className="lg:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle>Contenu Existant</CardTitle>
+              <CardTitle>Contenus Existants</CardTitle>
             </CardHeader>
             <CardContent>
               {isLoading ? (
-                <p>Chargement du contenu...</p>
+                <p>Chargement des contenus...</p>
               ) : (
                 <div className="space-y-4">
                   {filteredContent.map((item) => (
@@ -423,75 +427,194 @@ export default function ManageContent() {
                             </Badge>
                             <Badge variant={
                               item.difficulty === 'beginner' ? 'default' :
-                              item.difficulty === 'intermediate' ? 'secondary' : 'destructive'
+                              item.difficulty === 'intermediate' ? 'secondary' :
+                              'destructive'
                             }>
                               {DIFFICULTY_LEVELS.find(d => d.value === item.difficulty)?.label || item.difficulty}
                             </Badge>
                           </div>
-                          <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                            {item.content.substring(0, 150)}...
+                          <p className="text-sm text-muted-foreground mb-2">
+                            {item.description}
                           </p>
                           <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                            {item.estimatedReadTime && (
-                              <span className="flex items-center space-x-1">
-                                <Clock className="h-4 w-4" />
-                                <span>{item.estimatedReadTime} min</span>
-                              </span>
+                            <div className="flex items-center space-x-1">
+                              <Clock className="h-4 w-4" />
+                              <span>{item.estimatedReadTime} min</span>
+                            </div>
+                            {item.type === 'video' && (
+                              <div className="flex items-center space-x-1">
+                                <Video className="h-4 w-4" />
+                                <a href={item.videoUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Voir la vidéo</a>
+                              </div>
                             )}
-                            {item.imageUrl && (
-                              <span className="flex items-center space-x-1">
-                                <Image className="h-4 w-4" />
-                                <span>Image</span>
-                              </span>
-                            )}
-                            {item.videoUrl && (
-                              <span className="text-blue-600">Vidéo</span>
-                            )}
-                            {item.audioUrl && (
-                              <span className="text-green-600">Audio</span>
+                            {item.type === 'audio' && (
+                              <div className="flex items-center space-x-1">
+                                <Headphones className="h-4 w-4" />
+                                <a href={item.audioUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Écouter l'audio</a>
+                              </div>
                             )}
                           </div>
                         </div>
                         <div className="flex space-x-2">
-                          <Button variant="outline" size="sm">
-                            <Edit className="h-4 w-4" />
-                          </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button variant="destructive" size="sm">
+                              <Button variant="outline" size="icon">
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Modifier le contenu</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Cette action ne peut pas être annulée. Cela modifiera
+                                  définitivement le contenu.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <form
+                                onSubmit={handleSubmit((data) => {
+                                  // Logic for updating content
+                                  console.log("Update data:", data);
+                                })}
+                                className="space-y-4"
+                              >
+                                <div>
+                                  <Label htmlFor="edit-title">Titre</Label>
+                                  <Input
+                                    id="edit-title"
+                                    defaultValue={item.title}
+                                    {...register("title")}
+                                  />
+                                </div>
+                                <div>
+                                  <Label htmlFor="edit-category">Catégorie</Label>
+                                  <Select
+                                    defaultValue={item.category}
+                                    onValueChange={(value) => setValue("category", value)}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {PSYCHO_EDUCATION_CATEGORIES.map((category) => (
+                                        <SelectItem
+                                          key={category.value}
+                                          value={category.value}
+                                        >
+                                          {category.label}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div>
+                                  <Label htmlFor="edit-type">Type de contenu</Label>
+                                  <Select
+                                    defaultValue={item.type}
+                                    onValueChange={(value) => setValue("type", value)}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {CONTENT_TYPES.map((type) => (
+                                        <SelectItem
+                                          key={type.value}
+                                          value={type.value}
+                                        >
+                                          {type.label}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div>
+                                  <Label htmlFor="edit-difficulty">Difficulté</Label>
+                                  <Select
+                                    defaultValue={item.difficulty}
+                                    onValueChange={(value) => setValue("difficulty", value)}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {DIFFICULTY_LEVELS.map((level) => (
+                                        <SelectItem
+                                          key={level.value}
+                                          value={level.value}
+                                        >
+                                          {level.label}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div>
+                                  <Label htmlFor="edit-estimatedReadTime">Temps de lecture estimé (minutes)</Label>
+                                  <Input
+                                    id="edit-estimatedReadTime"
+                                    type="number"
+                                    defaultValue={item.estimatedReadTime}
+                                    {...register("estimatedReadTime", { valueAsNumber: true })}
+                                  />
+                                </div>
+                                <div>
+                                  <Label htmlFor="edit-content">Contenu (Markdown)</Label>
+                                  <Textarea
+                                    id="edit-content"
+                                    defaultValue={item.content}
+                                    {...register("content")}
+                                  />
+                                </div>
+                                <div>
+                                  <Label htmlFor="edit-videoUrl">URL Vidéo (optionnel)</Label>
+                                  <Input
+                                    id="edit-videoUrl"
+                                    defaultValue={item.videoUrl}
+                                    {...register("videoUrl")}
+                                  />
+                                </div>
+                                <div>
+                                  <Label htmlFor="edit-audioUrl">URL Audio (optionnel)</Label>
+                                  <Input
+                                    id="edit-audioUrl"
+                                    defaultValue={item.audioUrl}
+                                    {...register("audioUrl")}
+                                  />
+                                </div>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                  <Button type="submit">Sauvegarder</Button>
+                                </AlertDialogFooter>
+                              </form>
+                            </AlertDialogContent>
+                          </AlertDialog>
+
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="destructive" size="icon">
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+                                <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Êtes-vous sûr de vouloir supprimer le contenu "{item.title}" ?
-                                  Cette action est irréversible.
+                                  Cette action ne peut pas être annulée. Cela supprimera
+                                  définitivement ce contenu de nos serveurs.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Annuler</AlertDialogCancel>
                                 <AlertDialogAction
                                   onClick={() => deleteContentMutation.mutate(item.id)}
-                                  disabled={deleteContentMutation.isPending}
                                 >
-                                  {deleteContentMutation.isPending ? "Suppression..." : "Supprimer"}
+                                  Continuer
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
                         </div>
                       </div>
-                      {item.imageUrl && (
-                        <div className="mt-3">
-                          <img 
-                            src={item.imageUrl} 
-                            alt={item.title}
-                            className="w-full h-32 object-cover rounded-md"
-                          />
-                        </div>
-                      )}
                     </div>
                   ))}
                 </div>
@@ -499,8 +622,10 @@ export default function ManageContent() {
             </CardContent>
           </Card>
         </div>
+      </div>
         </TabsContent>
 
+        {/* Onglet routines d'urgence */}
         <TabsContent value="quick-resources" className="mt-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-semibold">Gestion des Ressources Rapides</h2>
@@ -512,25 +637,16 @@ export default function ManageContent() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Zap className="h-5 w-5" />
-                <span>Ressources Rapides</span>
-              </CardTitle>
-              <CardDescription>
-                Gérez les ressources rapides et conseils instantanés disponibles pour les patients.
-              </CardDescription>
+              <CardTitle>Ressources Rapides Existantes</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8 text-gray-500">
-                <Zap className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Fonctionnalité en cours de développement</p>
-                <p className="text-sm">Les ressources rapides seront bientôt disponibles</p>
-              </div>
+              <p>Fonctionnalité à venir...</p>
             </CardContent>
           </Card>
         </TabsContent>
-
       </Tabs>
     </div>
   );
 }
+
+
