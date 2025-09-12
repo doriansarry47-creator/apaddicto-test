@@ -2,35 +2,21 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { insertExerciseSchema } from "../../../shared/schema";
+import type { Exercise, InsertExercise, EmergencyRoutine, InsertEmergencyRoutine } from "../../../shared/schema";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Trash2, Edit, Clock, Target, Activity, AlertTriangle, Settings } from "lucide-react";
+import { toast } from "sonner";
 import { apiRequest } from "@/lib/queryClient";
-import type { Exercise, InsertExercise } from "@shared/schema";
-import { insertExerciseSchema } from "@shared/schema";
-import { Dumbbell, Plus, Edit, Trash2, Image, Filter } from "lucide-react";
 
 type FormData = InsertExercise;
 
@@ -133,7 +119,7 @@ export default function ManageExercises() {
     return matchesCategory && matchesDifficulty;
   }) || [];
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(insertExerciseSchema),
   });
 
@@ -145,14 +131,31 @@ export default function ManageExercises() {
     <div className="container mx-auto px-4 py-6">
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center space-x-2">
-          <Dumbbell className="h-8 w-8 text-primary" />
+          <Activity className="h-8 w-8 text-primary" />
           <h1 className="text-3xl font-bold">Gestion des Exercices</h1>
         </div>
-        <Button className="flex items-center space-x-2">
-          <Plus className="h-4 w-4" />
-          <span>Nouvel Exercice</span>
-        </Button>
       </div>
+
+      <Tabs defaultValue="exercises" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="exercises" className="flex items-center space-x-2">
+            <Activity className="h-4 w-4" />
+            <span>Exercices</span>
+          </TabsTrigger>
+          <TabsTrigger value="emergency-routines" className="flex items-center space-x-2">
+            <AlertTriangle className="h-4 w-4" />
+            <span>Routines d'Urgence</span>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="exercises" className="mt-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-semibold">Gestion des Exercices</h2>
+            <Button className="flex items-center space-x-2">
+              <Plus className="h-4 w-4" />
+              <span>Nouvel Exercice</span>
+            </Button>
+          </div>
 
       {/* Filtres */}
       <Card className="mb-6">
@@ -254,7 +257,7 @@ export default function ManageExercises() {
                 
                 <div>
                   <Label htmlFor="category">Catégorie</Label>
-                  <Select onValueChange={(value) => register("category").onChange({ target: { value } })}>
+                  <Select onValueChange={(value) => setValue("category", value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Sélectionner une catégorie" />
                     </SelectTrigger>
@@ -271,7 +274,7 @@ export default function ManageExercises() {
 
                 <div>
                   <Label htmlFor="difficulty">Difficulté</Label>
-                  <Select onValueChange={(value) => register("difficulty").onChange({ target: { value } })}>
+                  <Select onValueChange={(value) => setValue("difficulty", value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Sélectionner un niveau" />
                     </SelectTrigger>
@@ -456,7 +459,38 @@ export default function ManageExercises() {
             </CardContent>
           </Card>
         </div>
-      </div>
+        </TabsContent>
+
+        <TabsContent value="emergency-routines" className="mt-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-semibold">Gestion des Routines d'Urgence</h2>
+            <Button className="flex items-center space-x-2">
+              <Plus className="h-4 w-4" />
+              <span>Nouvelle Routine</span>
+            </Button>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <AlertTriangle className="h-5 w-5" />
+                <span>Routines d'Urgence</span>
+              </CardTitle>
+              <CardDescription>
+                Gérez les routines d'urgence disponibles pour aider les patients en cas de craving intense.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8 text-gray-500">
+                <AlertTriangle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Fonctionnalité en cours de développement</p>
+                <p className="text-sm">Les routines d'urgence seront bientôt disponibles</p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+      </Tabs>
     </div>
   );
 }

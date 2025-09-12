@@ -30,6 +30,13 @@
 - [x] Tester la page de gestion du contenu psycho-éducationnel
 - [x] Vérifier que toutes les fonctionnalités administrateur fonctionnent correctement
 
+## Phase 7: Déployer les modifications sur GitHub et Vercel
+- [x] Configurer Git avec les identifiants appropriés
+- [x] Ajouter tous les fichiers modifiés au commit
+- [x] Créer un commit avec un message descriptif
+- [x] Pousser les modifications sur GitHub avec le token fourni
+- [x] Vérifier que le déploiement Vercel se déclenche automatiquement
+
 ## Fonctionnalités administratives supplémentaires
 - [ ] Tableau de bord avec statistiques globales
 - [ ] Gestion des badges et récompenses

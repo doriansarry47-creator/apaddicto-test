@@ -2,35 +2,21 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { insertPsychoEducationContentSchema } from "../../../shared/schema";
+import type { PsychoEducationContent, InsertPsychoEducationContent, QuickResource, InsertQuickResource } from "../../../shared/schema";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Trash2, Edit, Clock, BookOpen, Video, Headphones, Gamepad2, Zap, Pin, Settings } from "lucide-react";
+import { toast } from "sonner";
 import { apiRequest } from "@/lib/queryClient";
-import type { PsychoEducationContent, InsertPsychoEducationContent } from "@shared/schema";
-import { insertPsychoEducationContentSchema } from "@shared/schema";
-import { BookOpen, Plus, Edit, Trash2, Image, Filter, Clock } from "lucide-react";
 
 type FormData = InsertPsychoEducationContent;
 
@@ -143,7 +129,7 @@ export default function ManageContent() {
     return matchesCategory && matchesType;
   }) || [];
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(insertPsychoEducationContentSchema),
   });
 
@@ -158,11 +144,28 @@ export default function ManageContent() {
           <BookOpen className="h-8 w-8 text-primary" />
           <h1 className="text-3xl font-bold">Gestion du Contenu Psycho-Éducationnel</h1>
         </div>
-        <Button className="flex items-center space-x-2">
-          <Plus className="h-4 w-4" />
-          <span>Nouveau Contenu</span>
-        </Button>
       </div>
+
+      <Tabs defaultValue="content" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="content" className="flex items-center space-x-2">
+            <BookOpen className="h-4 w-4" />
+            <span>Contenu Éducatif</span>
+          </TabsTrigger>
+          <TabsTrigger value="quick-resources" className="flex items-center space-x-2">
+            <Zap className="h-4 w-4" />
+            <span>Ressources Rapides</span>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="content" className="mt-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-semibold">Gestion du Contenu</h2>
+            <Button className="flex items-center space-x-2">
+              <Plus className="h-4 w-4" />
+              <span>Nouveau Contenu</span>
+            </Button>
+          </div>
 
       {/* Filtres */}
       <Card className="mb-6">
@@ -264,7 +267,7 @@ export default function ManageContent() {
                 
                 <div>
                   <Label htmlFor="category">Catégorie</Label>
-                  <Select onValueChange={(value) => register("category").onChange({ target: { value } })}>
+                  <Select onValueChange={(value) => setValue("category", value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Sélectionner une catégorie" />
                     </SelectTrigger>
@@ -281,7 +284,7 @@ export default function ManageContent() {
 
                 <div>
                   <Label htmlFor="type">Type de contenu</Label>
-                  <Select onValueChange={(value) => register("type").onChange({ target: { value } })}>
+                  <Select onValueChange={(value) => setValue("type", value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Sélectionner un type" />
                     </SelectTrigger>
@@ -298,7 +301,7 @@ export default function ManageContent() {
 
                 <div>
                   <Label htmlFor="difficulty">Difficulté</Label>
-                  <Select onValueChange={(value) => register("difficulty").onChange({ target: { value } })}>
+                  <Select onValueChange={(value) => setValue("difficulty", value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Sélectionner un niveau" />
                     </SelectTrigger>
@@ -496,7 +499,38 @@ export default function ManageContent() {
             </CardContent>
           </Card>
         </div>
-      </div>
+        </TabsContent>
+
+        <TabsContent value="quick-resources" className="mt-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-semibold">Gestion des Ressources Rapides</h2>
+            <Button className="flex items-center space-x-2">
+              <Plus className="h-4 w-4" />
+              <span>Nouvelle Ressource</span>
+            </Button>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Zap className="h-5 w-5" />
+                <span>Ressources Rapides</span>
+              </CardTitle>
+              <CardDescription>
+                Gérez les ressources rapides et conseils instantanés disponibles pour les patients.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8 text-gray-500">
+                <Zap className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Fonctionnalité en cours de développement</p>
+                <p className="text-sm">Les ressources rapides seront bientôt disponibles</p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+      </Tabs>
     </div>
   );
 }

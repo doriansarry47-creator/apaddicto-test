@@ -434,4 +434,120 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Admin - Gestion des routines d'urgence
+  app.get("/api/admin/emergency-routines", requireAdmin, async (req, res) => {
+    try {
+      const routines = await storage.getAllEmergencyRoutines();
+      res.json(routines);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch emergency routines" });
+    }
+  });
+
+  app.get("/api/admin/emergency-routines/default", requireAdmin, async (req, res) => {
+    try {
+      const routine = await storage.getDefaultEmergencyRoutine();
+      res.json(routine);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch default emergency routine" });
+    }
+  });
+
+  app.post("/api/admin/emergency-routines", requireAdmin, async (req, res) => {
+    try {
+      const routine = await storage.createEmergencyRoutine(req.body);
+      res.json(routine);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create emergency routine" });
+    }
+  });
+
+  app.put("/api/admin/emergency-routines/:routineId", requireAdmin, async (req, res) => {
+    try {
+      const { routineId } = req.params;
+      const routine = await storage.updateEmergencyRoutine(routineId, req.body);
+      res.json(routine);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update emergency routine" });
+    }
+  });
+
+  app.delete("/api/admin/emergency-routines/:routineId", requireAdmin, async (req, res) => {
+    try {
+      const { routineId } = req.params;
+      await storage.deleteEmergencyRoutine(routineId);
+      res.json({ message: "Emergency routine deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete emergency routine" });
+    }
+  });
+
+  app.put("/api/admin/emergency-routines/:routineId/set-default", requireAdmin, async (req, res) => {
+    try {
+      const { routineId } = req.params;
+      await storage.setDefaultEmergencyRoutine(routineId);
+      res.json({ message: "Default emergency routine set successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to set default emergency routine" });
+    }
+  });
+
+  // Admin - Gestion des ressources rapides
+  app.get("/api/admin/quick-resources", requireAdmin, async (req, res) => {
+    try {
+      const resources = await storage.getAllQuickResources();
+      res.json(resources);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch quick resources" });
+    }
+  });
+
+  app.get("/api/admin/quick-resources/pinned", requireAdmin, async (req, res) => {
+    try {
+      const resources = await storage.getPinnedQuickResources();
+      res.json(resources);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch pinned quick resources" });
+    }
+  });
+
+  app.post("/api/admin/quick-resources", requireAdmin, async (req, res) => {
+    try {
+      const resource = await storage.createQuickResource(req.body);
+      res.json(resource);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create quick resource" });
+    }
+  });
+
+  app.put("/api/admin/quick-resources/:resourceId", requireAdmin, async (req, res) => {
+    try {
+      const { resourceId } = req.params;
+      const resource = await storage.updateQuickResource(resourceId, req.body);
+      res.json(resource);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update quick resource" });
+    }
+  });
+
+  app.delete("/api/admin/quick-resources/:resourceId", requireAdmin, async (req, res) => {
+    try {
+      const { resourceId } = req.params;
+      await storage.deleteQuickResource(resourceId);
+      res.json({ message: "Quick resource deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete quick resource" });
+    }
+  });
+
+  app.put("/api/admin/quick-resources/:resourceId/toggle-pin", requireAdmin, async (req, res) => {
+    try {
+      const { resourceId } = req.params;
+      await storage.togglePinQuickResource(resourceId);
+      res.json({ message: "Quick resource pin status toggled successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to toggle pin status" });
+    }
+  });
+
 }

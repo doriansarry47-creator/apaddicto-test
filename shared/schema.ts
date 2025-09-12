@@ -149,6 +149,48 @@ export const insertUserBadgeSchema = createInsertSchema(userBadges).omit({
   earnedAt: true,
 });
 
+// Emergency routines table
+export const emergencyRoutines = pgTable("emergency_routines", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: varchar("title").notNull(),
+  description: text("description"),
+  steps: jsonb("steps").notNull(), // Array of steps for the routine
+  duration: integer("duration"), // in minutes
+  category: varchar("category").default("general"), // 'breathing', 'grounding', 'distraction', 'general'
+  isActive: boolean("is_active").default(true),
+  isDefault: boolean("is_default").default(false), // One routine can be marked as default
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertEmergencyRoutineSchema = createInsertSchema(emergencyRoutines).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Quick resources table (for psycho-education)
+export const quickResources = pgTable("quick_resources", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: varchar("title").notNull(),
+  description: text("description"),
+  content: text("content").notNull(),
+  category: varchar("category").notNull(), // 'coping', 'motivation', 'emergency', 'relaxation'
+  type: varchar("type").default("tip"), // 'tip', 'technique', 'reminder', 'affirmation'
+  icon: varchar("icon"), // Icon name for UI
+  color: varchar("color").default("blue"), // Color theme
+  isActive: boolean("is_active").default(true),
+  isPinned: boolean("is_pinned").default(false), // Pinned resources appear first
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertQuickResourceSchema = createInsertSchema(quickResources).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -165,3 +207,7 @@ export type InsertBeckAnalysis = z.infer<typeof insertBeckAnalysisSchema>;
 export type UserBadge = typeof userBadges.$inferSelect;
 export type InsertUserBadge = z.infer<typeof insertUserBadgeSchema>;
 export type UserStats = typeof userStats.$inferSelect;
+export type EmergencyRoutine = typeof emergencyRoutines.$inferSelect;
+export type InsertEmergencyRoutine = z.infer<typeof insertEmergencyRoutineSchema>;
+export type QuickResource = typeof quickResources.$inferSelect;
+export type InsertQuickResource = z.infer<typeof insertQuickResourceSchema>;

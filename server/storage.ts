@@ -8,6 +8,8 @@ import {
   beckAnalyses,
   userBadges,
   userStats,
+  emergencyRoutines,
+  quickResources,
   type User,
   type InsertUser,
   type Exercise,
@@ -23,6 +25,10 @@ import {
   type UserBadge,
   type InsertUserBadge,
   type UserStats,
+  type EmergencyRoutine,
+  type InsertEmergencyRoutine,
+  type QuickResource,
+  type InsertQuickResource,
 } from "../shared/schema.js";
 import { randomUUID } from "crypto";
 import { eq, desc, sql, and, gte } from "drizzle-orm";
@@ -65,6 +71,25 @@ export interface IStorage {
 
   // Badge operations
   getUserBadges(userId: string): Promise<UserBadge[]>;
+  
+  // Emergency routine operations
+  getAllEmergencyRoutines(): Promise<EmergencyRoutine[]>;
+  getEmergencyRoutine(routineId: string): Promise<EmergencyRoutine | undefined>;
+  createEmergencyRoutine(routine: InsertEmergencyRoutine): Promise<EmergencyRoutine>;
+  updateEmergencyRoutine(routineId: string, routine: Partial<InsertEmergencyRoutine>): Promise<EmergencyRoutine>;
+  deleteEmergencyRoutine(routineId: string): Promise<void>;
+  getDefaultEmergencyRoutine(): Promise<EmergencyRoutine | undefined>;
+  setDefaultEmergencyRoutine(routineId: string): Promise<void>;
+  
+  // Quick resource operations
+  getAllQuickResources(): Promise<QuickResource[]>;
+  getQuickResource(resourceId: string): Promise<QuickResource | undefined>;
+  createQuickResource(resource: InsertQuickResource): Promise<QuickResource>;
+  updateQuickResource(resourceId: string, resource: Partial<InsertQuickResource>): Promise<QuickResource>;
+  deleteQuickResource(resourceId: string): Promise<void>;
+  getPinnedQuickResources(): Promise<QuickResource[]>;
+  togglePinQuickResource(resourceId: string): Promise<void>;
+  
   awardBadge(badge: InsertUserBadge): Promise<UserBadge>;
   checkAndAwardBadges(userId: string): Promise<UserBadge[]>;
 }
@@ -335,6 +360,104 @@ Object.assign(DbStorage.prototype, {
     // Pour l'instant, retourner un tableau vide car la table media n'existe pas encore
     // Dans une implémentation complète, on créerait une table media dans le schéma
     return [];
+  },
+
+  // Emergency routine operations
+  async getAllEmergencyRoutines(): Promise<EmergencyRoutine[]> {
+    return getDB().select().from(emergencyRoutines).where(eq(emergencyRoutines.isActive, true)).orderBy(emergencyRoutines.title);
+  },
+
+  async getEmergencyRoutine(routineId: string): Promise<EmergencyRoutine | undefined> {
+    const result = await getDB().select().from(emergencyRoutines).where(eq(emergencyRoutines.id, routineId));
+    return result[0];
+  },
+
+  async createEmergencyRoutine(insertRoutine: InsertEmergencyRoutine): Promise<EmergencyRoutine> {
+    return getDB().insert(emergencyRoutines).values(insertRoutine).returning().then(rows => rows[0]);
+  },
+
+  async updateEmergencyRoutine(routineId: string, updateData: Partial<InsertEmergencyRoutine>): Promise<EmergencyRoutine> {
+    const result = await getDB()
+      .update(emergencyRoutines)
+      .set({ ...updateData, updatedAt: new Date() })
+      .where(eq(emergencyRoutines.id, routineId))
+      .returning();
+    return result[0];
+  },
+
+  async deleteEmergencyRoutine(routineId: string): Promise<void> {
+    await getDB().delete(emergencyRoutines).where(eq(emergencyRoutines.id, routineId));
+  },
+
+  async getDefaultEmergencyRoutine(): Promise<EmergencyRoutine | undefined> {
+    const result = await getDB()
+      .select()
+      .from(emergencyRoutines)
+      .where(and(eq(emergencyRoutines.isActive, true), eq(emergencyRoutines.isDefault, true)));
+    return result[0];
+  },
+
+  async setDefaultEmergencyRoutine(routineId: string): Promise<void> {
+    // D'abord, retirer le statut par défaut de toutes les routines
+    await getDB()
+      .update(emergencyRoutines)
+      .set({ isDefault: false })
+      .where(eq(emergencyRoutines.isDefault, true));
+    
+    // Ensuite, définir la nouvelle routine par défaut
+    await getDB()
+      .update(emergencyRoutines)
+      .set({ isDefault: true })
+      .where(eq(emergencyRoutines.id, routineId));
+  },
+
+  // Quick resource operations
+  async getAllQuickResources(): Promise<QuickResource[]> {
+    return getDB()
+      .select()
+      .from(quickResources)
+      .where(eq(quickResources.isActive, true))
+      .orderBy(quickResources.isPinned, quickResources.title);
+  },
+
+  async getQuickResource(resourceId: string): Promise<QuickResource | undefined> {
+    const result = await getDB().select().from(quickResources).where(eq(quickResources.id, resourceId));
+    return result[0];
+  },
+
+  async createQuickResource(insertResource: InsertQuickResource): Promise<QuickResource> {
+    return getDB().insert(quickResources).values(insertResource).returning().then(rows => rows[0]);
+  },
+
+  async updateQuickResource(resourceId: string, updateData: Partial<InsertQuickResource>): Promise<QuickResource> {
+    const result = await getDB()
+      .update(quickResources)
+      .set({ ...updateData, updatedAt: new Date() })
+      .where(eq(quickResources.id, resourceId))
+      .returning();
+    return result[0];
+  },
+
+  async deleteQuickResource(resourceId: string): Promise<void> {
+    await getDB().delete(quickResources).where(eq(quickResources.id, resourceId));
+  },
+
+  async getPinnedQuickResources(): Promise<QuickResource[]> {
+    return getDB()
+      .select()
+      .from(quickResources)
+      .where(and(eq(quickResources.isActive, true), eq(quickResources.isPinned, true)))
+      .orderBy(quickResources.title);
+  },
+
+  async togglePinQuickResource(resourceId: string): Promise<void> {
+    const resource = await this.getQuickResource(resourceId);
+    if (resource) {
+      await getDB()
+        .update(quickResources)
+        .set({ isPinned: !resource.isPinned })
+        .where(eq(quickResources.id, resourceId));
+    }
   },
 
   async deleteMediaFile(mediaId: string): Promise<void> {
