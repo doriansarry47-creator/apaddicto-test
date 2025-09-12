@@ -276,3 +276,61 @@ export class DbStorage implements IStorage {
 }
 
 export const storage = new DbStorage();
+
+// Extension de la classe pour les méthodes d'administration
+Object.assign(DbStorage.prototype, {
+  // Admin operations
+  async getAllUsersWithStats(): Promise<any[]> {
+    const db = getDB();
+    
+    const usersWithStats = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        role: users.role,
+        createdAt: users.createdAt,
+        lastLoginAt: users.lastLoginAt,
+        isActive: users.isActive,
+      })
+      .from(users)
+      .orderBy(desc(users.createdAt));
+
+    // Pour chaque utilisateur, récupérer ses statistiques
+    const usersWithFullStats = await Promise.all(
+      usersWithStats.map(async (user) => {
+        const [exerciseCount] = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(exerciseSessions)
+          .where(eq(exerciseSessions.userId, user.id));
+
+        const [cravingCount] = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(cravingEntries)
+          .where(eq(cravingEntries.userId, user.id));
+
+        return {
+          ...user,
+          exerciseCount: exerciseCount?.count || 0,
+          cravingCount: cravingCount?.count || 0,
+        };
+      })
+    );
+
+    return usersWithFullStats;
+  },
+
+  async getAllMediaFiles(): Promise<any[]> {
+    // Pour l'instant, retourner un tableau vide car la table media n'existe pas encore
+    // Dans une implémentation complète, on créerait une table media dans le schéma
+    return [];
+  },
+
+  async deleteMediaFile(mediaId: string): Promise<void> {
+    // Pour l'instant, ne rien faire car la table media n'existe pas encore
+    // Dans une implémentation complète, on supprimerait le fichier de la table media
+    return;
+  }
+});
+

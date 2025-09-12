@@ -151,6 +151,56 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Admin - Gestion des utilisateurs
+  app.get("/api/admin/users", requireAdmin, async (req, res) => {
+    try {
+      const users = await storage.getAllUsersWithStats();
+      res.json(users);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  app.delete("/api/admin/users/:userId", requireAdmin, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      await storage.deleteUser(userId);
+      res.json({ message: "User deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete user" });
+    }
+  });
+
+  // Admin - Gestion des médias
+  app.get("/api/admin/media", requireAdmin, async (req, res) => {
+    try {
+      const mediaFiles = await storage.getAllMediaFiles();
+      res.json(mediaFiles);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch media files" });
+    }
+  });
+
+  app.post("/api/admin/media/upload", requireAdmin, async (req, res) => {
+    try {
+      // Cette route nécessiterait une implémentation de multer pour le téléchargement de fichiers
+      // Pour l'instant, on retourne une erreur indiquant que la fonctionnalité n'est pas encore implémentée
+      res.status(501).json({ message: "File upload not yet implemented" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to upload file" });
+    }
+  });
+
+  app.delete("/api/admin/media/:mediaId", requireAdmin, async (req, res) => {
+    try {
+      const { mediaId } = req.params;
+      await storage.deleteMediaFile(mediaId);
+      res.json({ message: "Media file deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete media file" });
+    }
+  });
+
   // ========================
   // 🍫 CRAVINGS
   // ========================

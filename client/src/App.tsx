@@ -20,6 +20,8 @@ import NotFound from "@/pages/not-found";
 import AdminDashboard from "@/pages/admin/dashboard";
 import ManageExercises from "@/pages/admin/manage-exercises";
 import ManageContent from "@/pages/admin/manage-content";
+import ManageUsers from "@/pages/admin/manage-users";
+import ManageMedia from "@/pages/admin/manage-media";
 
 
 function AppContent() {
@@ -75,6 +77,16 @@ function AppContent() {
       <Route path="/admin/manage-content">
         <AdminRoute>
           <ManageContent />
+        </AdminRoute>
+      </Route>
+      <Route path="/admin/manage-users">
+        <AdminRoute>
+          <ManageUsers />
+        </AdminRoute>
+      </Route>
+      <Route path="/admin/manage-media">
+        <AdminRoute>
+          <ManageMedia />
         </AdminRoute>
       </Route>
 
