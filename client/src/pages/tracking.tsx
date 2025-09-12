@@ -4,9 +4,9 @@ import { Navigation } from "@/components/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
+import { useAuthQuery } from "@/hooks/use-auth";
 import type { CravingEntry, ExerciseSession, BeckAnalysis, UserStats, AntiCravingStrategy } from "@shared/schema";
-
-const DEMO_USER_ID = "demo-user-123";
 
 interface CravingStats {
   average: number;
@@ -15,38 +15,77 @@ interface CravingStats {
 
 export default function Tracking() {
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('week');
+  
+  // Récupérer l'utilisateur authentifié
+  const { data: authenticatedUser, isLoading: userLoading } = useAuthQuery();
 
   const { data: cravingEntries, isLoading: cravingLoading } = useQuery<CravingEntry[]>({
-    queryKey: ["/api/cravings", DEMO_USER_ID],
+    queryKey: ["/api/cravings"],
+    queryFn: async () => {
+      const response = await fetch("/api/cravings");
+      if (!response.ok) throw new Error("Failed to fetch cravings");
+      return response.json();
+    },
+    enabled: !!authenticatedUser,
     initialData: [],
   });
 
   const { data: cravingStats, isLoading: statsLoading } = useQuery<CravingStats>({
-    queryKey: ["/api/cravings", DEMO_USER_ID, "stats"],
+    queryKey: ["/api/cravings/stats"],
+    queryFn: async () => {
+      const response = await fetch("/api/cravings/stats");
+      if (!response.ok) throw new Error("Failed to fetch craving stats");
+      return response.json();
+    },
+    enabled: !!authenticatedUser,
     initialData: { average: 0, trend: 0 },
   });
 
   const { data: exerciseSessions, isLoading: sessionsLoading } = useQuery<ExerciseSession[]>({
-    queryKey: ["/api/exercise-sessions", DEMO_USER_ID],
+    queryKey: ["/api/exercise-sessions"],
+    queryFn: async () => {
+      const response = await fetch("/api/exercise-sessions");
+      if (!response.ok) throw new Error("Failed to fetch exercise sessions");
+      return response.json();
+    },
+    enabled: !!authenticatedUser,
     initialData: [],
   });
 
   const { data: userStats, isLoading: userStatsLoading } = useQuery<UserStats>({
-    queryKey: ["/api/users", DEMO_USER_ID, "stats"],
+    queryKey: ["/api/users/stats"],
+    queryFn: async () => {
+      const response = await fetch("/api/users/stats");
+      if (!response.ok) throw new Error("Failed to fetch user stats");
+      return response.json();
+    },
+    enabled: !!authenticatedUser,
     initialData: { exercisesCompleted: 0, totalDuration: 0, currentStreak: 0, longestStreak: 0, averageCraving: 0, id: '', userId: '', updatedAt: new Date() },
   });
 
   const { data: beckAnalyses, isLoading: beckLoading } = useQuery<BeckAnalysis[]>({
-    queryKey: ["/api/beck-analyses", DEMO_USER_ID],
+    queryKey: ["/api/beck-analyses"],
+    queryFn: async () => {
+      const response = await fetch("/api/beck-analyses");
+      if (!response.ok) throw new Error("Failed to fetch beck analyses");
+      return response.json();
+    },
+    enabled: !!authenticatedUser,
     initialData: [],
   });
 
   const { data: antiCravingStrategies, isLoading: strategiesLoading } = useQuery<AntiCravingStrategy[]>({
-    queryKey: ["/api/strategies", DEMO_USER_ID],
+    queryKey: ["/api/strategies"],
+    queryFn: async () => {
+      const response = await fetch("/api/strategies");
+      if (!response.ok) throw new Error("Failed to fetch strategies");
+      return response.json();
+    },
+    enabled: !!authenticatedUser,
     initialData: [],
   });
 
-  const isLoading = cravingLoading || statsLoading || sessionsLoading || userStatsLoading || beckLoading || strategiesLoading;
+  const isLoading = userLoading || cravingLoading || statsLoading || sessionsLoading || userStatsLoading || beckLoading || strategiesLoading;
 
   if (isLoading) {
     return (
@@ -112,7 +151,7 @@ export default function Tracking() {
         </section>
 
         {/* Key Statistics */}
-        <section className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card className="shadow-material" data-testid="card-avg-craving">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-2">
@@ -122,7 +161,10 @@ export default function Tracking() {
               <div className="text-2xl font-bold text-foreground" data-testid="text-avg-craving">
                 {averageCraving.toFixed(1)}/10
               </div>
-              <p className={`text-xs ${cravingTrend < 0 ? 'text-success' : 'text-warning'}`}>
+              <div className="w-full mt-2">
+                <Progress value={(averageCraving / 10) * 100} className="h-2" />
+              </div>
+              <p className={`text-xs mt-2 ${cravingTrend < 0 ? 'text-success' : 'text-warning'}`}>
                 {cravingTrend < 0 ? '↓' : '↑'} {Math.abs(cravingTrend).toFixed(1)}% ce mois
               </p>
             </CardContent>
@@ -170,14 +212,177 @@ export default function Tracking() {
           </Card>
         </section>
 
+        {/* Summary Dashboard */}
+        <section className="mb-8">
+          <Card className="shadow-material">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <span className="material-icons mr-2 text-primary">dashboard</span>
+                Tableau de Bord - Résumé de Vos Activités
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="text-center p-4 bg-primary/10 rounded-lg">
+                  <div className="text-2xl font-bold text-primary mb-2">{cravingEntries?.length || 0}</div>
+                  <div className="text-sm text-muted-foreground">Cravings Enregistrés</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Dernière entrée: {cravingEntries && cravingEntries.length > 0 ? formatDate(cravingEntries[0].createdAt) : 'Aucune'}
+                  </div>
+                </div>
+                <div className="text-center p-4 bg-secondary/10 rounded-lg">
+                  <div className="text-2xl font-bold text-secondary mb-2">{beckAnalyses?.length || 0}</div>
+                  <div className="text-sm text-muted-foreground">Analyses Beck</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Dernière analyse: {beckAnalyses && beckAnalyses.length > 0 ? formatDate(beckAnalyses[0].createdAt) : 'Aucune'}
+                  </div>
+                </div>
+                <div className="text-center p-4 bg-warning/10 rounded-lg">
+                  <div className="text-2xl font-bold text-warning mb-2">{antiCravingStrategies?.length || 0}</div>
+                  <div className="text-sm text-muted-foreground">Stratégies Testées</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {antiCravingStrategies && antiCravingStrategies.length > 0 && (() => {
+                      const avg = antiCravingStrategies.reduce((sum, s) => sum + (s.cravingBefore - s.cravingAfter), 0) / antiCravingStrategies.length;
+                      return `Efficacité moyenne: ${avg > 0 ? '+' : ''}${avg.toFixed(1)} points`;
+                    })()} 
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
         {/* Detailed Tracking */}
-        <Tabs defaultValue="cravings" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4" data-testid="tabs-tracking">
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-5" data-testid="tabs-tracking">
+            <TabsTrigger value="overview" data-testid="tab-overview">Vue d'ensemble</TabsTrigger>
             <TabsTrigger value="cravings" data-testid="tab-cravings">Cravings</TabsTrigger>
             <TabsTrigger value="exercises" data-testid="tab-exercises">Exercices</TabsTrigger>
             <TabsTrigger value="analyses" data-testid="tab-analyses">Analyses</TabsTrigger>
             <TabsTrigger value="strategies" data-testid="tab-strategies">Stratégies</TabsTrigger>
           </TabsList>
+
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Recent Activities */}
+              <Card className="shadow-material">
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <span className="material-icons mr-2 text-primary">history</span>
+                    Activités Récentes
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {/* Recent craving entries */}
+                    {cravingEntries?.slice(0, 3).map((entry: CravingEntry) => (
+                      <div key={`craving-${entry.id}`} className="flex items-center justify-between p-2 bg-primary/5 rounded">
+                        <div className="flex items-center gap-2">
+                          <span className="material-icons text-primary text-sm">psychology</span>
+                          <span className="text-sm">Craving enregistré</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground">{formatDate(entry.createdAt)}</div>
+                      </div>
+                    ))}
+                    
+                    {/* Recent Beck analyses */}
+                    {beckAnalyses?.slice(0, 2).map((analysis: BeckAnalysis) => (
+                      <div key={`beck-${analysis.id}`} className="flex items-center justify-between p-2 bg-secondary/5 rounded">
+                        <div className="flex items-center gap-2">
+                          <span className="material-icons text-secondary text-sm">psychology</span>
+                          <span className="text-sm">Analyse cognitive</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground">{formatDate(analysis.createdAt)}</div>
+                      </div>
+                    ))}
+                    
+                    {/* Recent strategies */}
+                    {antiCravingStrategies?.slice(0, 2).map((strategy: AntiCravingStrategy) => (
+                      <div key={`strategy-${strategy.id}`} className="flex items-center justify-between p-2 bg-warning/5 rounded">
+                        <div className="flex items-center gap-2">
+                          <span className="material-icons text-warning text-sm">fitness_center</span>
+                          <span className="text-sm">Stratégie testée</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground">{formatDate(strategy.createdAt)}</div>
+                      </div>
+                    ))}
+                    
+                    {(!cravingEntries?.length && !beckAnalyses?.length && !antiCravingStrategies?.length) && (
+                      <div className="text-center py-4 text-muted-foreground">
+                        <span className="material-icons text-4xl mb-2">analytics</span>
+                        <p>Aucune activité récente</p>
+                        <p className="text-xs">Commencez à utiliser les outils depuis l'accueil</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+              
+              {/* Progress Chart */}
+              <Card className="shadow-material">
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <span className="material-icons mr-2 text-secondary">trending_down</span>
+                    Évolution des Cravings
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {cravingEntries && cravingEntries.length >= 2 ? (
+                    <div className="space-y-4">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-foreground">
+                          {(() => {
+                            const recent = cravingEntries.slice(0, 5);
+                            const older = cravingEntries.slice(5, 10);
+                            const recentAvg = recent.reduce((sum, e) => sum + e.intensity, 0) / recent.length;
+                            const olderAvg = older.length > 0 ? older.reduce((sum, e) => sum + e.intensity, 0) / older.length : recentAvg;
+                            const improvement = olderAvg - recentAvg;
+                            return improvement > 0 ? `-${improvement.toFixed(1)}` : `+${Math.abs(improvement).toFixed(1)}`;
+                          })()} points
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {(() => {
+                            const recent = cravingEntries.slice(0, 5);
+                            const older = cravingEntries.slice(5, 10);
+                            const recentAvg = recent.reduce((sum, e) => sum + e.intensity, 0) / recent.length;
+                            const olderAvg = older.length > 0 ? older.reduce((sum, e) => sum + e.intensity, 0) / older.length : recentAvg;
+                            const improvement = olderAvg - recentAvg;
+                            return improvement > 0 ? 'Amélioration récente' : 'Stabilisation';
+                          })()}
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span>Dernières entrées (moyenne)</span>
+                          <span className="font-medium">
+                            {(() => {
+                              const recent = cravingEntries.slice(0, 5);
+                              return (recent.reduce((sum, e) => sum + e.intensity, 0) / recent.length).toFixed(1);
+                            })()} / 10
+                          </span>
+                        </div>
+                        <Progress 
+                          value={(() => {
+                            const recent = cravingEntries.slice(0, 5);
+                            return (recent.reduce((sum, e) => sum + e.intensity, 0) / recent.length / 10) * 100;
+                          })()} 
+                          className="h-2"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <span className="material-icons text-4xl mb-2">show_chart</span>
+                      <p>Pas assez de données</p>
+                      <p className="text-xs">Enregistrez plus de cravings pour voir votre évolution</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
 
           {/* Cravings Tab */}
           <TabsContent value="cravings" className="space-y-6">
@@ -241,7 +446,13 @@ export default function Tracking() {
                   <div className="text-center py-8" data-testid="empty-cravings">
                     <span className="material-icons text-6xl text-muted-foreground mb-4">psychology</span>
                     <h3 className="text-lg font-medium text-foreground mb-2">Aucun craving enregistré</h3>
-                    <p className="text-muted-foreground">Commencez à suivre vos cravings pour voir votre progression.</p>
+                    <p className="text-muted-foreground mb-4">Commencez à suivre vos cravings pour voir votre progression.</p>
+                    <div className="bg-info/10 p-4 rounded-lg">
+                      <p className="text-sm text-info font-medium mb-2">📊 Pourquoi enregistrer ?</p>
+                      <p className="text-xs text-muted-foreground">
+                        Le suivi de vos cravings vous aide à identifier les déclencheurs et à mesurer vos progrès au fil du temps.
+                      </p>
+                    </div>
                   </div>
                 )}
               </CardContent>
@@ -304,7 +515,13 @@ export default function Tracking() {
                   <div className="text-center py-8" data-testid="empty-exercises">
                     <span className="material-icons text-6xl text-muted-foreground mb-4">fitness_center</span>
                     <h3 className="text-lg font-medium text-foreground mb-2">Aucun exercice complété</h3>
-                    <p className="text-muted-foreground">Complétez des exercices pour voir votre historique.</p>
+                    <p className="text-muted-foreground mb-4">Complétez des exercices pour voir votre historique.</p>
+                    <div className="bg-info/10 p-4 rounded-lg">
+                      <p className="text-sm text-info font-medium mb-2">💪 Les exercices :</p>
+                      <p className="text-xs text-muted-foreground">
+                        Les exercices thérapeutiques vous aident à développer de nouvelles habitudes et à gérer vos cravings de manière proactive.
+                      </p>
+                    </div>
                   </div>
                 )}
               </CardContent>
@@ -362,7 +579,13 @@ export default function Tracking() {
                   <div className="text-center py-8" data-testid="empty-analyses">
                     <span className="material-icons text-6xl text-muted-foreground mb-4">psychology</span>
                     <h3 className="text-lg font-medium text-foreground mb-2">Aucune analyse cognitive</h3>
-                    <p className="text-muted-foreground">Utilisez l'outil d'analyse Beck pour mieux comprendre vos pensées.</p>
+                    <p className="text-muted-foreground mb-4">Utilisez l'outil d'analyse Beck pour mieux comprendre vos pensées.</p>
+                    <div className="bg-info/10 p-4 rounded-lg">
+                      <p className="text-sm text-info font-medium mb-2">🧠 L'analyse de Beck :</p>
+                      <p className="text-xs text-muted-foreground">
+                        Cet outil vous aide à identifier et restructurer les pensées automatiques négatives qui peuvent déclencher vos cravings.
+                      </p>
+                    </div>
                   </div>
                 )}
               </CardContent>
@@ -435,7 +658,13 @@ export default function Tracking() {
                   <div className="text-center py-8" data-testid="empty-strategies">
                     <span className="material-icons text-6xl text-muted-foreground mb-4">fitness_center</span>
                     <h3 className="text-lg font-medium text-foreground mb-2">Aucune stratégie enregistrée</h3>
-                    <p className="text-muted-foreground">Utilisez la Boîte à Stratégies depuis l'accueil pour commencer à tester vos techniques anti-craving.</p>
+                    <p className="text-muted-foreground mb-4">Utilisez la Boîte à Stratégies depuis l'accueil pour commencer à tester vos techniques anti-craving.</p>
+                    <div className="bg-info/10 p-4 rounded-lg">
+                      <p className="text-sm text-info font-medium mb-2">💡 Conseil :</p>
+                      <p className="text-xs text-muted-foreground">
+                        Testez différentes stratégies dans différents contextes (domicile, travail, loisirs) pour construire votre boîte à outils personnalisée.
+                      </p>
+                    </div>
                   </div>
                 )}
               </CardContent>

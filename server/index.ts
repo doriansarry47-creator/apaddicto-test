@@ -2,10 +2,16 @@ import 'dotenv/config';
 import express from 'express';
 import session from 'express-session';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { registerRoutes } from './routes.js';
 import './migrate.js';
 import { debugTablesRouter } from './debugTables.js';
 import { Pool } from 'pg';
+
+// Pour obtenir __dirname dans ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // === INITIALISATION EXPRESS ===
 const app = express();
@@ -20,6 +26,11 @@ app.use(cors({
 // === PARSING JSON ===
 app.use(express.json());
 
+// === SERVIR LES FICHIERS STATIQUES ===
+const distPath = path.join(__dirname, '..', 'dist');
+console.log('📁 Serving static files from:', distPath);
+app.use(express.static(distPath));
+
 // === SESSION ===
 app.use(session({
   secret: process.env.SESSION_SECRET || 'fallback-secret',
@@ -33,10 +44,6 @@ app.use(session({
 }));
 
 // === ENDPOINTS DE BASE ===
-app.get('/', (_req, res) => {
-  res.send('API Apaddcito est en ligne !');
-});
-
 app.get('/api/health', (_req, res) => {
   res.json({
     status: 'ok',
@@ -102,6 +109,12 @@ app.get('/api/data', async (_req, res) => {
 app.use((err: any, _req: any, res: any, _next: any) => {
   console.error('❌ Erreur serveur:', err);
   res.status(500).json({ message: 'Erreur interne' });
+});
+
+// === FALLBACK POUR SPA (Single Page Application) ===
+// Toutes les routes non-API doivent servir le fichier index.html pour React Router
+app.get('*', (_req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'));
 });
 
 // === DEBUG ROUTES DISPONIBLES ===

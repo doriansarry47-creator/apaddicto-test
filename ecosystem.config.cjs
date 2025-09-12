@@ -2,8 +2,7 @@ module.exports = {
   apps: [
     {
       name: 'apaddicto-server',
-      script: 'npx',
-      args: 'tsx server/index.ts',
+      script: 'server-dist/index.js',
       cwd: '/home/user/webapp',
       instances: 1,
       autorestart: true,

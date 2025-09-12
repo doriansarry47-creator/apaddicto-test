@@ -823,6 +823,8 @@ import "dotenv/config";
 import express from "express";
 import session from "express-session";
 import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
 
 // server/routes.ts
 init_storage();
@@ -1538,6 +1540,8 @@ debugTablesRouter.delete("/debug/tables/purge", async (_req, res) => {
 
 // server/index.ts
 import { Pool as Pool4 } from "pg";
+var __filename = fileURLToPath(import.meta.url);
+var __dirname = path.dirname(__filename);
 var app = express();
 var CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
 app.use(cors({
@@ -1545,6 +1549,9 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
+var distPath = path.join(__dirname, "..", "dist");
+console.log("\u{1F4C1} Serving static files from:", distPath);
+app.use(express.static(distPath));
 app.use(session({
   secret: process.env.SESSION_SECRET || "fallback-secret",
   resave: false,
@@ -1555,9 +1562,6 @@ app.use(session({
     maxAge: 1e3 * 60 * 60 * 24 * 7
   }
 }));
-app.get("/", (_req, res) => {
-  res.send("API Apaddcito est en ligne !");
-});
 app.get("/api/health", (_req, res) => {
   res.json({
     status: "ok",
@@ -1610,6 +1614,9 @@ app.get("/api/data", async (_req, res) => {
 app.use((err, _req, res, _next) => {
   console.error("\u274C Erreur serveur:", err);
   res.status(500).json({ message: "Erreur interne" });
+});
+app.get("*", (_req, res) => {
+  res.sendFile(path.join(distPath, "index.html"));
 });
 console.log("Routes disponibles :");
 app._router.stack.forEach((r) => {
