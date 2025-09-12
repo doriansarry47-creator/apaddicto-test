@@ -619,30 +619,30 @@ export default function ManageContent() {
           </Card>
         </div>
       </div>
-        </TabsContent>
+      </TabsContent>
 
-        {/* Onglet routines d'urgence */}
-        <TabsContent value="quick-resources" className="mt-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-semibold">Gestion des Ressources Rapides</h2>
-            <Button className="flex items-center space-x-2">
-              <Plus className="h-4 w-4" />
-              <span>Nouvelle Ressource</span>
-            </Button>
-          </div>
+      {/* Onglet routines d'urgence */}
+      <TabsContent value="quick-resources" className="mt-6">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-semibold">Gestion des Ressources Rapides</h2>
+          <Button className="flex items-center space-x-2">
+            <Plus className="h-4 w-4" />
+            <span>Nouvelle Ressource</span>
+          </Button>
+        </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Ressources Rapides Existantes</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>Fonctionnalité à venir...</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
+        <Card>
+          <CardHeader>
+            <CardTitle>Ressources Rapides Existantes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>Fonctionnalité à venir...</p>
+          </CardContent>
+        </Card>
+      </TabsContent>
+    </Tabs>
+  </div>
+  )
 }
 
 
