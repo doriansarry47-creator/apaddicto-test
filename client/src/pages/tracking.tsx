@@ -276,7 +276,7 @@ export default function Tracking() {
                 <CardContent>
                   <div className="space-y-3">
                     {/* Recent craving entries */}
-                    {cravingEntries?.slice(0, 3).map((entry: CravingEntry) => (
+                    {cravingEntries?.map((entry: CravingEntry) => (
                       <div key={`craving-${entry.id}`} className="flex items-center justify-between p-2 bg-primary/5 rounded">
                         <div className="flex items-center gap-2">
                           <span className="material-icons text-primary text-sm">psychology</span>
@@ -287,7 +287,7 @@ export default function Tracking() {
                     ))}
                     
                     {/* Recent Beck analyses */}
-                    {beckAnalyses?.slice(0, 2).map((analysis: BeckAnalysis) => (
+                    {beckAnalyses?.map((analysis: BeckAnalysis) => (
                       <div key={`beck-${analysis.id}`} className="flex items-center justify-between p-2 bg-secondary/5 rounded">
                         <div className="flex items-center gap-2">
                           <span className="material-icons text-secondary text-sm">psychology</span>
@@ -298,7 +298,7 @@ export default function Tracking() {
                     ))}
                     
                     {/* Recent strategies */}
-                    {antiCravingStrategies?.slice(0, 2).map((strategy: AntiCravingStrategy) => (
+                    {antiCravingStrategies?.map((strategy: AntiCravingStrategy) => (
                       <div key={`strategy-${strategy.id}`} className="flex items-center justify-between p-2 bg-warning/5 rounded">
                         <div className="flex items-center gap-2">
                           <span className="material-icons text-warning text-sm">fitness_center</span>
@@ -396,7 +396,7 @@ export default function Tracking() {
               <CardContent>
                 {cravingEntries && cravingEntries.length > 0 ? (
                   <div className="space-y-4">
-                    {cravingEntries.slice(0, 10).map((entry: CravingEntry) => (
+                    {cravingEntries.map((entry: CravingEntry) => (
                       <div key={entry.id} className="border border-border rounded-lg p-4" data-testid={`craving-entry-${entry.id}`}>
                         <div className="flex items-center justify-between mb-3">
                           <span className="text-sm text-muted-foreground">
@@ -471,7 +471,7 @@ export default function Tracking() {
               <CardContent>
                 {exerciseSessions && exerciseSessions.length > 0 ? (
                   <div className="space-y-4">
-                    {exerciseSessions.slice(0, 10).map((session: ExerciseSession) => (
+                    {exerciseSessions.map((session: ExerciseSession) => (
                       <div key={session.id} className="border border-border rounded-lg p-4" data-testid={`exercise-session-${session.id}`}>
                         <div className="flex items-center justify-between mb-3">
                           <span className="text-sm text-muted-foreground">
@@ -540,7 +540,7 @@ export default function Tracking() {
               <CardContent>
                 {beckAnalyses && beckAnalyses.length > 0 ? (
                   <div className="space-y-6">
-                    {beckAnalyses.slice(0, 5).map((analysis: BeckAnalysis) => (
+                    {beckAnalyses.map((analysis: BeckAnalysis) => (
                       <div key={analysis.id} className="border border-border rounded-lg p-4" data-testid={`beck-analysis-${analysis.id}`}>
                         <div className="flex items-center justify-between mb-4">
                           <span className="text-sm text-muted-foreground">
@@ -604,7 +604,7 @@ export default function Tracking() {
               <CardContent>
                 {antiCravingStrategies && antiCravingStrategies.length > 0 ? (
                   <div className="space-y-4">
-                    {antiCravingStrategies.slice(0, 10).map((strategy: AntiCravingStrategy) => (
+                    {antiCravingStrategies.map((strategy: AntiCravingStrategy) => (
                       <div key={strategy.id} className="border border-border rounded-lg p-4" data-testid={`strategy-${strategy.id}`}>
                         <div className="flex items-center justify-between mb-3">
                           <span className="text-sm text-muted-foreground">
