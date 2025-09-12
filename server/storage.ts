@@ -10,6 +10,7 @@ import {
   userStats,
   emergencyRoutines,
   quickResources,
+  antiCravingStrategies,
   type User,
   type InsertUser,
   type Exercise,
@@ -29,6 +30,8 @@ import {
   type InsertEmergencyRoutine,
   type QuickResource,
   type InsertQuickResource,
+  type AntiCravingStrategy,
+  type InsertAntiCravingStrategy,
 } from "../shared/schema.js";
 import { randomUUID } from "crypto";
 import { eq, desc, sql, and, gte } from "drizzle-orm";
@@ -89,6 +92,10 @@ export interface IStorage {
   deleteQuickResource(resourceId: string): Promise<void>;
   getPinnedQuickResources(): Promise<QuickResource[]>;
   togglePinQuickResource(resourceId: string): Promise<void>;
+  
+  // Anti-craving strategies operations
+  createAntiCravingStrategies(userId: string, strategies: InsertAntiCravingStrategy[]): Promise<AntiCravingStrategy[]>;
+  getAntiCravingStrategies(userId: string): Promise<AntiCravingStrategy[]>;
   
   awardBadge(badge: InsertUserBadge): Promise<UserBadge>;
   checkAndAwardBadges(userId: string): Promise<UserBadge[]>;
@@ -464,6 +471,29 @@ Object.assign(DbStorage.prototype, {
     // Pour l'instant, ne rien faire car la table media n'existe pas encore
     // Dans une implémentation complète, on supprimerait le fichier de la table media
     return;
+  },
+
+  // Anti-craving strategies operations
+  async createAntiCravingStrategies(userId: string, strategies: InsertAntiCravingStrategy[]): Promise<AntiCravingStrategy[]> {
+    const strategiesWithUserId = strategies.map(strategy => ({
+      ...strategy,
+      userId
+    }));
+    
+    const result = await getDB()
+      .insert(antiCravingStrategies)
+      .values(strategiesWithUserId)
+      .returning();
+    
+    return result;
+  },
+
+  async getAntiCravingStrategies(userId: string): Promise<AntiCravingStrategy[]> {
+    return getDB()
+      .select()
+      .from(antiCravingStrategies)
+      .where(eq(antiCravingStrategies.userId, userId))
+      .orderBy(desc(antiCravingStrategies.createdAt));
   }
 });
 

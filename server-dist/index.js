@@ -11,18 +11,24 @@ var __export = (target, all) => {
 // shared/schema.ts
 var schema_exports = {};
 __export(schema_exports, {
+  antiCravingStrategies: () => antiCravingStrategies,
   beckAnalyses: () => beckAnalyses,
   cravingEntries: () => cravingEntries,
+  emergencyRoutines: () => emergencyRoutines,
   exerciseSessions: () => exerciseSessions,
   exercises: () => exercises,
+  insertAntiCravingStrategySchema: () => insertAntiCravingStrategySchema,
   insertBeckAnalysisSchema: () => insertBeckAnalysisSchema,
   insertCravingEntrySchema: () => insertCravingEntrySchema,
+  insertEmergencyRoutineSchema: () => insertEmergencyRoutineSchema,
   insertExerciseSchema: () => insertExerciseSchema,
   insertExerciseSessionSchema: () => insertExerciseSessionSchema,
   insertPsychoEducationContentSchema: () => insertPsychoEducationContentSchema,
+  insertQuickResourceSchema: () => insertQuickResourceSchema,
   insertUserBadgeSchema: () => insertUserBadgeSchema,
   insertUserSchema: () => insertUserSchema,
   psychoEducationContent: () => psychoEducationContent,
+  quickResources: () => quickResources,
   userBadges: () => userBadges,
   userStats: () => userStats,
   users: () => users
@@ -30,7 +36,7 @@ __export(schema_exports, {
 import { sql } from "drizzle-orm";
 import { pgTable, text, varchar, integer, timestamp, jsonb, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
-var users, exercises, psychoEducationContent, cravingEntries, exerciseSessions, beckAnalyses, userBadges, userStats, insertUserSchema, insertExerciseSchema, insertPsychoEducationContentSchema, insertCravingEntrySchema, insertExerciseSessionSchema, insertBeckAnalysisSchema, insertUserBadgeSchema;
+var users, exercises, psychoEducationContent, cravingEntries, exerciseSessions, beckAnalyses, userBadges, userStats, insertUserSchema, insertExerciseSchema, insertPsychoEducationContentSchema, insertCravingEntrySchema, insertExerciseSessionSchema, insertBeckAnalysisSchema, insertUserBadgeSchema, emergencyRoutines, insertEmergencyRoutineSchema, quickResources, insertQuickResourceSchema, antiCravingStrategies, insertAntiCravingStrategySchema;
 var init_schema = __esm({
   "shared/schema.ts"() {
     "use strict";
@@ -170,6 +176,73 @@ var init_schema = __esm({
       id: true,
       earnedAt: true
     });
+    emergencyRoutines = pgTable("emergency_routines", {
+      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+      title: varchar("title").notNull(),
+      description: text("description"),
+      steps: jsonb("steps").notNull(),
+      // Array of steps for the routine
+      duration: integer("duration"),
+      // in minutes
+      category: varchar("category").default("general"),
+      // 'breathing', 'grounding', 'distraction', 'general'
+      isActive: boolean("is_active").default(true),
+      isDefault: boolean("is_default").default(false),
+      // One routine can be marked as default
+      createdAt: timestamp("created_at").defaultNow(),
+      updatedAt: timestamp("updated_at").defaultNow()
+    });
+    insertEmergencyRoutineSchema = createInsertSchema(emergencyRoutines).omit({
+      id: true,
+      createdAt: true,
+      updatedAt: true
+    });
+    quickResources = pgTable("quick_resources", {
+      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+      title: varchar("title").notNull(),
+      description: text("description"),
+      content: text("content").notNull(),
+      category: varchar("category").notNull(),
+      // 'coping', 'motivation', 'emergency', 'relaxation'
+      type: varchar("type").default("tip"),
+      // 'tip', 'technique', 'reminder', 'affirmation'
+      icon: varchar("icon"),
+      // Icon name for UI
+      color: varchar("color").default("blue"),
+      // Color theme
+      isActive: boolean("is_active").default(true),
+      isPinned: boolean("is_pinned").default(false),
+      // Pinned resources appear first
+      createdAt: timestamp("created_at").defaultNow(),
+      updatedAt: timestamp("updated_at").defaultNow()
+    });
+    insertQuickResourceSchema = createInsertSchema(quickResources).omit({
+      id: true,
+      createdAt: true,
+      updatedAt: true
+    });
+    antiCravingStrategies = pgTable("anti_craving_strategies", {
+      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+      userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+      context: varchar("context").notNull(),
+      // 'leisure', 'home', 'work'
+      exercise: text("exercise").notNull(),
+      effort: varchar("effort").notNull(),
+      // 'faible', 'modéré', 'intense'
+      duration: integer("duration").notNull(),
+      // in minutes
+      cravingBefore: integer("craving_before").notNull(),
+      // 0-10 scale
+      cravingAfter: integer("craving_after").notNull(),
+      // 0-10 scale
+      createdAt: timestamp("created_at").defaultNow(),
+      updatedAt: timestamp("updated_at").defaultNow()
+    });
+    insertAntiCravingStrategySchema = createInsertSchema(antiCravingStrategies).omit({
+      id: true,
+      createdAt: true,
+      updatedAt: true
+    });
   }
 });
 
@@ -200,7 +273,7 @@ var init_db = __esm({
 });
 
 // server/storage.ts
-import { eq, desc, and, gte } from "drizzle-orm";
+import { eq, desc, sql as sql2, and, gte } from "drizzle-orm";
 var DbStorage, storage;
 var init_storage = __esm({
   "server/storage.ts"() {
@@ -249,6 +322,9 @@ var init_storage = __esm({
       async createExercise(insertExercise) {
         return getDB().insert(exercises).values(insertExercise).returning().then((rows) => rows[0]);
       }
+      async deleteExercise(exerciseId) {
+        await getDB().delete(exercises).where(eq(exercises.id, exerciseId));
+      }
       async getPsychoEducationContent() {
         return getDB().select().from(psychoEducationContent).where(eq(psychoEducationContent.isActive, true)).orderBy(psychoEducationContent.title);
       }
@@ -257,6 +333,9 @@ var init_storage = __esm({
       }
       async createPsychoEducationContent(insertContent) {
         return getDB().insert(psychoEducationContent).values(insertContent).returning().then((rows) => rows[0]);
+      }
+      async deletePsychoEducationContent(contentId) {
+        await getDB().delete(psychoEducationContent).where(eq(psychoEducationContent.id, contentId));
       }
       async createCravingEntry(insertEntry) {
         const valuesToInsert = {
@@ -344,6 +423,105 @@ var init_storage = __esm({
       }
     };
     storage = new DbStorage();
+    Object.assign(DbStorage.prototype, {
+      // Admin operations
+      async getAllUsersWithStats() {
+        const db2 = getDB();
+        const usersWithStats = await db2.select({
+          id: users.id,
+          email: users.email,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          role: users.role,
+          createdAt: users.createdAt,
+          lastLoginAt: users.lastLoginAt,
+          isActive: users.isActive
+        }).from(users).orderBy(desc(users.createdAt));
+        const usersWithFullStats = await Promise.all(
+          usersWithStats.map(async (user) => {
+            const [exerciseCount] = await db2.select({ count: sql2`count(*)` }).from(exerciseSessions).where(eq(exerciseSessions.userId, user.id));
+            const [cravingCount] = await db2.select({ count: sql2`count(*)` }).from(cravingEntries).where(eq(cravingEntries.userId, user.id));
+            return {
+              ...user,
+              exerciseCount: exerciseCount?.count || 0,
+              cravingCount: cravingCount?.count || 0
+            };
+          })
+        );
+        return usersWithFullStats;
+      },
+      async getAllMediaFiles() {
+        return [];
+      },
+      // Emergency routine operations
+      async getAllEmergencyRoutines() {
+        return getDB().select().from(emergencyRoutines).where(eq(emergencyRoutines.isActive, true)).orderBy(emergencyRoutines.title);
+      },
+      async getEmergencyRoutine(routineId) {
+        const result = await getDB().select().from(emergencyRoutines).where(eq(emergencyRoutines.id, routineId));
+        return result[0];
+      },
+      async createEmergencyRoutine(insertRoutine) {
+        return getDB().insert(emergencyRoutines).values(insertRoutine).returning().then((rows) => rows[0]);
+      },
+      async updateEmergencyRoutine(routineId, updateData) {
+        const result = await getDB().update(emergencyRoutines).set({ ...updateData, updatedAt: /* @__PURE__ */ new Date() }).where(eq(emergencyRoutines.id, routineId)).returning();
+        return result[0];
+      },
+      async deleteEmergencyRoutine(routineId) {
+        await getDB().delete(emergencyRoutines).where(eq(emergencyRoutines.id, routineId));
+      },
+      async getDefaultEmergencyRoutine() {
+        const result = await getDB().select().from(emergencyRoutines).where(and(eq(emergencyRoutines.isActive, true), eq(emergencyRoutines.isDefault, true)));
+        return result[0];
+      },
+      async setDefaultEmergencyRoutine(routineId) {
+        await getDB().update(emergencyRoutines).set({ isDefault: false }).where(eq(emergencyRoutines.isDefault, true));
+        await getDB().update(emergencyRoutines).set({ isDefault: true }).where(eq(emergencyRoutines.id, routineId));
+      },
+      // Quick resource operations
+      async getAllQuickResources() {
+        return getDB().select().from(quickResources).where(eq(quickResources.isActive, true)).orderBy(quickResources.isPinned, quickResources.title);
+      },
+      async getQuickResource(resourceId) {
+        const result = await getDB().select().from(quickResources).where(eq(quickResources.id, resourceId));
+        return result[0];
+      },
+      async createQuickResource(insertResource) {
+        return getDB().insert(quickResources).values(insertResource).returning().then((rows) => rows[0]);
+      },
+      async updateQuickResource(resourceId, updateData) {
+        const result = await getDB().update(quickResources).set({ ...updateData, updatedAt: /* @__PURE__ */ new Date() }).where(eq(quickResources.id, resourceId)).returning();
+        return result[0];
+      },
+      async deleteQuickResource(resourceId) {
+        await getDB().delete(quickResources).where(eq(quickResources.id, resourceId));
+      },
+      async getPinnedQuickResources() {
+        return getDB().select().from(quickResources).where(and(eq(quickResources.isActive, true), eq(quickResources.isPinned, true))).orderBy(quickResources.title);
+      },
+      async togglePinQuickResource(resourceId) {
+        const resource = await this.getQuickResource(resourceId);
+        if (resource) {
+          await getDB().update(quickResources).set({ isPinned: !resource.isPinned }).where(eq(quickResources.id, resourceId));
+        }
+      },
+      async deleteMediaFile(mediaId) {
+        return;
+      },
+      // Anti-craving strategies operations
+      async createAntiCravingStrategies(userId, strategies) {
+        const strategiesWithUserId = strategies.map((strategy) => ({
+          ...strategy,
+          userId
+        }));
+        const result = await getDB().insert(antiCravingStrategies).values(strategiesWithUserId).returning();
+        return result;
+      },
+      async getAntiCravingStrategies(userId) {
+        return getDB().select().from(antiCravingStrategies).where(eq(antiCravingStrategies.userId, userId)).orderBy(desc(antiCravingStrategies.createdAt));
+      }
+    });
   }
 });
 
@@ -889,6 +1067,47 @@ function registerRoutes(app2) {
       res.status(500).json({ message: "Failed to fetch all psycho-education content" });
     }
   });
+  app2.get("/api/admin/users", requireAdmin, async (req, res) => {
+    try {
+      const users2 = await storage.getAllUsersWithStats();
+      res.json(users2);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+  app2.delete("/api/admin/users/:userId", requireAdmin, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      await storage.deleteUser(userId);
+      res.json({ message: "User deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete user" });
+    }
+  });
+  app2.get("/api/admin/media", requireAdmin, async (req, res) => {
+    try {
+      const mediaFiles = await storage.getAllMediaFiles();
+      res.json(mediaFiles);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch media files" });
+    }
+  });
+  app2.post("/api/admin/media/upload", requireAdmin, async (req, res) => {
+    try {
+      res.status(501).json({ message: "File upload not yet implemented" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to upload file" });
+    }
+  });
+  app2.delete("/api/admin/media/:mediaId", requireAdmin, async (req, res) => {
+    try {
+      const { mediaId } = req.params;
+      await storage.deleteMediaFile(mediaId);
+      res.json({ message: "Media file deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete media file" });
+    }
+  });
   app2.post("/api/cravings", requireAuth, async (req, res) => {
     try {
       if (!req.session?.user) return res.status(401).json({ message: "Session non valide" });
@@ -1063,6 +1282,150 @@ function registerRoutes(app2) {
       res.json({ message: "Donn\xE9es d'exemple cr\xE9\xE9es avec succ\xE8s" });
     } catch (error) {
       res.status(500).json({ message: "Erreur lors de la cr\xE9ation des donn\xE9es d'exemple" });
+    }
+  });
+  app2.delete("/api/admin/exercises/:exerciseId", requireAdmin, async (req, res) => {
+    try {
+      const { exerciseId } = req.params;
+      await storage.deleteExercise(exerciseId);
+      res.json({ message: "Exercise deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete exercise" });
+    }
+  });
+  app2.delete("/api/admin/psycho-education/:contentId", requireAdmin, async (req, res) => {
+    try {
+      const { contentId } = req.params;
+      await storage.deletePsychoEducationContent(contentId);
+      res.json({ message: "Content deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete content" });
+    }
+  });
+  app2.get("/api/admin/emergency-routines", requireAdmin, async (req, res) => {
+    try {
+      const routines = await storage.getAllEmergencyRoutines();
+      res.json(routines);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch emergency routines" });
+    }
+  });
+  app2.get("/api/admin/emergency-routines/default", requireAdmin, async (req, res) => {
+    try {
+      const routine = await storage.getDefaultEmergencyRoutine();
+      res.json(routine);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch default emergency routine" });
+    }
+  });
+  app2.post("/api/admin/emergency-routines", requireAdmin, async (req, res) => {
+    try {
+      const routine = await storage.createEmergencyRoutine(req.body);
+      res.json(routine);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create emergency routine" });
+    }
+  });
+  app2.put("/api/admin/emergency-routines/:routineId", requireAdmin, async (req, res) => {
+    try {
+      const { routineId } = req.params;
+      const routine = await storage.updateEmergencyRoutine(routineId, req.body);
+      res.json(routine);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update emergency routine" });
+    }
+  });
+  app2.delete("/api/admin/emergency-routines/:routineId", requireAdmin, async (req, res) => {
+    try {
+      const { routineId } = req.params;
+      await storage.deleteEmergencyRoutine(routineId);
+      res.json({ message: "Emergency routine deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete emergency routine" });
+    }
+  });
+  app2.put("/api/admin/emergency-routines/:routineId/set-default", requireAdmin, async (req, res) => {
+    try {
+      const { routineId } = req.params;
+      await storage.setDefaultEmergencyRoutine(routineId);
+      res.json({ message: "Default emergency routine set successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to set default emergency routine" });
+    }
+  });
+  app2.get("/api/admin/quick-resources", requireAdmin, async (req, res) => {
+    try {
+      const resources = await storage.getAllQuickResources();
+      res.json(resources);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch quick resources" });
+    }
+  });
+  app2.get("/api/admin/quick-resources/pinned", requireAdmin, async (req, res) => {
+    try {
+      const resources = await storage.getPinnedQuickResources();
+      res.json(resources);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch pinned quick resources" });
+    }
+  });
+  app2.post("/api/admin/quick-resources", requireAdmin, async (req, res) => {
+    try {
+      const resource = await storage.createQuickResource(req.body);
+      res.json(resource);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create quick resource" });
+    }
+  });
+  app2.put("/api/admin/quick-resources/:resourceId", requireAdmin, async (req, res) => {
+    try {
+      const { resourceId } = req.params;
+      const resource = await storage.updateQuickResource(resourceId, req.body);
+      res.json(resource);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update quick resource" });
+    }
+  });
+  app2.delete("/api/admin/quick-resources/:resourceId", requireAdmin, async (req, res) => {
+    try {
+      const { resourceId } = req.params;
+      await storage.deleteQuickResource(resourceId);
+      res.json({ message: "Quick resource deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete quick resource" });
+    }
+  });
+  app2.put("/api/admin/quick-resources/:resourceId/toggle-pin", requireAdmin, async (req, res) => {
+    try {
+      const { resourceId } = req.params;
+      await storage.togglePinQuickResource(resourceId);
+      res.json({ message: "Quick resource pin status toggled successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to toggle pin status" });
+    }
+  });
+  app2.post("/api/strategies", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.user.id;
+      const { strategies } = req.body;
+      if (!Array.isArray(strategies)) {
+        return res.status(400).json({ message: "Les strat\xE9gies doivent \xEAtre un tableau" });
+      }
+      const savedStrategies = await storage.createAntiCravingStrategies(userId, strategies);
+      res.json(savedStrategies);
+    } catch (error) {
+      console.error("Error saving anti-craving strategies:", error);
+      res.status(500).json({ message: "Erreur lors de la sauvegarde des strat\xE9gies" });
+    }
+  });
+  app2.get("/api/strategies", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.user.id;
+      const strategies = await storage.getAntiCravingStrategies(userId);
+      res.json(strategies);
+    } catch (error) {
+      console.error("Error fetching anti-craving strategies:", error);
+      res.status(500).json({ message: "Erreur lors de la r\xE9cup\xE9ration des strat\xE9gies" });
     }
   });
 }

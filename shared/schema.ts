@@ -191,6 +191,26 @@ export const insertQuickResourceSchema = createInsertSchema(quickResources).omit
   updatedAt: true,
 });
 
+// Anti-craving strategies table
+export const antiCravingStrategies = pgTable("anti_craving_strategies", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  context: varchar("context").notNull(), // 'leisure', 'home', 'work'
+  exercise: text("exercise").notNull(),
+  effort: varchar("effort").notNull(), // 'faible', 'modéré', 'intense'
+  duration: integer("duration").notNull(), // in minutes
+  cravingBefore: integer("craving_before").notNull(), // 0-10 scale
+  cravingAfter: integer("craving_after").notNull(), // 0-10 scale
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertAntiCravingStrategySchema = createInsertSchema(antiCravingStrategies).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -211,3 +231,5 @@ export type EmergencyRoutine = typeof emergencyRoutines.$inferSelect;
 export type InsertEmergencyRoutine = z.infer<typeof insertEmergencyRoutineSchema>;
 export type QuickResource = typeof quickResources.$inferSelect;
 export type InsertQuickResource = z.infer<typeof insertQuickResourceSchema>;
+export type AntiCravingStrategy = typeof antiCravingStrategies.$inferSelect;
+export type InsertAntiCravingStrategy = z.infer<typeof insertAntiCravingStrategySchema>;
