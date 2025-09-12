@@ -13,8 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Edit, Activity, AlertTriangle, Filter, Image } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { Plus, Trash2, Edit, Activity, AlertTriangle, Filter, Image, Clock, Target } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
 type FormData = InsertExercise;
