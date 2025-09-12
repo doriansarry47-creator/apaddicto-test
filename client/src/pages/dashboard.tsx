@@ -4,6 +4,7 @@ import { Link } from "wouter";
 import { Navigation } from "@/components/navigation";
 import { CravingEntry } from "@/components/craving-entry";
 import { BeckColumn } from "@/components/beck-column";
+import { StrategiesBox } from "@/components/strategies-box";
 import { GamificationProgress } from "@/components/gamification-progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ interface CravingStats {
 export default function Dashboard() {
   const [showCravingEntry, setShowCravingEntry] = useState(false);
   const [showBeckColumn, setShowBeckColumn] = useState(false);
+  const [showStrategiesBox, setShowStrategiesBox] = useState(false);
   const { toast } = useToast();
   
   // Récupérer l'utilisateur authentifié
@@ -181,7 +183,7 @@ export default function Dashboard() {
         </section>
 
         {/* Quick Actions */}
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card className="shadow-material" data-testid="card-quick-craving">
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -224,6 +226,28 @@ export default function Dashboard() {
               </Button>
             </CardContent>
           </Card>
+
+          <Card className="shadow-material" data-testid="card-quick-strategies">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <span className="material-icons mr-2 text-warning">fitness_center</span>
+                Boîte à Stratégies
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground mb-4">
+                Testez et évaluez vos stratégies anti-craving
+              </p>
+              <Button 
+                onClick={() => setShowStrategiesBox(!showStrategiesBox)}
+                variant="outline"
+                className="w-full"
+                data-testid="button-toggle-strategies"
+              >
+                {showStrategiesBox ? "Masquer" : "Ouvrir Boîte à Stratégies"}
+              </Button>
+            </CardContent>
+          </Card>
         </section>
 
         {/* Conditional Forms */}
@@ -251,6 +275,21 @@ export default function Dashboard() {
                 toast({
                   title: "Analyse sauvegardée",
                   description: "Votre réflexion a été enregistrée.",
+                });
+              }}
+            />
+          </section>
+        )}
+
+        {showStrategiesBox && authenticatedUser && (
+          <section className="mb-8">
+            <StrategiesBox 
+              userId={authenticatedUser.id}
+              onSuccess={() => {
+                setShowStrategiesBox(false);
+                toast({
+                  title: "Stratégies sauvegardées",
+                  description: "Vos stratégies anti-craving ont été enregistrées dans l'onglet Suivi.",
                 });
               }}
             />

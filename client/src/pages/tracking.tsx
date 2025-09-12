@@ -4,7 +4,7 @@ import { Navigation } from "@/components/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { CravingEntry, ExerciseSession, BeckAnalysis, UserStats } from "@shared/schema";
+import type { CravingEntry, ExerciseSession, BeckAnalysis, UserStats, AntiCravingStrategy } from "@shared/schema";
 
 const DEMO_USER_ID = "demo-user-123";
 
@@ -41,7 +41,12 @@ export default function Tracking() {
     initialData: [],
   });
 
-  const isLoading = cravingLoading || statsLoading || sessionsLoading || userStatsLoading || beckLoading;
+  const { data: antiCravingStrategies, isLoading: strategiesLoading } = useQuery<AntiCravingStrategy[]>({
+    queryKey: ["/api/strategies", DEMO_USER_ID],
+    initialData: [],
+  });
+
+  const isLoading = cravingLoading || statsLoading || sessionsLoading || userStatsLoading || beckLoading || strategiesLoading;
 
   if (isLoading) {
     return (
@@ -167,10 +172,11 @@ export default function Tracking() {
 
         {/* Detailed Tracking */}
         <Tabs defaultValue="cravings" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3" data-testid="tabs-tracking">
+          <TabsList className="grid w-full grid-cols-4" data-testid="tabs-tracking">
             <TabsTrigger value="cravings" data-testid="tab-cravings">Cravings</TabsTrigger>
             <TabsTrigger value="exercises" data-testid="tab-exercises">Exercices</TabsTrigger>
             <TabsTrigger value="analyses" data-testid="tab-analyses">Analyses</TabsTrigger>
+            <TabsTrigger value="strategies" data-testid="tab-strategies">Stratégies</TabsTrigger>
           </TabsList>
 
           {/* Cravings Tab */}
@@ -357,6 +363,79 @@ export default function Tracking() {
                     <span className="material-icons text-6xl text-muted-foreground mb-4">psychology</span>
                     <h3 className="text-lg font-medium text-foreground mb-2">Aucune analyse cognitive</h3>
                     <p className="text-muted-foreground">Utilisez l'outil d'analyse Beck pour mieux comprendre vos pensées.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Strategies Tab */}
+          <TabsContent value="strategies" className="space-y-6">
+            <Card className="shadow-material" data-testid="card-strategies-history">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <span className="material-icons mr-2 text-warning">fitness_center</span>
+                  Historique des Stratégies Anti-Craving
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {antiCravingStrategies && antiCravingStrategies.length > 0 ? (
+                  <div className="space-y-4">
+                    {antiCravingStrategies.slice(0, 10).map((strategy: AntiCravingStrategy) => (
+                      <div key={strategy.id} className="border border-border rounded-lg p-4" data-testid={`strategy-${strategy.id}`}>
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-sm text-muted-foreground">
+                            {formatDate(strategy.createdAt)}
+                          </span>
+                          <div className="flex items-center space-x-2">
+                            <Badge variant="outline" className="capitalize">
+                              {strategy.context === 'leisure' ? 'Loisirs' : 
+                               strategy.context === 'home' ? 'Domicile' : 'Travail'}
+                            </Badge>
+                            <Badge variant="outline" className="capitalize">
+                              {strategy.effort}
+                            </Badge>
+                            <Badge variant="outline">
+                              {strategy.duration} min
+                            </Badge>
+                          </div>
+                        </div>
+                        
+                        <div className="text-sm font-medium text-foreground mb-2">
+                          {strategy.exercise}
+                        </div>
+                        
+                        <div className="flex items-center space-x-4 text-sm">
+                          <span>Craving avant: <strong className={`${strategy.cravingBefore > 6 ? 'text-destructive' : strategy.cravingBefore > 3 ? 'text-warning' : 'text-success'}`}>{strategy.cravingBefore}/10</strong></span>
+                          <span className="material-icons text-primary">arrow_forward</span>
+                          <span>Craving après: <strong className={`${strategy.cravingAfter > 6 ? 'text-destructive' : strategy.cravingAfter > 3 ? 'text-warning' : 'text-success'}`}>{strategy.cravingAfter}/10</strong></span>
+                          {strategy.cravingBefore > strategy.cravingAfter && (
+                            <Badge className="bg-success text-success-foreground">
+                              <span className="material-icons text-sm mr-1">trending_down</span>
+                              -{strategy.cravingBefore - strategy.cravingAfter} points
+                            </Badge>
+                          )}
+                          {strategy.cravingBefore === strategy.cravingAfter && (
+                            <Badge variant="outline">
+                              <span className="material-icons text-sm mr-1">remove</span>
+                              Stable
+                            </Badge>
+                          )}
+                          {strategy.cravingBefore < strategy.cravingAfter && (
+                            <Badge variant="destructive">
+                              <span className="material-icons text-sm mr-1">trending_up</span>
+                              +{strategy.cravingAfter - strategy.cravingBefore} points
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8" data-testid="empty-strategies">
+                    <span className="material-icons text-6xl text-muted-foreground mb-4">fitness_center</span>
+                    <h3 className="text-lg font-medium text-foreground mb-2">Aucune stratégie enregistrée</h3>
+                    <p className="text-muted-foreground">Utilisez la Boîte à Stratégies depuis l'accueil pour commencer à tester vos techniques anti-craving.</p>
                   </div>
                 )}
               </CardContent>

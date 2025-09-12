@@ -2,7 +2,7 @@
 import type { Express } from "express";
 import { storage } from "./storage.js";
 import { AuthService, requireAuth, requireAdmin } from "./auth.js";
-import { insertCravingEntrySchema, insertExerciseSessionSchema, insertBeckAnalysisSchema, insertUserSchema, insertExerciseSchema, insertPsychoEducationContentSchema } from "../shared/schema.js";
+import { insertCravingEntrySchema, insertExerciseSessionSchema, insertBeckAnalysisSchema, insertUserSchema, insertExerciseSchema, insertPsychoEducationContentSchema, insertAntiCravingStrategySchema } from "../shared/schema.js";
 import { z } from "zod";
 import { getDB } from './db.js';
 import { sql } from 'drizzle-orm';
@@ -547,6 +547,38 @@ export function registerRoutes(app: Express) {
       res.json({ message: "Quick resource pin status toggled successfully" });
     } catch (error) {
       res.status(500).json({ message: "Failed to toggle pin status" });
+    }
+  });
+
+  // ========================
+  // 🎯 ANTI-CRAVING STRATEGIES ROUTES
+  // ========================
+
+  app.post("/api/strategies", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.user!.id;
+      const { strategies } = req.body;
+      
+      if (!Array.isArray(strategies)) {
+        return res.status(400).json({ message: "Les stratégies doivent être un tableau" });
+      }
+
+      const savedStrategies = await storage.createAntiCravingStrategies(userId, strategies);
+      res.json(savedStrategies);
+    } catch (error) {
+      console.error("Error saving anti-craving strategies:", error);
+      res.status(500).json({ message: "Erreur lors de la sauvegarde des stratégies" });
+    }
+  });
+
+  app.get("/api/strategies", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.user!.id;
+      const strategies = await storage.getAntiCravingStrategies(userId);
+      res.json(strategies);
+    } catch (error) {
+      console.error("Error fetching anti-craving strategies:", error);
+      res.status(500).json({ message: "Erreur lors de la récupération des stratégies" });
     }
   });
 
