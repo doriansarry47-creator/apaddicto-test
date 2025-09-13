@@ -273,7 +273,7 @@ var init_db = __esm({
 });
 
 // server/storage.ts
-import { eq, desc, sql as sql2, and, gte } from "drizzle-orm";
+import { eq, desc, and, gte } from "drizzle-orm";
 var DbStorage, storage;
 var init_storage = __esm({
   "server/storage.ts"() {
@@ -331,8 +331,19 @@ var init_storage = __esm({
       async getAllPsychoEducationContent() {
         return getDB().select().from(psychoEducationContent).orderBy(psychoEducationContent.title);
       }
+      async getPsychoEducationContentById(contentId) {
+        const result = await getDB().select().from(psychoEducationContent).where(eq(psychoEducationContent.id, contentId));
+        return result[0];
+      }
       async createPsychoEducationContent(insertContent) {
         return getDB().insert(psychoEducationContent).values(insertContent).returning().then((rows) => rows[0]);
+      }
+      async updatePsychoEducationContent(contentId, data) {
+        const result = await getDB().update(psychoEducationContent).set({ ...data, updatedAt: (/* @__PURE__ */ new Date()).toISOString() }).where(eq(psychoEducationContent.id, contentId)).returning();
+        if (result.length === 0) {
+          throw new Error("Content not found");
+        }
+        return result[0];
       }
       async deletePsychoEducationContent(contentId) {
         await getDB().delete(psychoEducationContent).where(eq(psychoEducationContent.id, contentId));
@@ -421,94 +432,94 @@ var init_storage = __esm({
         }
         return newBadges;
       }
-    };
-    storage = new DbStorage();
-    Object.assign(DbStorage.prototype, {
       // Admin operations
       async getAllUsersWithStats() {
         const db2 = getDB();
-        const usersWithStats = await db2.select({
+        const allUsers = await db2.select({
           id: users.id,
           email: users.email,
           firstName: users.firstName,
           lastName: users.lastName,
           role: users.role,
           createdAt: users.createdAt,
-          lastLoginAt: users.lastLoginAt,
           isActive: users.isActive
-        }).from(users).orderBy(desc(users.createdAt));
+        }).from(users);
         const usersWithFullStats = await Promise.all(
-          usersWithStats.map(async (user) => {
-            const [exerciseCount] = await db2.select({ count: sql2`count(*)` }).from(exerciseSessions).where(eq(exerciseSessions.userId, user.id));
-            const [cravingCount] = await db2.select({ count: sql2`count(*)` }).from(cravingEntries).where(eq(cravingEntries.userId, user.id));
+          allUsers.map(async (user) => {
+            const stats = await this.getUserStats(user.id);
             return {
               ...user,
-              exerciseCount: exerciseCount?.count || 0,
-              cravingCount: cravingCount?.count || 0
+              stats: stats || {
+                exercisesCompleted: 0,
+                totalDuration: 0,
+                currentStreak: 0,
+                longestStreak: 0,
+                averageCraving: null
+              }
             };
           })
         );
         return usersWithFullStats;
-      },
+      }
       async getAllMediaFiles() {
         return [];
-      },
+      }
+      async deleteMediaFile(mediaId) {
+        return;
+      }
       // Emergency routine operations
       async getAllEmergencyRoutines() {
         return getDB().select().from(emergencyRoutines).where(eq(emergencyRoutines.isActive, true)).orderBy(emergencyRoutines.title);
-      },
+      }
       async getEmergencyRoutine(routineId) {
         const result = await getDB().select().from(emergencyRoutines).where(eq(emergencyRoutines.id, routineId));
         return result[0];
-      },
+      }
       async createEmergencyRoutine(insertRoutine) {
         return getDB().insert(emergencyRoutines).values(insertRoutine).returning().then((rows) => rows[0]);
-      },
+      }
       async updateEmergencyRoutine(routineId, updateData) {
         const result = await getDB().update(emergencyRoutines).set({ ...updateData, updatedAt: /* @__PURE__ */ new Date() }).where(eq(emergencyRoutines.id, routineId)).returning();
         return result[0];
-      },
+      }
       async deleteEmergencyRoutine(routineId) {
         await getDB().delete(emergencyRoutines).where(eq(emergencyRoutines.id, routineId));
-      },
+      }
       async getDefaultEmergencyRoutine() {
         const result = await getDB().select().from(emergencyRoutines).where(and(eq(emergencyRoutines.isActive, true), eq(emergencyRoutines.isDefault, true)));
         return result[0];
-      },
+      }
       async setDefaultEmergencyRoutine(routineId) {
         await getDB().update(emergencyRoutines).set({ isDefault: false }).where(eq(emergencyRoutines.isDefault, true));
         await getDB().update(emergencyRoutines).set({ isDefault: true }).where(eq(emergencyRoutines.id, routineId));
-      },
+      }
       // Quick resource operations
       async getAllQuickResources() {
-        return getDB().select().from(quickResources).where(eq(quickResources.isActive, true)).orderBy(quickResources.isPinned, quickResources.title);
-      },
+        return getDB().select().from(quickResources).where(eq(quickResources.isActive, true)).orderBy(quickResources.title);
+      }
       async getQuickResource(resourceId) {
         const result = await getDB().select().from(quickResources).where(eq(quickResources.id, resourceId));
         return result[0];
-      },
+      }
       async createQuickResource(insertResource) {
         return getDB().insert(quickResources).values(insertResource).returning().then((rows) => rows[0]);
-      },
+      }
       async updateQuickResource(resourceId, updateData) {
         const result = await getDB().update(quickResources).set({ ...updateData, updatedAt: /* @__PURE__ */ new Date() }).where(eq(quickResources.id, resourceId)).returning();
         return result[0];
-      },
+      }
       async deleteQuickResource(resourceId) {
         await getDB().delete(quickResources).where(eq(quickResources.id, resourceId));
-      },
+      }
       async getPinnedQuickResources() {
         return getDB().select().from(quickResources).where(and(eq(quickResources.isActive, true), eq(quickResources.isPinned, true))).orderBy(quickResources.title);
-      },
+      }
       async togglePinQuickResource(resourceId) {
         const resource = await this.getQuickResource(resourceId);
         if (resource) {
           await getDB().update(quickResources).set({ isPinned: !resource.isPinned }).where(eq(quickResources.id, resourceId));
         }
-      },
-      async deleteMediaFile(mediaId) {
-        return;
-      },
+      }
       // Anti-craving strategies operations
       async createAntiCravingStrategies(userId, strategies) {
         const strategiesWithUserId = strategies.map((strategy) => ({
@@ -517,11 +528,12 @@ var init_storage = __esm({
         }));
         const result = await getDB().insert(antiCravingStrategies).values(strategiesWithUserId).returning();
         return result;
-      },
+      }
       async getAntiCravingStrategies(userId) {
         return getDB().select().from(antiCravingStrategies).where(eq(antiCravingStrategies.userId, userId)).orderBy(desc(antiCravingStrategies.createdAt));
       }
-    });
+    };
+    storage = new DbStorage();
   }
 });
 
@@ -545,7 +557,7 @@ async function seedData() {
     {
       title: "Exercices de respiration profonde",
       description: "Techniques de respiration pour calmer l'esprit et r\xE9duire l'anxi\xE9t\xE9",
-      category: "mindfulness",
+      category: "respiration",
       difficulty: "beginner",
       duration: 10,
       instructions: "Asseyez-vous confortablement. Inspirez lentement par le nez pendant 4 secondes, retenez votre souffle pendant 4 secondes, puis expirez par la bouche pendant 6 secondes. R\xE9p\xE9tez 10 fois.",
@@ -555,7 +567,7 @@ async function seedData() {
     {
       title: "\xC9tirements matinaux",
       description: "S\xE9quence d'\xE9tirements doux pour commencer la journ\xE9e",
-      category: "flexibility",
+      category: "etirement",
       difficulty: "beginner",
       duration: 15,
       instructions: "Effectuez chaque \xE9tirement lentement et maintenez la position pendant 30 secondes. Incluez les bras, le cou, le dos, les jambes. Respirez profond\xE9ment pendant chaque \xE9tirement.",
@@ -575,7 +587,7 @@ async function seedData() {
     {
       title: "M\xE9ditation guid\xE9e",
       description: "S\xE9ance de m\xE9ditation pour la paix int\xE9rieure",
-      category: "mindfulness",
+      category: "meditation",
       difficulty: "beginner",
       duration: 15,
       instructions: "Asseyez-vous dans un endroit calme. Fermez les yeux et concentrez-vous sur votre respiration. Quand votre esprit divague, ramenez doucement votre attention sur votre souffle.",
@@ -585,7 +597,7 @@ async function seedData() {
     {
       title: "Pompes modifi\xE9es",
       description: "Exercice de renforcement adapt\xE9 \xE0 tous les niveaux",
-      category: "strength",
+      category: "renforcement",
       difficulty: "beginner",
       duration: 10,
       instructions: "Commencez par des pompes contre un mur ou sur les genoux. Effectuez 3 s\xE9ries de 8-12 r\xE9p\xE9titions avec 1 minute de repos entre les s\xE9ries.",
@@ -595,7 +607,7 @@ async function seedData() {
     {
       title: "Yoga doux",
       description: "S\xE9quence de yoga relaxante pour corps et esprit",
-      category: "flexibility",
+      category: "relaxation",
       difficulty: "beginner",
       duration: 25,
       instructions: "Encha\xEEnez des postures simples comme la posture de l'enfant, le chat-vache, et la torsion assise. Maintenez chaque posture 30-60 secondes en respirant profond\xE9ment.",
@@ -605,7 +617,7 @@ async function seedData() {
     {
       title: "Squats au poids du corps",
       description: "Exercice de renforcement des jambes et fessiers",
-      category: "strength",
+      category: "renforcement",
       difficulty: "intermediate",
       duration: 12,
       instructions: "Effectuez 3 s\xE9ries de 10-15 squats. Descendez comme si vous vous asseyiez sur une chaise, gardez le dos droit et les genoux align\xE9s avec les orteils.",
@@ -807,6 +819,66 @@ Si une rechute survient :
       console.log(`Contenu psycho\xE9ducatif cr\xE9\xE9: ${content.title}`);
     } catch (error) {
       console.error(`Erreur lors de la cr\xE9ation du contenu ${content.title}:`, error);
+    }
+  }
+  const emergencyRoutines2 = [
+    {
+      title: "Routine anti-craving 3 minutes",
+      description: "Routine rapide pour g\xE9rer un craving intense en 3 minutes",
+      category: "general",
+      duration: 3,
+      steps: [
+        "Arr\xEAte-toi et reconnais le craving sans jugement",
+        "Respire profond\xE9ment : inspire 4 secondes, expire 6 secondes (r\xE9p\xE8te 5 fois)",
+        "Nomme 5 choses que tu vois, 4 que tu entends, 3 que tu touches",
+        "Rappelle-toi pourquoi tu veux arr\xEAter (tes motivations principales)",
+        "Bois un grand verre d'eau lentement",
+        "F\xE9licite-toi d'avoir r\xE9sist\xE9 \xE0 ce craving"
+      ],
+      isActive: true,
+      isDefault: true
+    },
+    {
+      title: "Technique de respiration d'urgence",
+      description: "Respiration 4-7-8 pour calmer rapidement l'anxi\xE9t\xE9 et les cravings",
+      category: "breathing",
+      duration: 5,
+      steps: [
+        "Trouve une position confortable, assis ou debout",
+        "Place ta langue derri\xE8re tes dents sup\xE9rieures",
+        "Expire compl\xE8tement par la bouche",
+        "Inspire par le nez pendant 4 secondes",
+        "Retiens ton souffle pendant 7 secondes",
+        "Expire par la bouche pendant 8 secondes",
+        "R\xE9p\xE8te ce cycle 4 fois de suite",
+        "Observe comment ton corps se d\xE9tend"
+      ],
+      isActive: true,
+      isDefault: false
+    },
+    {
+      title: "Ancrage sensoriel rapide",
+      description: "Technique d'ancrage pour se reconnecter au moment pr\xE9sent",
+      category: "grounding",
+      duration: 2,
+      steps: [
+        "Nomme 5 choses que tu peux voir autour de toi",
+        "Identifie 4 choses que tu peux toucher",
+        "\xC9coute 3 sons diff\xE9rents dans ton environnement",
+        "Trouve 2 odeurs que tu peux sentir",
+        "Pense \xE0 1 go\xFBt agr\xE9able que tu aimes",
+        "Prends un moment pour appr\xE9cier d'\xEAtre ancr\xE9 dans le pr\xE9sent"
+      ],
+      isActive: true,
+      isDefault: false
+    }
+  ];
+  for (const routine of emergencyRoutines2) {
+    try {
+      await storage.createEmergencyRoutine(routine);
+      console.log(`Routine d'urgence cr\xE9\xE9e: ${routine.title}`);
+    } catch (error) {
+      console.error(`Erreur lors de la cr\xE9ation de la routine ${routine.title}:`, error);
     }
   }
   console.log("Donn\xE9es d'exemple cr\xE9\xE9es avec succ\xE8s!");
@@ -1069,6 +1141,18 @@ function registerRoutes(app2) {
       res.status(500).json({ message: "Failed to fetch all psycho-education content" });
     }
   });
+  app2.get("/api/admin/psycho-education/:contentId", requireAdmin, async (req, res) => {
+    try {
+      const { contentId } = req.params;
+      const content = await storage.getPsychoEducationContentById(contentId);
+      if (!content) {
+        return res.status(404).json({ message: "Content not found" });
+      }
+      res.json(content);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch psycho-education content" });
+    }
+  });
   app2.get("/api/admin/users", requireAdmin, async (req, res) => {
     try {
       const users2 = await storage.getAllUsersWithStats();
@@ -1293,6 +1377,16 @@ function registerRoutes(app2) {
       res.json({ message: "Exercise deleted successfully" });
     } catch (error) {
       res.status(500).json({ message: "Failed to delete exercise" });
+    }
+  });
+  app2.put("/api/admin/psycho-education/:contentId", requireAdmin, async (req, res) => {
+    try {
+      const { contentId } = req.params;
+      const data = insertPsychoEducationContentSchema.parse(req.body);
+      const content = await storage.updatePsychoEducationContent(contentId, data);
+      res.json(content);
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to update content" });
     }
   });
   app2.delete("/api/admin/psycho-education/:contentId", requireAdmin, async (req, res) => {

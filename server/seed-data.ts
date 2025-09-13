@@ -1,92 +1,102 @@
 import { storage } from './storage';
-import type { InsertExercise, InsertPsychoEducationContent, InsertEmergencyRoutine } from '@shared/schema';
+import type { InsertExercise, InsertPsychoEducationContent, InsertEmergencyRoutine, InsertQuickResource } from '@shared/schema';
 
 export async function seedData() {
-  // Exercices de thérapie sportive
+  // Exercices de thérapie sportive avancés avec contenu récupéré
   const exercises: InsertExercise[] = [
     {
-      title: "Marche rapide",
-      description: "Une marche énergique pour améliorer l'humeur et réduire le stress",
-      category: "cardio",
+      title: "Étirements Doux Anti-Stress",
+      description: "Séquence d'étirements simples pour apaiser le système nerveux et réduire les tensions.",
+      category: "flexibility",
       difficulty: "beginner",
-      duration: 20,
-      instructions: "Marchez d'un pas soutenu pendant 20 minutes. Concentrez-vous sur votre respiration et l'environnement qui vous entoure. Maintenez un rythme qui vous permet de parler mais qui vous fait légèrement transpirer.",
-      benefits: "Améliore l'humeur, réduit l'anxiété, augmente l'énergie, favorise la production d'endorphines naturelles",
-      imageUrl: "/images/walking.jpg",
+      duration: 5,
+      instructions: "Asseyez-vous confortablement ou tenez-vous debout. Roulez lentement les épaules vers l'arrière 5 fois. Étirez doucement le cou de chaque côté. Levez les bras au-dessus de la tête et étirez-vous. Penchez-vous légèrement vers l'avant pour étirer le dos.",
+      benefits: "Réduction du stress physique, diminution des tensions musculaires, amélioration de la circulation, effet calmant sur le système nerveux",
+      imageUrl: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=200",
     },
     {
-      title: "Exercices de respiration profonde",
-      description: "Techniques de respiration pour calmer l'esprit et réduire l'anxiété",
-      category: "respiration",
+      title: "Respiration Cohérence Cardiaque",
+      description: "Technique de respiration guidée pour réguler le système nerveux et réduire l'anxiété.",
+      category: "mindfulness",
       difficulty: "beginner",
-      duration: 10,
-      instructions: "Asseyez-vous confortablement. Inspirez lentement par le nez pendant 4 secondes, retenez votre souffle pendant 4 secondes, puis expirez par la bouche pendant 6 secondes. Répétez 10 fois.",
-      benefits: "Réduit le stress, calme le système nerveux, améliore la concentration, aide à gérer les émotions",
-      imageUrl: "/images/breathing.jpg",
+      duration: 6,
+      instructions: "Installez-vous confortablement, dos droit. Inspirez lentement par le nez pendant 5 secondes. Expirez doucement par la bouche pendant 5 secondes. Répétez ce rythme pendant 6 minutes. Focalisez-vous sur votre cœur pendant l'exercice.",
+      benefits: "Régulation du rythme cardiaque, réduction de l'anxiété, amélioration de la concentration, activation du système parasympathique",
+      imageUrl: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=200",
     },
     {
-      title: "Étirements matinaux",
-      description: "Séquence d'étirements doux pour commencer la journée",
-      category: "etirement",
-      difficulty: "beginner",
-      duration: 15,
-      instructions: "Effectuez chaque étirement lentement et maintenez la position pendant 30 secondes. Incluez les bras, le cou, le dos, les jambes. Respirez profondément pendant chaque étirement.",
-      benefits: "Améliore la flexibilité, réduit les tensions musculaires, augmente la circulation sanguine, prépare le corps pour la journée",
-      imageUrl: "/images/stretching.jpg",
-    },
-    {
-      title: "Course légère",
-      description: "Jogging à rythme modéré pour libérer les endorphines",
+      title: "Circuit Cardio Doux",
+      description: "Enchaînement de mouvements pour activer la circulation et libérer les endorphines.",
       category: "cardio",
       difficulty: "intermediate",
-      duration: 30,
-      instructions: "Commencez par un échauffement de 5 minutes de marche. Courez à un rythme confortable pendant 20 minutes, puis terminez par 5 minutes de marche de récupération.",
-      benefits: "Libère des endorphines, améliore l'humeur, renforce le système cardiovasculaire, aide à gérer le stress",
-      imageUrl: "/images/jogging.jpg",
+      duration: 8,
+      instructions: "Échauffement : marchez sur place 1 minute. 30 secondes de montées de genoux. 30 secondes de talons-fesses. 1 minute de squats légers. 30 secondes d'étirements pour récupérer.",
+      benefits: "Libération d'endorphines, amélioration de l'humeur, réduction du stress, activation métabolique",
+      imageUrl: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=200",
     },
     {
-      title: "Méditation guidée",
-      description: "Séance de méditation pour la paix intérieure",
-      category: "meditation",
-      difficulty: "beginner",
-      duration: 15,
-      instructions: "Asseyez-vous dans un endroit calme. Fermez les yeux et concentrez-vous sur votre respiration. Quand votre esprit divague, ramenez doucement votre attention sur votre souffle.",
-      benefits: "Réduit l'anxiété, améliore la concentration, favorise la relaxation, développe la conscience de soi",
-      imageUrl: "/images/meditation.jpg",
-    },
-    {
-      title: "Pompes modifiées",
-      description: "Exercice de renforcement adapté à tous les niveaux",
-      category: "renforcement",
+      title: "Yoga Relaxation Progressive",
+      description: "Enchaînement de postures douces pour la détente musculaire et mentale profonde.",
+      category: "flexibility",
       difficulty: "beginner",
       duration: 10,
-      instructions: "Commencez par des pompes contre un mur ou sur les genoux. Effectuez 3 séries de 8-12 répétitions avec 1 minute de repos entre les séries.",
-      benefits: "Renforce le haut du corps, améliore la confiance en soi, augmente la force fonctionnelle",
-      imageUrl: "/images/pushups.jpg",
+      instructions: "Commencez en position debout, pieds parallèles. Passez en posture de l'enfant pendant 2 minutes. Enchaînez avec la posture du chat-vache. Terminez par la posture du cadavre. Respirez profondément tout au long de l'exercice.",
+      benefits: "Relaxation musculaire profonde, réduction du stress mental, amélioration de la flexibilité, centrage et ancrage",
+      imageUrl: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=200",
     },
     {
-      title: "Yoga doux",
-      description: "Séquence de yoga relaxante pour corps et esprit",
-      category: "relaxation",
-      difficulty: "beginner",
-      duration: 25,
-      instructions: "Enchaînez des postures simples comme la posture de l'enfant, le chat-vache, et la torsion assise. Maintenez chaque posture 30-60 secondes en respirant profondément.",
-      benefits: "Améliore la flexibilité, réduit le stress, favorise la relaxation, renforce la connexion corps-esprit",
-      imageUrl: "/images/yoga.jpg",
-    },
-    {
-      title: "Squats au poids du corps",
-      description: "Exercice de renforcement des jambes et fessiers",
-      category: "renforcement",
-      difficulty: "intermediate",
+      title: "HIIT Anti-Craving",
+      description: "Entraînement intensif pour une libération maximale d'endorphines et réduction rapide du craving.",
+      category: "strength",
+      difficulty: "advanced",
       duration: 12,
-      instructions: "Effectuez 3 séries de 10-15 squats. Descendez comme si vous vous asseyiez sur une chaise, gardez le dos droit et les genoux alignés avec les orteils.",
-      benefits: "Renforce les jambes et fessiers, améliore l'équilibre, augmente la densité osseuse",
-      imageUrl: "/images/squats.jpg",
+      instructions: "Échauffement : 2 minutes de cardio léger. 30 secondes de burpees, 30 secondes de repos. 30 secondes de jumping jacks, 30 secondes de repos. 30 secondes de mountain climbers, 30 secondes de repos. Répétez le circuit 3 fois, puis récupération.",
+      benefits: "Libération massive d'endorphines, réduction rapide du craving, amélioration de la condition physique, effet antidépresseur naturel",
+      imageUrl: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=200",
+    },
+    {
+      title: "Routine Urgence Anti-Craving",
+      description: "Séquence rapide et efficace pour casser immédiatement un pic de craving intense.",
+      category: "cardio",
+      difficulty: "intermediate",
+      duration: 3,
+      instructions: "10 respirations profondes et rapides. 30 secondes de sautillements sur place. 20 squats rapides. 10 respirations de récupération. Évaluation de votre état.",
+      benefits: "Interruption immédiate du craving, libération rapide d'endorphines, recentrage mental, activation du système nerveux sympathique",
+      imageUrl: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=200",
+    },
+    {
+      title: "Réveil Énergisant",
+      description: "Routine matinale pour commencer la journée avec énergie et motivation.",
+      category: "cardio",
+      difficulty: "intermediate",
+      duration: 7,
+      instructions: "Réveil articulaire : rotation des articulations. 1 minute de marche dynamique. 20 squats avec bras levés. 30 secondes de jumping jacks. Étirements dynamiques pour finir.",
+      benefits: "Activation métabolique, amélioration de l'humeur, boost d'énergie naturel, préparation mentale positive",
+      imageUrl: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=200",
+    },
+    {
+      title: "Gestion de l'Anxiété",
+      description: "Combinaison de mouvements et respiration pour gérer l'anxiété et les émotions difficiles.",
+      category: "mindfulness",
+      difficulty: "beginner",
+      duration: 8,
+      instructions: "Position confortable, yeux fermés. 3 minutes de respiration 4-7-8. Visualisation d'un lieu sûr. Mouvements doux des bras et du corps. Affirmations positives.",
+      benefits: "Réduction de l'anxiété, régulation émotionnelle, amélioration de l'estime de soi, développement de la résilience",
+      imageUrl: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=200",
+    },
+    {
+      title: "Relaxation Musculaire Progressive",
+      description: "Technique de Jacobson pour relâcher toutes les tensions du corps.",
+      category: "mindfulness",
+      difficulty: "beginner",
+      duration: 15,
+      instructions: "Allongez-vous confortablement. Contractez et relâchez chaque groupe musculaire. Commencez par les pieds, remontez jusqu'à la tête. Maintenez la contraction 5 secondes, relâchez 10 secondes. Terminez par une relaxation complète.",
+      benefits: "Relâchement des tensions physiques, amélioration du sommeil, réduction du stress chronique, conscience corporelle accrue",
+      imageUrl: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=200",
     }
   ];
 
-  // Contenu psychoéducatif
+  // Contenu psychoéducatif enrichi
   const psychoEducationContent: InsertPsychoEducationContent[] = [
     {
       title: "Comprendre l'addiction",
@@ -95,176 +105,331 @@ export async function seedData() {
 ## Les mécanismes de l'addiction
 
 L'addiction modifie la chimie du cerveau, particulièrement dans les zones responsables de :
-- La prise de décision
-- Le contrôle des impulsions
-- La gestion du stress
-- La régulation émotionnelle
+- **La prise de décision** : Altération du cortex préfrontal
+- **Le contrôle des impulsions** : Dysfonctionnement du système inhibiteur
+- **La gestion du stress** : Déséquilibre hormonal
+- **La régulation émotionnelle** : Impact sur l'amygdale et l'hippocampe
 
 ## Facteurs de risque
 
-Plusieurs facteurs peuvent contribuer au développement d'une addiction :
-- Prédisposition génétique
-- Traumatismes passés
-- Stress chronique
-- Environnement social
+### Biologiques
+- Prédisposition génétique (40-60% du risque)
+- Déséquilibres neurochimiques
 - Troubles mentaux concomitants
+
+### Psychologiques  
+- Traumatismes passés non résolus
+- Stratégies d'adaptation inadéquates
+- Faible estime de soi
+
+### Environnementaux
+- Stress chronique
+- Environnement social permissif
+- Accessibilité des substances/comportements
 
 ## L'importance de la compréhension
 
-Comprendre que l'addiction est une maladie et non un manque de volonté est crucial pour :
-- Réduire la culpabilité et la honte
-- Développer de la compassion envers soi-même
-- Accepter l'aide professionnelle
-- Maintenir la motivation pour le rétablissement`,
+Comprendre que l'addiction est une **maladie** et non un manque de volonté est crucial pour :
+- ✅ Réduire la culpabilité et la honte
+- ✅ Développer de la compassion envers soi-même
+- ✅ Accepter l'aide professionnelle
+- ✅ Maintenir la motivation pour le rétablissement`,
       category: "addiction",
       type: "article",
       difficulty: "beginner",
       estimatedReadTime: 8,
-      imageUrl: "/images/brain-addiction.jpg",
+      imageUrl: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=200",
     },
     {
-      title: "Techniques de gestion du stress",
-      content: `Le stress est souvent un déclencheur majeur dans les processus addictifs. Apprendre à gérer le stress de manière saine est essentiel pour maintenir la sobriété.
+      title: "Techniques de gestion du stress avancées",
+      content: `Le stress est souvent un déclencheur majeur dans les processus addictifs. Voici des techniques scientifiquement prouvées pour gérer le stress de manière saine.
 
-## Techniques de relaxation immédiate
+## 🚨 Techniques de gestion immédiate
 
-### Respiration 4-7-8
-1. Inspirez par le nez pendant 4 secondes
-2. Retenez votre souffle pendant 7 secondes
-3. Expirez par la bouche pendant 8 secondes
-4. Répétez 4 fois
+### Technique 5-4-3-2-1 (Ancrage sensoriel)
+1. **5 choses** que vous pouvez voir
+2. **4 choses** que vous pouvez toucher
+3. **3 choses** que vous pouvez entendre
+4. **2 choses** que vous pouvez sentir
+5. **1 chose** que vous pouvez goûter
 
-### Relaxation musculaire progressive
-- Contractez puis relâchez chaque groupe musculaire
-- Commencez par les orteils, remontez jusqu'à la tête
-- Maintenez la contraction 5 secondes, puis relâchez
+### Respiration Box (4-4-4-4)
+- Inspirez pendant 4 secondes
+- Retenez pendant 4 secondes  
+- Expirez pendant 4 secondes
+- Pause pendant 4 secondes
+- Répétez 8-10 cycles
 
-## Stratégies à long terme
+### Auto-massage express
+- Massez les tempes en mouvements circulaires
+- Pression sur les points d'acupression (poignet, main)
+- Étirement doux du cou et des épaules
 
-### Exercice physique régulier
-- Libère des endorphines naturelles
-- Améliore l'humeur et l'estime de soi
-- Réduit les hormones de stress
+## 🏃‍♂️ Stratégies à long terme
 
-### Méditation et pleine conscience
-- Développe la conscience de soi
-- Améliore la régulation émotionnelle
-- Réduit l'anxiété et la dépression
+### HIIT pour la gestion du stress
+- **3x par semaine**, 15-20 minutes
+- Libère des endorphines pour 24-48h
+- Améliore la résistance au stress
 
-### Sommeil de qualité
-- 7-9 heures par nuit
-- Routine de coucher régulière
-- Environnement propice au repos`,
-      category: "coping",
-      type: "article",
-      difficulty: "beginner",
-      estimatedReadTime: 10,
-      imageUrl: "/images/stress-management.jpg",
-    },
-    {
-      title: "Maintenir la motivation",
-      content: `La motivation fluctue naturellement au cours du processus de rétablissement. Voici des stratégies pour maintenir votre engagement envers vos objectifs.
+### Pratique méditative quotidienne
+- **Minimum 10 minutes** par jour
+- Applications recommandées : Headspace, Calm, Insight Timer
+- Focus sur la **pleine conscience** et l'**auto-compassion**
 
-## Définir des objectifs SMART
-
-### Spécifiques
-- Définissez clairement ce que vous voulez accomplir
-- Évitez les objectifs vagues
-
-### Mesurables
-- Établissez des critères pour mesurer vos progrès
-- Utilisez des chiffres quand c'est possible
-
-### Atteignables
-- Fixez des objectifs réalistes
-- Commencez petit et progressez graduellement
-
-### Pertinents
-- Assurez-vous que vos objectifs correspondent à vos valeurs
-- Connectez-les à votre vision à long terme
-
-### Temporels
-- Fixez des échéances claires
-- Divisez les grands objectifs en étapes plus petites
-
-## Techniques de motivation
-
-### Visualisation positive
-- Imaginez-vous atteignant vos objectifs
-- Ressentez les émotions positives associées
-- Pratiquez régulièrement cette visualisation
-
-### Journal de gratitude
-- Notez 3 choses pour lesquelles vous êtes reconnaissant chaque jour
-- Concentrez-vous sur les progrès, même petits
-- Célébrez vos victoires
-
-### Système de récompenses
-- Établissez des récompenses saines pour vos accomplissements
-- Variez les types de récompenses
-- Assurez-vous qu'elles soutiennent vos objectifs`,
-      category: "motivation",
-      type: "article",
+### Optimisation du sommeil
+- **Température** : 18-19°C optimal
+- **Écrans** : Arrêt 1h avant coucher
+- **Routine** : Même horaire chaque jour
+- **Environnement** : Noir complet, silencieux`,
+      category: "stress_management",
+      type: "article", 
       difficulty: "intermediate",
       estimatedReadTime: 12,
-      imageUrl: "/images/motivation.jpg",
+      imageUrl: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=200",
     },
     {
-      title: "Prévention de la rechute",
-      content: `La rechute fait souvent partie du processus de rétablissement. Comprendre les signaux d'alarme et avoir un plan peut vous aider à maintenir vos progrès.
+      title: "Psychologie de la motivation : Méthodes scientifiques",
+      content: `La motivation n'est pas un sentiment constant. C'est une compétence qui se développe avec des techniques éprouvées par la recherche en psychologie comportementale.
 
-## Signaux d'alarme précoces
+## 🎯 Système d'objectifs hiérarchique
 
-### Émotionnels
-- Irritabilité accrue
-- Sentiment d'isolement
-- Anxiété ou dépression
-- Perte d'intérêt pour les activités
+### Objectifs SMART-ER
+- **S**pécifique - **M**esurable - **A**tteignable - **R**elevant - **T**emporel
+- **E**motionnellement connecté - **R**évisable
 
-### Comportementaux
-- Négligence de l'hygiène personnelle
-- Évitement des responsabilités
-- Isolement social
-- Arrêt des activités de rétablissement
+### Exemple concret
+❌ "Je veux arrêter de boire"
+✅ "Je vais rester sobre pendant 30 jours, en remplaçant l'alcool par du thé, parce que je veux être présent pour ma famille"
 
-### Cognitifs
-- Pensées obsessionnelles
-- Rationalisation des comportements à risque
-- Minimisation des conséquences
-- Pensée "tout ou rien"
+## 🧠 Techniques de neuroscience motivationnelle
 
-## Plan de prévention de la rechute
+### Dopamine Stacking
+1. **Activité agréable** avant l'objectif difficile
+2. **Récompense immédiate** après accomplissement
+3. **Célébration** des petites victoires
 
-### Identification des déclencheurs
-- Situations à haut risque
-- Émotions difficiles
-- Personnes ou lieux problématiques
-- États physiques (fatigue, faim)
+### Visualisation basée sur les résultats
+- **10 minutes** de visualisation quotidienne
+- **Ressentir** les émotions du succès
+- **Ancrer** physiquement les sensations positives
 
-### Stratégies d'adaptation
-- Techniques de relaxation
-- Exercice physique
-- Contact avec le réseau de soutien
-- Activités alternatives saines
+### Accountability sociale
+- **Partenaire** de responsabilité
+- **Check-ins** réguliers (quotidiens/hebdomadaires)
+- **Engagement public** de vos objectifs
 
-### Plan d'urgence
-- Liste de contacts d'urgence
-- Stratégies de distraction immédiate
-- Lieux sûrs où se rendre
-- Rappels de vos motivations
+## 📊 Système de tracking motivationnel
 
-## Après une rechute
+### Métriques quotidiennes
+- Score de motivation (1-10)
+- Activités accomplies
+- Obstacles rencontrés
+- Solutions trouvées
 
-Si une rechute survient :
-- Ne vous jugez pas sévèrement
-- Analysez ce qui s'est passé
-- Ajustez votre plan de prévention
-- Reprenez vos stratégies de rétablissement rapidement`,
-      category: "relapse_prevention",
+### Analyse hebdomadaire
+- Patterns de motivation faible
+- Déclencheurs positifs identifiés
+- Ajustements nécessaires`,
+      category: "motivation",
       type: "article",
       difficulty: "advanced",
       estimatedReadTime: 15,
-      imageUrl: "/images/relapse-prevention.jpg",
+      imageUrl: "https://images.unsplash.com/photo-1551836022-deb4988cc6c0?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=200",
+    },
+    {
+      title: "Plan complet de prévention des rechutes",
+      content: `Un plan de prévention des rechutes robuste est votre bouclier contre les moments difficiles. Voici un système complet basé sur les meilleures pratiques cliniques.
+
+## 🚨 Système d'alerte précoce
+
+### Signaux physiques
+- ⚠️ Fatigue inhabituelle
+- ⚠️ Changements d'appétit
+- ⚠️ Troubles du sommeil
+- ⚠️ Tensions musculaires
+
+### Signaux émotionnels
+- 😤 Irritabilité croissante  
+- 😔 Sentiment de vide
+- 😰 Anxiété persistante
+- 🙄 Cynisme envers le rétablissement
+
+### Signaux comportementaux
+- 📵 Isolement social
+- 🎯 Abandon des routines saines
+- 🤝 Évitement du soutien
+- 💭 Romantisation du passé
+
+### Signaux cognitifs
+- 🧠 Pensées "tout ou rien"
+- 🎭 Minimisation des conséquences
+- 🔄 Rumination excessive
+- ❓ Remise en question du rétablissement
+
+## 🛡️ Stratégies de protection
+
+### Niveau 1 : Prévention quotidienne
+- **Morning routine** : Méditation + exercice + intentions
+- **Evening review** : Gratitude + challenges + solutions
+- **Connections** : 1 interaction sociale positive par jour
+
+### Niveau 2 : Intervention précoce  
+- **HALT Check** : Am-I Hungry/Angry/Lonely/Tired?
+- **Emergency contacts** : 3 personnes disponibles 24/7
+- **Safe spaces** : Lieux physiques de récupération
+
+### Niveau 3 : Crise management
+- **Emergency protocol** : Actions spécifiques minute par minute
+- **Professional help** : Thérapeute, médecin, hotline
+- **Damage control** : Plan si rechute partielle
+
+## 🔄 Après une rechute : Recovery protocol
+
+### Phase 1 : Sécurité (0-24h)
+1. **Stop** immédiatement la substance/comportement
+2. **Seek** aide professionnelle si nécessaire
+3. **Stabilize** environnement physique et émotionnel
+
+### Phase 2 : Analyse (24-72h)
+- **What** s'est passé exactement?
+- **When** les signaux d'alarme ont-ils commencé?
+- **Where** étais-je? (lieu, contexte)
+- **Why** mes stratégies n'ont-elles pas fonctionné?
+
+### Phase 3 : Reconstruction (72h+)
+- **Ajuster** le plan de prévention
+- **Renforcer** les stratégies faibles
+- **Ajouter** nouvelles techniques apprises
+- **Recommit** publiquement aux objectifs`,
+      category: "relapse_prevention",
+      type: "article",
+      difficulty: "advanced",
+      estimatedReadTime: 18,
+      imageUrl: "https://images.unsplash.com/photo-1551836022-deb4988cc6c0?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=200",
+    },
+    {
+      title: "Neuroscience des émotions et régulation",
+      content: `Comprendre le fonctionnement de vos émotions au niveau neurologique vous donne un pouvoir extraordinaire sur votre bien-être mental.
+
+## 🧠 Anatomie émotionnelle
+
+### Le trio décisionnel
+1. **Amygdale** : Détection des menaces (émotions primaires)
+2. **Cortex préfrontal** : Analyse rationnelle (pensées logiques)  
+3. **Système limbique** : Mémoire émotionnelle (associations passées)
+
+### Processus de déclenchement émotionnel
+**Stimulus** → **Évaluation automatique** → **Réaction physiologique** → **Émotion consciente** → **Action**
+
+## 🎛️ Techniques de régulation avancées
+
+### Window of Tolerance
+- **Zone optimale** : Vous pouvez penser clairement et gérer les émotions
+- **Hyperactivation** : Anxiété, colère, panique - besoin de calmer
+- **Hypoactivation** : Dépression, vide, déconnexion - besoin d'activer
+
+### STOP Technique améliorée
+- **S**top : Pause physique immédiate
+- **T**ake a breath : 3 respirations profondes conscientes  
+- **O**bserve : "Que se passe-t-il dans mon corps/esprit?"
+- **P**roceed : Action consciente basée sur valeurs
+
+### Technique RAIN pour émotions difficiles
+- **R**ecognize : "Je remarque de la colère/tristesse..."
+- **A**llow : "C'est ok de ressentir cela"
+- **I**nvestigate : "Où est-ce dans mon corps? Que dit cette émotion?"
+- **N**urture : Auto-compassion et bienveillance
+
+## 🔧 Outils pratiques quotidiens
+
+### Emotional Check-ins
+**3x par jour**, demandez-vous :
+- Émotion principale en ce moment?
+- Intensité (1-10)?
+- Message de cette émotion?
+- Action nécessaire?
+
+### Emotion Surfing
+1. **Identifier** la vague émotionnelle qui arrive
+2. **Respirer** avec l'émotion (ne pas résister)
+3. **Observer** comment elle monte puis redescend
+4. **Naviguer** sans être submergé`,
+      category: "emotional_regulation",
+      type: "article",
+      difficulty: "intermediate",
+      estimatedReadTime: 14,
+      imageUrl: "https://images.unsplash.com/photo-1559757260-6dd0cd4bce18?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=200",
+    }
+  ];
+
+  // Ressources rapides pour intervention immédiate
+  const quickResources: InsertQuickResource[] = [
+    {
+      title: "Technique 5-4-3-2-1",
+      description: "Ancrage sensoriel rapide en cas de panique ou craving intense",
+      content: "5 choses que je vois, 4 que je touche, 3 que j'entends, 2 que je sens, 1 que je goûte",
+      category: "emergency", 
+      type: "technique",
+      icon: "eye",
+      color: "red",
+      isActive: true,
+      isPinned: true
+    },
+    {
+      title: "Respiration Box 4-4-4-4",
+      description: "Technique de respiration pour calmer le système nerveux rapidement",
+      content: "Inspire 4 sec → Retiens 4 sec → Expire 4 sec → Pause 4 sec. Répète 8 fois.",
+      category: "coping",
+      type: "technique", 
+      icon: "wind",
+      color: "blue",
+      isActive: true,
+      isPinned: true
+    },
+    {
+      title: "Cette émotion va passer",
+      description: "Rappel que toutes les émotions sont temporaires",
+      content: "Les émotions sont comme des vagues - elles montent, atteignent un pic, puis redescendent naturellement. Cette intensité ne va pas durer.",
+      category: "motivation",
+      type: "reminder",
+      icon: "waves", 
+      color: "green",
+      isActive: true,
+      isPinned: false
+    },
+    {
+      title: "Je suis plus fort que ce craving",
+      description: "Affirmation de force personnelle",
+      content: "J'ai déjà surmonté des difficultés. Ce craving ne me définit pas. Je choisis ma réponse.",
+      category: "motivation",
+      type: "affirmation",
+      icon: "zap",
+      color: "yellow", 
+      isActive: true,
+      isPinned: true
+    },
+    {
+      title: "Auto-massage express",
+      description: "Technique rapide pour réduire les tensions physiques",
+      content: "Masse tes tempes en cercles, presse les points entre pouce/index, étire doucement le cou. 2 minutes suffisent.",
+      category: "relaxation",
+      type: "technique",
+      icon: "hand", 
+      color: "purple",
+      isActive: true,
+      isPinned: false
+    },
+    {
+      title: "Mes 3 raisons principales",
+      description: "Rappel de tes motivations fondamentales pour le rétablissement",
+      content: "1. Ma santé et mon bien-être - 2. Mes relations importantes - 3. Mes objectifs et rêves futurs",
+      category: "motivation",
+      type: "reminder",
+      icon: "target",
+      color: "orange",
+      isActive: true,
+      isPinned: true
     }
   ];
 
@@ -285,6 +450,16 @@ Si une rechute survient :
       console.log(`Contenu psychoéducatif créé: ${content.title}`);
     } catch (error) {
       console.error(`Erreur lors de la création du contenu ${content.title}:`, error);
+    }
+  }
+
+  // Insérer les ressources rapides
+  for (const resource of quickResources) {
+    try {
+      await storage.createQuickResource(resource);
+      console.log(`Ressource rapide créée: ${resource.title}`);
+    } catch (error) {
+      console.error(`Erreur lors de la création de la ressource ${resource.title}:`, error);
     }
   }
 
