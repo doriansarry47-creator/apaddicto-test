@@ -26,13 +26,15 @@ interface Exercise {
 
 // Mappages des catégories API vers les catégories frontend
 const categoryMapping: Record<string, keyof typeof categories> = {
+  // Catégories principales de la base de données
   'cardio': 'craving_reduction',
   'strength': 'energy_boost', 
   'flexibility': 'relaxation',
   'mindfulness': 'emotion_management',
+  // Catégories supplémentaires de l'interface admin
   'relaxation': 'relaxation',
   'respiration': 'emotion_management',
-  'meditation': 'relaxation',
+  'meditation': 'emotion_management',
   'etirement': 'relaxation',
   'renforcement': 'energy_boost',
   'debutant': 'craving_reduction'
@@ -50,8 +52,9 @@ const convertAPIExerciseToFrontend = (apiExercise: APIExercise): Exercise => {
     level: (apiExercise.difficulty as 'beginner' | 'intermediate' | 'advanced') || 'beginner',
     duration: apiExercise.duration || 10,
     intensity: 'moderate', // Valeur par défaut, pourrait être déterminée par la durée/catégorie
-    type: apiExercise.category === 'mindfulness' ? 'breathing' : 
-          apiExercise.category === 'flexibility' ? 'relaxation' :
+    type: ['mindfulness', 'respiration', 'meditation'].includes(apiExercise.category) ? 'breathing' : 
+          ['flexibility', 'relaxation', 'etirement'].includes(apiExercise.category) ? 'relaxation' :
+          apiExercise.category === 'emergency' ? 'emergency' :
           'physical',
     imageUrl: apiExercise.imageUrl || 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=200',
     instructions: apiExercise.instructions ? apiExercise.instructions.split('\n').filter(Boolean) : [],
@@ -279,9 +282,21 @@ export default function Exercises() {
                 </div>
                 <Button
                   onClick={() => {
+                    // Chercher d'abord un exercice d'urgence
                     const emergencyExercise = exercises.find(ex => ex.type === 'emergency');
                     if (emergencyExercise) {
                       handleStartExercise(emergencyExercise);
+                    } else {
+                      // Rediriger vers les routines d'urgence ou exercices de respiration
+                      const breathingExercise = exercises.find(ex => ex.type === 'breathing' || ex.category === 'emotion_management');
+                      if (breathingExercise) {
+                        handleStartExercise(breathingExercise);
+                      } else {
+                        toast({
+                          title: "Routine d'urgence",
+                          description: "Aucune routine d'urgence spécifique disponible. Essayez les exercices de respiration ou de relaxation.",
+                        });
+                      }
                     }
                   }}
                   className="bg-white text-destructive hover:bg-gray-50 ml-4"

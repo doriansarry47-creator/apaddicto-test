@@ -27,16 +27,21 @@ interface EducationModule {
 
 // Mapping des catégories API vers les catégories frontend
 const categoryMapping: Record<string, keyof typeof categories> = {
+  // Catégories principales de la base de données
   'addiction': 'addiction',
   'motivation': 'psychology',
   'coping': 'psychology',
   'relapse_prevention': 'psychology',
+  // Catégories supplémentaires
   'stress_management': 'techniques',
   'emotional_regulation': 'psychology',
   'mindfulness': 'techniques',
   'cognitive_therapy': 'psychology',
   'social_support': 'psychology',
-  'lifestyle': 'exercise'
+  'lifestyle': 'exercise',
+  'exercise': 'exercise',
+  'psychology': 'psychology',
+  'techniques': 'techniques'
 };
 
 // Fonction pour convertir le contenu API en format frontend
@@ -433,7 +438,7 @@ export default function Education() {
             </h2>
             <span className="text-sm text-muted-foreground" data-testid="text-module-count">
               {filteredModules.length} module{filteredModules.length !== 1 ? 's' : ''}
-              {apiContent.length > 0 && ' (depuis la base de données)'}
+              {apiContent.length > 0 ? ' (depuis la base de données)' : ' (contenu de démonstration)'}
             </span>
           </div>
 

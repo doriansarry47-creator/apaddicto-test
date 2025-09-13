@@ -1,5 +1,5 @@
 import { storage } from './storage';
-import type { InsertExercise, InsertPsychoEducationContent } from '@shared/schema';
+import type { InsertExercise, InsertPsychoEducationContent, InsertEmergencyRoutine } from '@shared/schema';
 
 export async function seedData() {
   // Exercices de thérapie sportive
@@ -17,7 +17,7 @@ export async function seedData() {
     {
       title: "Exercices de respiration profonde",
       description: "Techniques de respiration pour calmer l'esprit et réduire l'anxiété",
-      category: "mindfulness",
+      category: "respiration",
       difficulty: "beginner",
       duration: 10,
       instructions: "Asseyez-vous confortablement. Inspirez lentement par le nez pendant 4 secondes, retenez votre souffle pendant 4 secondes, puis expirez par la bouche pendant 6 secondes. Répétez 10 fois.",
@@ -27,7 +27,7 @@ export async function seedData() {
     {
       title: "Étirements matinaux",
       description: "Séquence d'étirements doux pour commencer la journée",
-      category: "flexibility",
+      category: "etirement",
       difficulty: "beginner",
       duration: 15,
       instructions: "Effectuez chaque étirement lentement et maintenez la position pendant 30 secondes. Incluez les bras, le cou, le dos, les jambes. Respirez profondément pendant chaque étirement.",
@@ -47,7 +47,7 @@ export async function seedData() {
     {
       title: "Méditation guidée",
       description: "Séance de méditation pour la paix intérieure",
-      category: "mindfulness",
+      category: "meditation",
       difficulty: "beginner",
       duration: 15,
       instructions: "Asseyez-vous dans un endroit calme. Fermez les yeux et concentrez-vous sur votre respiration. Quand votre esprit divague, ramenez doucement votre attention sur votre souffle.",
@@ -57,7 +57,7 @@ export async function seedData() {
     {
       title: "Pompes modifiées",
       description: "Exercice de renforcement adapté à tous les niveaux",
-      category: "strength",
+      category: "renforcement",
       difficulty: "beginner",
       duration: 10,
       instructions: "Commencez par des pompes contre un mur ou sur les genoux. Effectuez 3 séries de 8-12 répétitions avec 1 minute de repos entre les séries.",
@@ -67,7 +67,7 @@ export async function seedData() {
     {
       title: "Yoga doux",
       description: "Séquence de yoga relaxante pour corps et esprit",
-      category: "flexibility",
+      category: "relaxation",
       difficulty: "beginner",
       duration: 25,
       instructions: "Enchaînez des postures simples comme la posture de l'enfant, le chat-vache, et la torsion assise. Maintenez chaque posture 30-60 secondes en respirant profondément.",
@@ -77,7 +77,7 @@ export async function seedData() {
     {
       title: "Squats au poids du corps",
       description: "Exercice de renforcement des jambes et fessiers",
-      category: "strength",
+      category: "renforcement",
       difficulty: "intermediate",
       duration: 12,
       instructions: "Effectuez 3 séries de 10-15 squats. Descendez comme si vous vous asseyiez sur une chaise, gardez le dos droit et les genoux alignés avec les orteils.",
@@ -285,6 +285,70 @@ Si une rechute survient :
       console.log(`Contenu psychoéducatif créé: ${content.title}`);
     } catch (error) {
       console.error(`Erreur lors de la création du contenu ${content.title}:`, error);
+    }
+  }
+
+  // Routines d'urgence
+  const emergencyRoutines: InsertEmergencyRoutine[] = [
+    {
+      title: "Routine anti-craving 3 minutes",
+      description: "Routine rapide pour gérer un craving intense en 3 minutes",
+      category: "general",
+      duration: 3,
+      steps: [
+        "Arrête-toi et reconnais le craving sans jugement",
+        "Respire profondément : inspire 4 secondes, expire 6 secondes (répète 5 fois)",
+        "Nomme 5 choses que tu vois, 4 que tu entends, 3 que tu touches",
+        "Rappelle-toi pourquoi tu veux arrêter (tes motivations principales)",
+        "Bois un grand verre d'eau lentement",
+        "Félicite-toi d'avoir résisté à ce craving"
+      ],
+      isActive: true,
+      isDefault: true
+    },
+    {
+      title: "Technique de respiration d'urgence",
+      description: "Respiration 4-7-8 pour calmer rapidement l'anxiété et les cravings",
+      category: "breathing",
+      duration: 5,
+      steps: [
+        "Trouve une position confortable, assis ou debout",
+        "Place ta langue derrière tes dents supérieures",
+        "Expire complètement par la bouche",
+        "Inspire par le nez pendant 4 secondes",
+        "Retiens ton souffle pendant 7 secondes",
+        "Expire par la bouche pendant 8 secondes",
+        "Répète ce cycle 4 fois de suite",
+        "Observe comment ton corps se détend"
+      ],
+      isActive: true,
+      isDefault: false
+    },
+    {
+      title: "Ancrage sensoriel rapide",
+      description: "Technique d'ancrage pour se reconnecter au moment présent",
+      category: "grounding",
+      duration: 2,
+      steps: [
+        "Nomme 5 choses que tu peux voir autour de toi",
+        "Identifie 4 choses que tu peux toucher",
+        "Écoute 3 sons différents dans ton environnement",
+        "Trouve 2 odeurs que tu peux sentir",
+        "Pense à 1 goût agréable que tu aimes",
+        "Prends un moment pour apprécier d'être ancré dans le présent"
+      ],
+      isActive: true,
+      isDefault: false
+    }
+  ];
+
+  // Insérer les routines d'urgence
+  for (const routine of emergencyRoutines) {
+    try {
+      await storage.createEmergencyRoutine(routine);
+      console.log(`Routine d'urgence créée: ${routine.title}`);
+    } catch (error) {
+      console.error(`Erreur lors de la création de la routine ${routine.title}:`, error);
     }
   }
 
