@@ -68,6 +68,7 @@ export interface IStorage {
   // Exercise session operations
   createExerciseSession(session: InsertExerciseSession): Promise<ExerciseSession>;
   getExerciseSessions(userId: string, limit?: number): Promise<ExerciseSession[]>;
+  getExerciseSessionsWithDetails(userId: string, limit?: number): Promise<any[]>;
   getUserStats(userId: string): Promise<UserStats | undefined>;
 
   // Beck analysis operations
@@ -142,6 +143,7 @@ export class DbStorage implements IStorage {
       await tx.delete(beckAnalyses).where(eq(beckAnalyses.userId, userId));
       await tx.delete(exerciseSessions).where(eq(exerciseSessions.userId, userId));
       await tx.delete(cravingEntries).where(eq(cravingEntries.userId, userId));
+      await tx.delete(antiCravingStrategies).where(eq(antiCravingStrategies.userId, userId));
       await tx.delete(users).where(eq(users.id, userId));
     });
   }
@@ -290,6 +292,29 @@ export class DbStorage implements IStorage {
       .where(eq(exerciseSessions.userId, userId))
       .orderBy(desc(exerciseSessions.createdAt))
       .limit(limit);
+  }
+
+  async getExerciseSessionsWithDetails(userId: string, limit = 50): Promise<any[]> {
+    const sessions = await getDB()
+      .select({
+        id: exerciseSessions.id,
+        userId: exerciseSessions.userId,
+        exerciseId: exerciseSessions.exerciseId,
+        duration: exerciseSessions.duration,
+        completed: exerciseSessions.completed,
+        cravingBefore: exerciseSessions.cravingBefore,
+        cravingAfter: exerciseSessions.cravingAfter,
+        createdAt: exerciseSessions.createdAt,
+        exerciseTitle: exercises.title,
+        exerciseCategory: exercises.category,
+      })
+      .from(exerciseSessions)
+      .leftJoin(exercises, eq(exerciseSessions.exerciseId, exercises.id))
+      .where(eq(exerciseSessions.userId, userId))
+      .orderBy(desc(exerciseSessions.createdAt))
+      .limit(limit);
+    
+    return sessions;
   }
 
   async getUserStats(userId: string): Promise<UserStats | undefined> {

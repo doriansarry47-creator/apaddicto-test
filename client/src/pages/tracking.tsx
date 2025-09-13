@@ -41,10 +41,10 @@ export default function Tracking() {
     initialData: { average: 0, trend: 0 },
   });
 
-  const { data: exerciseSessions, isLoading: sessionsLoading } = useQuery<ExerciseSession[]>({
-    queryKey: ["/api/exercise-sessions"],
+  const { data: exerciseSessions, isLoading: sessionsLoading } = useQuery<any[]>({
+    queryKey: ["/api/exercise-sessions/detailed"],
     queryFn: async () => {
-      const response = await fetch("/api/exercise-sessions");
+      const response = await fetch("/api/exercise-sessions/detailed");
       if (!response.ok) throw new Error("Failed to fetch exercise sessions");
       return response.json();
     },
@@ -275,22 +275,33 @@ export default function Tracking() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
+                    {/* Recent exercise sessions */}
+                    {exerciseSessions?.slice(0, 3).map((session: any) => (
+                      <div key={`session-${session.id}`} className="flex items-center justify-between p-2 bg-secondary/5 rounded">
+                        <div className="flex items-center gap-2">
+                          <span className="material-icons text-secondary text-sm">fitness_center</span>
+                          <span className="text-sm">{session.exerciseTitle || 'Exercice'} complété</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground">{formatDate(session.createdAt)}</div>
+                      </div>
+                    ))}
+                    
                     {/* Recent craving entries */}
-                    {cravingEntries?.map((entry: CravingEntry) => (
+                    {cravingEntries?.slice(0, 3).map((entry: CravingEntry) => (
                       <div key={`craving-${entry.id}`} className="flex items-center justify-between p-2 bg-primary/5 rounded">
                         <div className="flex items-center gap-2">
                           <span className="material-icons text-primary text-sm">psychology</span>
-                          <span className="text-sm">Craving enregistré</span>
+                          <span className="text-sm">Craving enregistré (niveau {entry.intensity})</span>
                         </div>
                         <div className="text-xs text-muted-foreground">{formatDate(entry.createdAt)}</div>
                       </div>
                     ))}
                     
                     {/* Recent Beck analyses */}
-                    {beckAnalyses?.map((analysis: BeckAnalysis) => (
-                      <div key={`beck-${analysis.id}`} className="flex items-center justify-between p-2 bg-secondary/5 rounded">
+                    {beckAnalyses?.slice(0, 2).map((analysis: BeckAnalysis) => (
+                      <div key={`beck-${analysis.id}`} className="flex items-center justify-between p-2 bg-info/5 rounded">
                         <div className="flex items-center gap-2">
-                          <span className="material-icons text-secondary text-sm">psychology</span>
+                          <span className="material-icons text-info text-sm">psychology</span>
                           <span className="text-sm">Analyse cognitive</span>
                         </div>
                         <div className="text-xs text-muted-foreground">{formatDate(analysis.createdAt)}</div>
@@ -298,17 +309,22 @@ export default function Tracking() {
                     ))}
                     
                     {/* Recent strategies */}
-                    {antiCravingStrategies?.map((strategy: AntiCravingStrategy) => (
+                    {antiCravingStrategies?.slice(0, 2).map((strategy: AntiCravingStrategy) => (
                       <div key={`strategy-${strategy.id}`} className="flex items-center justify-between p-2 bg-warning/5 rounded">
                         <div className="flex items-center gap-2">
                           <span className="material-icons text-warning text-sm">fitness_center</span>
                           <span className="text-sm">Stratégie testée</span>
+                          {strategy.cravingBefore > strategy.cravingAfter && (
+                            <Badge className="bg-success text-success-foreground text-xs">
+                              -{strategy.cravingBefore - strategy.cravingAfter}
+                            </Badge>
+                          )}
                         </div>
                         <div className="text-xs text-muted-foreground">{formatDate(strategy.createdAt)}</div>
                       </div>
                     ))}
                     
-                    {(!cravingEntries?.length && !beckAnalyses?.length && !antiCravingStrategies?.length) && (
+                    {(!cravingEntries?.length && !beckAnalyses?.length && !antiCravingStrategies?.length && !exerciseSessions?.length) && (
                       <div className="text-center py-4 text-muted-foreground">
                         <span className="material-icons text-4xl mb-2">analytics</span>
                         <p>Aucune activité récente</p>
@@ -493,17 +509,25 @@ export default function Tracking() {
                         </div>
                         
                         <div className="text-sm font-medium text-foreground mb-2">
-                          Exercice: {session.exerciseId}
+                          <div className="flex items-center gap-2">
+                            <span>Exercice:</span>
+                            <span className="font-bold">{session.exerciseTitle || session.exerciseId}</span>
+                            {session.exerciseCategory && (
+                              <Badge variant="outline" className="text-xs">
+                                {session.exerciseCategory}
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                         
-                        {session.cratingBefore !== null && session.cravingAfter !== null && (
+                        {session.cravingBefore !== null && session.cravingAfter !== null && (
                           <div className="flex items-center space-x-4 text-sm">
-                            <span>Craving avant: <strong>{session.cratingBefore}/10</strong></span>
+                            <span>Craving avant: <strong>{session.cravingBefore}/10</strong></span>
                             <span className="material-icons text-primary">arrow_forward</span>
                             <span>Craving après: <strong>{session.cravingAfter}/10</strong></span>
-                            {session.cratingBefore > session.cravingAfter && (
+                            {session.cravingBefore > session.cravingAfter && (
                               <Badge className="bg-success text-success-foreground">
-                                -{session.cratingBefore - session.cravingAfter} points
+                                -{session.cravingBefore - session.cravingAfter} points
                               </Badge>
                             )}
                           </div>

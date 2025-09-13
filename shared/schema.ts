@@ -71,7 +71,7 @@ export const exerciseSessions = pgTable("exercise_sessions", {
   exerciseId: varchar("exercise_id").notNull().references(() => exercises.id, { onDelete: 'cascade' }),
   duration: integer("duration"), // in seconds
   completed: boolean("completed").default(false),
-  cratingBefore: integer("craving_before"), // 0-10 scale
+  cravingBefore: integer("craving_before"), // 0-10 scale
   cravingAfter: integer("craving_after"), // 0-10 scale
   createdAt: timestamp("created_at").defaultNow(),
 });
