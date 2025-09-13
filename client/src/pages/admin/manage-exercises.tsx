@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertExerciseSchema } from "../../../../shared/schema";
-import type { Exercise, InsertExercise } from "../../../../shared/schema";
+import type { Exercise, InsertExercise, EmergencyRoutine, InsertEmergencyRoutine } from "../../../../shared/schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,16 +19,16 @@ import { apiRequest } from "@/lib/queryClient";
 
 type FormData = InsertExercise;
 
-// Catégories prédéfinies
+// Catégories prédéfinies (alignées avec la base de données)
 const EXERCISE_CATEGORIES = [
-  { value: "debutant", label: "Débutant" },
   { value: "cardio", label: "Cardio Training" },
+  { value: "strength", label: "Renforcement Musculaire" },
+  { value: "flexibility", label: "Étirement & Flexibilité" },
+  { value: "mindfulness", label: "Pleine Conscience & Méditation" },
   { value: "relaxation", label: "Relaxation" },
   { value: "respiration", label: "Exercices de Respiration" },
   { value: "meditation", label: "Méditation" },
-  { value: "etirement", label: "Étirement" },
-  { value: "renforcement", label: "Renforcement Musculaire" },
-  { value: "mindfulness", label: "Pleine Conscience" },
+  { value: "debutant", label: "Exercices Débutant" },
 ];
 
 // Niveaux de difficulté
@@ -45,10 +45,17 @@ export default function ManageExercises() {
   const [difficultyFilter, setDifficultyFilter] = useState<string>("all");
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [emergencyRoutineSteps, setEmergencyRoutineSteps] = useState<string[]>(['']);
 
   const { data: exercises, isLoading } = useQuery<Exercise[]>({
     queryKey: ["admin", "exercises"],
     queryFn: async () => apiRequest("GET", "/api/admin/exercises").then(res => res.json()),
+    initialData: [],
+  });
+
+  const { data: emergencyRoutines, isLoading: isLoadingRoutines } = useQuery<EmergencyRoutine[]>({
+    queryKey: ["admin", "emergency-routines"],
+    queryFn: async () => apiRequest("GET", "/api/admin/emergency-routines").then(res => res.json()),
     initialData: [],
   });
 
@@ -113,6 +120,63 @@ export default function ManageExercises() {
     },
   });
 
+  const createRoutineMutation = useMutation({
+    mutationFn: async (newRoutine: InsertEmergencyRoutine) => {
+      return apiRequest("POST", "/api/admin/emergency-routines", newRoutine);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "emergency-routines"] });
+      toast({
+        title: "Succès",
+        description: "Routine d'urgence créée avec succès.",
+      });
+      setEmergencyRoutineSteps(['']);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erreur",
+        description: error?.message ?? "Une erreur est survenue",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteRoutineMutation = useMutation({
+    mutationFn: (routineId: string) => apiRequest("DELETE", `/api/admin/emergency-routines/${routineId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "emergency-routines"] });
+      toast({
+        title: "Succès",
+        description: "Routine d'urgence supprimée avec succès.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erreur",
+        description: error?.message ?? "Une erreur est survenue",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const setDefaultRoutineMutation = useMutation({
+    mutationFn: (routineId: string) => apiRequest("PUT", `/api/admin/emergency-routines/${routineId}/set-default`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "emergency-routines"] });
+      toast({
+        title: "Succès",
+        description: "Routine d'urgence définie comme routine par défaut.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erreur",
+        description: error?.message ?? "Une erreur est survenue",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -138,6 +202,51 @@ export default function ManageExercises() {
 
   const onSubmit: SubmitHandler<FormData> = (data) => {
     mutation.mutate(data);
+  };
+
+  const addRoutineStep = () => {
+    setEmergencyRoutineSteps([...emergencyRoutineSteps, '']);
+  };
+
+  const removeRoutineStep = (index: number) => {
+    if (emergencyRoutineSteps.length > 1) {
+      setEmergencyRoutineSteps(emergencyRoutineSteps.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateRoutineStep = (index: number, value: string) => {
+    const newSteps = [...emergencyRoutineSteps];
+    newSteps[index] = value;
+    setEmergencyRoutineSteps(newSteps);
+  };
+
+  const handleCreateRoutine = (formData: FormData) => {
+    const title = formData.get('routine-title') as string;
+    const description = formData.get('routine-description') as string;
+    const durationStr = formData.get('routine-duration') as string;
+    const duration = durationStr ? parseInt(durationStr) : undefined;
+    const category = formData.get('routine-category') as string;
+
+    if (!title || emergencyRoutineSteps.filter(step => step.trim()).length === 0) {
+      toast({
+        title: "Erreur",
+        description: "Le titre et au moins une étape sont requis.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const routine: InsertEmergencyRoutine = {
+      title,
+      description: description || undefined,
+      duration: duration,
+      category: category || 'general',
+      steps: emergencyRoutineSteps.filter(step => step.trim()),
+      isActive: true,
+      isDefault: false
+    };
+
+    createRoutineMutation.mutate(routine);
   };
 
   return (
@@ -585,20 +694,211 @@ export default function ManageExercises() {
         <TabsContent value="emergency-routines" className="mt-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-semibold">Gestion des Routines d\'Urgence</h2>
-            <Button className="flex items-center space-x-2">
-              <Plus className="h-4 w-4" />
-              <span>Nouvelle Routine</span>
-            </Button>
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Routines d\'Urgence Existantes</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>Fonctionnalité à venir...</p>
-            </CardContent>
-          </Card>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Formulaire de création de routine */}
+            <div className="lg:col-span-1">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Plus className="h-5 w-5" />
+                    <span>Créer une Routine d\'Urgence</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.target as HTMLFormElement);
+                    handleCreateRoutine(formData);
+                  }} className="space-y-4">
+                    <div>
+                      <Label htmlFor="routine-title">Titre</Label>
+                      <Input id="routine-title" name="routine-title" placeholder="Nom de la routine" required />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="routine-description">Description</Label>
+                      <Textarea
+                        id="routine-description"
+                        name="routine-description"
+                        placeholder="Description de la routine"
+                        rows={2}
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="routine-category">Catégorie</Label>
+                      <Select name="routine-category" defaultValue="general">
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="general">Général</SelectItem>
+                          <SelectItem value="breathing">Respiration</SelectItem>
+                          <SelectItem value="grounding">Ancrage</SelectItem>
+                          <SelectItem value="distraction">Distraction</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="routine-duration">Durée (minutes)</Label>
+                      <Input
+                        id="routine-duration"
+                        name="routine-duration"
+                        type="number"
+                        placeholder="5"
+                        min="1"
+                        max="30"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <Label>Étapes de la routine</Label>
+                        <Button type="button" size="sm" onClick={addRoutineStep}>
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="space-y-2">
+                        {emergencyRoutineSteps.map((step, index) => (
+                          <div key={index} className="flex items-center space-x-2">
+                            <Input
+                              value={step}
+                              onChange={(e) => updateRoutineStep(index, e.target.value)}
+                              placeholder={`Étape ${index + 1}`}
+                            />
+                            {emergencyRoutineSteps.length > 1 && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                onClick={() => removeRoutineStep(index)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <Button type="submit" disabled={createRoutineMutation.isPending} className="w-full">
+                      {createRoutineMutation.isPending ? "Création..." : "Créer la Routine"}
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Liste des routines existantes */}
+            <div className="lg:col-span-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Routines d\'Urgence Existantes</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingRoutines ? (
+                    <p>Chargement des routines...</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {emergencyRoutines.map((routine) => (
+                        <div key={routine.id} className="border p-4 rounded-lg">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-2 mb-2">
+                                <h3 className="font-bold text-lg">{routine.title}</h3>
+                                {routine.isDefault && (
+                                  <Badge variant="default">
+                                    Par défaut
+                                  </Badge>
+                                )}
+                                <Badge variant="outline">
+                                  {routine.category === 'general' ? 'Général' : 
+                                   routine.category === 'breathing' ? 'Respiration' :
+                                   routine.category === 'grounding' ? 'Ancrage' : 
+                                   routine.category === 'distraction' ? 'Distraction' : routine.category}
+                                </Badge>
+                              </div>
+                              {routine.description && (
+                                <p className="text-sm text-muted-foreground mb-2">
+                                  {routine.description}
+                                </p>
+                              )}
+                              <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-2">
+                                {routine.duration && (
+                                  <div className="flex items-center space-x-1">
+                                    <Clock className="h-4 w-4" />
+                                    <span>{routine.duration} min</span>
+                                  </div>
+                                )}
+                                <div className="flex items-center space-x-1">
+                                  <Target className="h-4 w-4" />
+                                  <span>{Array.isArray(routine.steps) ? routine.steps.length : 0} étape{Array.isArray(routine.steps) && routine.steps.length > 1 ? 's' : ''}</span>
+                                </div>
+                              </div>
+                              <div className="text-sm">
+                                <strong>Étapes :</strong>
+                                <ol className="list-decimal list-inside mt-1 space-y-1">
+                                  {Array.isArray(routine.steps) && routine.steps.map((step: string, index: number) => (
+                                    <li key={index} className="text-muted-foreground">{step}</li>
+                                  ))}
+                                </ol>
+                              </div>
+                            </div>
+                            <div className="flex space-x-2">
+                              {!routine.isDefault && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setDefaultRoutineMutation.mutate(routine.id)}
+                                >
+                                  Définir par défaut
+                                </Button>
+                              )}
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="destructive" size="icon">
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Cette action ne peut pas être annulée. Cela supprimera
+                                      définitivement cette routine d\'urgence de nos serveurs.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => deleteRoutineMutation.mutate(routine.id)}
+                                    >
+                                      Continuer
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      {emergencyRoutines.length === 0 && (
+                        <div className="text-center py-8">
+                          <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                          <p className="text-muted-foreground">
+                            Aucune routine d\'urgence créée. Créez-en une pour aider les patients en cas de craving intense.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

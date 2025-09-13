@@ -335,17 +335,12 @@ export class DbStorage implements IStorage {
     // Other badge logic can be added here...
     return newBadges;
   }
-}
 
-export const storage = new DbStorage();
-
-// Extension de la classe pour les méthodes d'administration
-Object.assign(DbStorage.prototype, {
   // Admin operations
   async getAllUsersWithStats(): Promise<any[]> {
     const db = getDB();
     
-    const usersWithStats = await db
+    const allUsers = await db
       .select({
         id: users.id,
         email: users.email,
@@ -353,55 +348,50 @@ Object.assign(DbStorage.prototype, {
         lastName: users.lastName,
         role: users.role,
         createdAt: users.createdAt,
-        lastLoginAt: users.lastLoginAt,
         isActive: users.isActive,
       })
-      .from(users)
-      .orderBy(desc(users.createdAt));
+      .from(users);
 
-    // Pour chaque utilisateur, récupérer ses statistiques
     const usersWithFullStats = await Promise.all(
-      usersWithStats.map(async (user) => {
-        const [exerciseCount] = await db
-          .select({ count: sql<number>`count(*)` })
-          .from(exerciseSessions)
-          .where(eq(exerciseSessions.userId, user.id));
-
-        const [cravingCount] = await db
-          .select({ count: sql<number>`count(*)` })
-          .from(cravingEntries)
-          .where(eq(cravingEntries.userId, user.id));
-
+      allUsers.map(async (user) => {
+        const stats = await this.getUserStats(user.id);
         return {
           ...user,
-          exerciseCount: exerciseCount?.count || 0,
-          cravingCount: cravingCount?.count || 0,
+          stats: stats || {
+            exercisesCompleted: 0,
+            totalDuration: 0,
+            currentStreak: 0,
+            longestStreak: 0,
+            averageCraving: null,
+          },
         };
       })
     );
 
     return usersWithFullStats;
-  },
+  }
 
   async getAllMediaFiles(): Promise<any[]> {
-    // Pour l'instant, retourner un tableau vide car la table media n'existe pas encore
-    // Dans une implémentation complète, on créerait une table media dans le schéma
     return [];
-  },
+  }
+
+  async deleteMediaFile(mediaId: string): Promise<void> {
+    return;
+  }
 
   // Emergency routine operations
   async getAllEmergencyRoutines(): Promise<EmergencyRoutine[]> {
     return getDB().select().from(emergencyRoutines).where(eq(emergencyRoutines.isActive, true)).orderBy(emergencyRoutines.title);
-  },
+  }
 
   async getEmergencyRoutine(routineId: string): Promise<EmergencyRoutine | undefined> {
     const result = await getDB().select().from(emergencyRoutines).where(eq(emergencyRoutines.id, routineId));
     return result[0];
-  },
+  }
 
   async createEmergencyRoutine(insertRoutine: InsertEmergencyRoutine): Promise<EmergencyRoutine> {
     return getDB().insert(emergencyRoutines).values(insertRoutine).returning().then(rows => rows[0]);
-  },
+  }
 
   async updateEmergencyRoutine(routineId: string, updateData: Partial<InsertEmergencyRoutine>): Promise<EmergencyRoutine> {
     const result = await getDB()
@@ -410,11 +400,11 @@ Object.assign(DbStorage.prototype, {
       .where(eq(emergencyRoutines.id, routineId))
       .returning();
     return result[0];
-  },
+  }
 
   async deleteEmergencyRoutine(routineId: string): Promise<void> {
     await getDB().delete(emergencyRoutines).where(eq(emergencyRoutines.id, routineId));
-  },
+  }
 
   async getDefaultEmergencyRoutine(): Promise<EmergencyRoutine | undefined> {
     const result = await getDB()
@@ -422,39 +412,33 @@ Object.assign(DbStorage.prototype, {
       .from(emergencyRoutines)
       .where(and(eq(emergencyRoutines.isActive, true), eq(emergencyRoutines.isDefault, true)));
     return result[0];
-  },
+  }
 
   async setDefaultEmergencyRoutine(routineId: string): Promise<void> {
-    // D'abord, retirer le statut par défaut de toutes les routines
     await getDB()
       .update(emergencyRoutines)
       .set({ isDefault: false })
       .where(eq(emergencyRoutines.isDefault, true));
-    
-    // Ensuite, définir la nouvelle routine par défaut
+
     await getDB()
       .update(emergencyRoutines)
       .set({ isDefault: true })
       .where(eq(emergencyRoutines.id, routineId));
-  },
+  }
 
   // Quick resource operations
   async getAllQuickResources(): Promise<QuickResource[]> {
-    return getDB()
-      .select()
-      .from(quickResources)
-      .where(eq(quickResources.isActive, true))
-      .orderBy(quickResources.isPinned, quickResources.title);
-  },
+    return getDB().select().from(quickResources).where(eq(quickResources.isActive, true)).orderBy(quickResources.title);
+  }
 
   async getQuickResource(resourceId: string): Promise<QuickResource | undefined> {
     const result = await getDB().select().from(quickResources).where(eq(quickResources.id, resourceId));
     return result[0];
-  },
+  }
 
   async createQuickResource(insertResource: InsertQuickResource): Promise<QuickResource> {
     return getDB().insert(quickResources).values(insertResource).returning().then(rows => rows[0]);
-  },
+  }
 
   async updateQuickResource(resourceId: string, updateData: Partial<InsertQuickResource>): Promise<QuickResource> {
     const result = await getDB()
@@ -463,11 +447,11 @@ Object.assign(DbStorage.prototype, {
       .where(eq(quickResources.id, resourceId))
       .returning();
     return result[0];
-  },
+  }
 
   async deleteQuickResource(resourceId: string): Promise<void> {
     await getDB().delete(quickResources).where(eq(quickResources.id, resourceId));
-  },
+  }
 
   async getPinnedQuickResources(): Promise<QuickResource[]> {
     return getDB()
@@ -475,7 +459,7 @@ Object.assign(DbStorage.prototype, {
       .from(quickResources)
       .where(and(eq(quickResources.isActive, true), eq(quickResources.isPinned, true)))
       .orderBy(quickResources.title);
-  },
+  }
 
   async togglePinQuickResource(resourceId: string): Promise<void> {
     const resource = await this.getQuickResource(resourceId);
@@ -485,13 +469,7 @@ Object.assign(DbStorage.prototype, {
         .set({ isPinned: !resource.isPinned })
         .where(eq(quickResources.id, resourceId));
     }
-  },
-
-  async deleteMediaFile(mediaId: string): Promise<void> {
-    // Pour l'instant, ne rien faire car la table media n'existe pas encore
-    // Dans une implémentation complète, on supprimerait le fichier de la table media
-    return;
-  },
+  }
 
   // Anti-craving strategies operations
   async createAntiCravingStrategies(userId: string, strategies: InsertAntiCravingStrategy[]): Promise<AntiCravingStrategy[]> {
@@ -506,7 +484,7 @@ Object.assign(DbStorage.prototype, {
       .returning();
     
     return result;
-  },
+  }
 
   async getAntiCravingStrategies(userId: string): Promise<AntiCravingStrategy[]> {
     return getDB()
@@ -515,5 +493,6 @@ Object.assign(DbStorage.prototype, {
       .where(eq(antiCravingStrategies.userId, userId))
       .orderBy(desc(antiCravingStrategies.createdAt));
   }
-});
+}
 
+export const storage = new DbStorage();
