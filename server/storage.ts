@@ -55,7 +55,9 @@ export interface IStorage {
   // Psychoeducation operations
   getPsychoEducationContent(): Promise<PsychoEducationContent[]>;
   getAllPsychoEducationContent(): Promise<PsychoEducationContent[]>;
+  getPsychoEducationContentById(contentId: string): Promise<PsychoEducationContent | undefined>;
   createPsychoEducationContent(content: InsertPsychoEducationContent): Promise<PsychoEducationContent>;
+  updatePsychoEducationContent(contentId: string, data: Partial<InsertPsychoEducationContent>): Promise<PsychoEducationContent>;
   deletePsychoEducationContent(contentId: string): Promise<void>;
 
   // Craving operations
@@ -176,8 +178,26 @@ export class DbStorage implements IStorage {
     return getDB().select().from(psychoEducationContent).orderBy(psychoEducationContent.title);
   }
 
+  async getPsychoEducationContentById(contentId: string): Promise<PsychoEducationContent | undefined> {
+    const result = await getDB().select().from(psychoEducationContent).where(eq(psychoEducationContent.id, contentId));
+    return result[0];
+  }
+
   async createPsychoEducationContent(insertContent: InsertPsychoEducationContent): Promise<PsychoEducationContent> {
     return getDB().insert(psychoEducationContent).values(insertContent).returning().then(rows => rows[0]);
+  }
+
+  async updatePsychoEducationContent(contentId: string, data: Partial<InsertPsychoEducationContent>): Promise<PsychoEducationContent> {
+    const result = await getDB().update(psychoEducationContent)
+      .set({ ...data, updatedAt: new Date().toISOString() })
+      .where(eq(psychoEducationContent.id, contentId))
+      .returning();
+    
+    if (result.length === 0) {
+      throw new Error("Content not found");
+    }
+    
+    return result[0];
   }
 
   async deletePsychoEducationContent(contentId: string): Promise<void> {

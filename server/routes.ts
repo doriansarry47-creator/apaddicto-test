@@ -151,6 +151,19 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  app.get("/api/admin/psycho-education/:contentId", requireAdmin, async (req, res) => {
+    try {
+      const { contentId } = req.params;
+      const content = await storage.getPsychoEducationContentById(contentId);
+      if (!content) {
+        return res.status(404).json({ message: "Content not found" });
+      }
+      res.json(content);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch psycho-education content" });
+    }
+  });
+
   // Admin - Gestion des utilisateurs
   app.get("/api/admin/users", requireAdmin, async (req, res) => {
     try {
@@ -424,6 +437,17 @@ export function registerRoutes(app: Express) {
   });
 
   // Admin - Supprimer du contenu psycho-éducationnel
+  app.put("/api/admin/psycho-education/:contentId", requireAdmin, async (req, res) => {
+    try {
+      const { contentId } = req.params;
+      const data = insertPsychoEducationContentSchema.parse(req.body);
+      const content = await storage.updatePsychoEducationContent(contentId, data);
+      res.json(content);
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to update content" });
+    }
+  });
+
   app.delete("/api/admin/psycho-education/:contentId", requireAdmin, async (req, res) => {
     try {
       const { contentId } = req.params;

@@ -16,6 +16,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Trash2, Edit, Clock, BookOpen, Video, Headphones, Gamepad2, Zap, Pin, Settings, Filter } from "lucide-react";
 import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
 type FormData = InsertPsychoEducationContent;
@@ -50,7 +51,7 @@ const DIFFICULTY_LEVELS = [
 ];
 
 export default function ManageContent() {
-  const { toast } = useToast();
+  const { toast: showToast } = useToast();
   const queryClient = useQueryClient();
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
@@ -90,13 +91,26 @@ export default function ManageContent() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "psycho-education"] });
-      toast({ title: "Succès", description: "Contenu créé avec succès." });
+      showToast({ title: "Succès", description: "Contenu créé avec succès." });
       reset();
       setSelectedImage(null);
       setImagePreview(null);
     },
     onError: (error) => {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      showToast({ title: "Erreur", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateContentMutation = useMutation({
+    mutationFn: async ({ contentId, data }: { contentId: string, data: Partial<InsertPsychoEducationContent> }) => {
+      return apiRequest("PUT", `/api/admin/psycho-education/${contentId}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "psycho-education"] });
+      showToast({ title: "Succès", description: "Contenu mis à jour avec succès." });
+    },
+    onError: (error) => {
+      showToast({ title: "Erreur", description: error.message, variant: "destructive" });
     },
   });
 
@@ -104,10 +118,10 @@ export default function ManageContent() {
     mutationFn: (contentId: string) => apiRequest("DELETE", `/api/admin/psycho-education/${contentId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "psycho-education"] });
-      toast({ title: "Succès", description: "Contenu supprimé avec succès." });
+      showToast({ title: "Succès", description: "Contenu supprimé avec succès." });
     },
     onError: (error) => {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      showToast({ title: "Erreur", description: error.message, variant: "destructive" });
     },
   });
 
