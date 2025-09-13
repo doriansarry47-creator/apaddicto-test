@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuthQuery } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
 import { getEmergencyExercises } from "@/lib/exercises-data";
-import type { User, UserStats } from "@shared/schema";
+import type { User, UserStats, ExerciseSession } from "@shared/schema";
 
 interface CravingStats {
   average: number;
@@ -48,6 +48,17 @@ export default function Dashboard() {
     },
     enabled: !!authenticatedUser,
     initialData: { exercisesCompleted: 0, totalDuration: 0, currentStreak: 0, longestStreak: 0, averageCraving: 0, id: '', userId: '', updatedAt: new Date() },
+  });
+
+  const { data: exerciseSessions } = useQuery<any[]>({
+    queryKey: ["/api/exercise-sessions/detailed"],
+    queryFn: async () => {
+      const response = await fetch("/api/exercise-sessions/detailed?limit=5");
+      if (!response.ok) throw new Error("Failed to fetch exercise sessions");
+      return response.json();
+    },
+    enabled: !!authenticatedUser,
+    initialData: [],
   });
 
   // Pas besoin de requête séparée pour user, nous avons déjà authenticatedUser
@@ -345,6 +356,48 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </section>
+
+        {/* Recent Activities Section */}
+        {exerciseSessions && exerciseSessions.length > 0 && (
+          <section className="mb-8">
+            <Card className="shadow-material">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <span className="material-icons mr-2 text-secondary">history</span>
+                  Dernières Activités
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {exerciseSessions.slice(0, 3).map((session: any) => (
+                    <div key={session.id} className="flex items-center justify-between p-3 bg-secondary/5 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <span className="material-icons text-secondary">fitness_center</span>
+                        <div>
+                          <div className="font-medium">{session.exerciseTitle || 'Exercice'}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {session.duration ? `${Math.round(session.duration / 60)} minutes` : ''}
+                            {session.cravingBefore !== null && session.cravingAfter !== null && 
+                              ` • Craving: ${session.cravingBefore} → ${session.cravingAfter}`
+                            }
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {new Date(session.createdAt).toLocaleDateString('fr-FR', {
+                          day: 'numeric',
+                          month: 'short',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </section>
+        )}
 
         {/* Gamification Progress */}
         {authenticatedUser && <GamificationProgress userId={authenticatedUser.id} />}

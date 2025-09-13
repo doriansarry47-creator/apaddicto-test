@@ -286,6 +286,18 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  app.get("/api/exercise-sessions/detailed", requireAuth, async (req, res) => {
+    try {
+      if (!req.session?.user) return res.status(401).json({ message: "Session non valide" });
+      const userId = req.session.user.id;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const sessions = await storage.getExerciseSessionsWithDetails(userId, limit);
+      res.json(sessions);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch detailed exercise sessions" });
+    }
+  });
+
   // ========================
   // 🧠 BECK ANALYSES
   // ========================
