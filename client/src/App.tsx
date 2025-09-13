@@ -22,6 +22,7 @@ import ManageExercises from "@/pages/admin/manage-exercises";
 import ManageContent from "@/pages/admin/manage-content";
 import ManageUsers from "@/pages/admin/manage-users";
 import ManageMedia from "@/pages/admin/manage-media";
+import AdminDebug from "@/pages/admin/debug";
 
 
 function AppContent() {
@@ -87,6 +88,11 @@ function AppContent() {
       <Route path="/admin/manage-media">
         <AdminRoute>
           <ManageMedia />
+        </AdminRoute>
+      </Route>
+      <Route path="/admin/debug">
+        <AdminRoute>
+          <AdminDebug />
         </AdminRoute>
       </Route>
 
