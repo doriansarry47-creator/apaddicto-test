@@ -58,7 +58,8 @@ export function StrategiesBox({ userId, onSuccess }: StrategiesBoxProps) {
         title: "Stratégies sauvegardées",
         description: "Vos stratégies anti-craving ont été enregistrées avec succès.",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/strategies", userId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/strategies"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users/stats"] });
       onSuccess?.();
     },
     onError: (error) => {

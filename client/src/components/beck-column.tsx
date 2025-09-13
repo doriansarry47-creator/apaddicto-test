@@ -32,7 +32,8 @@ export function BeckColumn({ userId, onSuccess }: BeckColumnProps) {
         title: "Analyse sauvegardée",
         description: "Votre analyse cognitive a été sauvegardée avec succès.",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/beck-analyses", userId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/beck-analyses"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users/stats"] });
       onSuccess?.();
     },
     onError: (error) => {

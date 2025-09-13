@@ -37,8 +37,9 @@ export function CravingEntry({ userId, onSuccess }: CravingEntryProps) {
         title: "Craving enregistré",
         description: "Votre craving a été enregistré avec succès.",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/cravings", userId] });
-      queryClient.invalidateQueries({ queryKey: ["/api/cravings", userId, "stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cravings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cravings/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users/stats"] });
       
       // Reset form
       setIntensity(5);
