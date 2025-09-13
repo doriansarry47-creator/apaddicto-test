@@ -74,6 +74,26 @@ export default function AdminDashboard() {
             </Link>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <span className="material-icons mr-2">bug_report</span>
+              Debug & Tests
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-4 text-muted-foreground">
+              Diagnostiquer les problèmes de permissions et tester l'accès admin.
+            </p>
+            <Link to="/admin/debug">
+              <Button variant="destructive" className="w-full">
+                <span className="material-icons mr-2">settings</span>
+                Debug Admin
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
