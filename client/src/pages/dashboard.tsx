@@ -63,7 +63,7 @@ export default function Dashboard() {
   });
 
   const { data: antiCravingStrategies } = useQuery<AntiCravingStrategy[]>({
-    queryKey: ["/api/strategies"],
+    queryKey: ["/api/strategies", authenticatedUser?.id],
     queryFn: async () => {
       const response = await fetch("/api/strategies");
       if (!response.ok) throw new Error("Failed to fetch strategies");

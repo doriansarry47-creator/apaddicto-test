@@ -70,9 +70,9 @@ export function Navigation() {
             </nav>
 
             <div className="flex items-center space-x-2">
-              <button className="p-2 text-muted-foreground hover:bg-muted rounded-full transition-colors" data-testid="button-notifications">
-                <span className="material-icons">notifications</span>
-              </button>
+              <Link to="/" className="p-2 text-muted-foreground hover:bg-muted rounded-full transition-colors" data-testid="button-toolbox">
+                <span className="material-icons">build</span>
+              </Link>
               <Link to="/profile" className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center text-white text-sm font-medium" data-testid="link-profile">
                 DS
               </Link>

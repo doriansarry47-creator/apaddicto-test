@@ -108,7 +108,7 @@ var init_schema = __esm({
       duration: integer("duration"),
       // in seconds
       completed: boolean("completed").default(false),
-      cratingBefore: integer("craving_before"),
+      cravingBefore: integer("craving_before"),
       // 0-10 scale
       cravingAfter: integer("craving_after"),
       // 0-10 scale
@@ -306,6 +306,7 @@ var init_storage = __esm({
           await tx.delete(beckAnalyses).where(eq(beckAnalyses.userId, userId));
           await tx.delete(exerciseSessions).where(eq(exerciseSessions.userId, userId));
           await tx.delete(cravingEntries).where(eq(cravingEntries.userId, userId));
+          await tx.delete(antiCravingStrategies).where(eq(antiCravingStrategies.userId, userId));
           await tx.delete(users).where(eq(users.id, userId));
         });
       }
@@ -404,6 +405,21 @@ var init_storage = __esm({
       }
       async getExerciseSessions(userId, limit = 50) {
         return getDB().select().from(exerciseSessions).where(eq(exerciseSessions.userId, userId)).orderBy(desc(exerciseSessions.createdAt)).limit(limit);
+      }
+      async getExerciseSessionsWithDetails(userId, limit = 50) {
+        const sessions = await getDB().select({
+          id: exerciseSessions.id,
+          userId: exerciseSessions.userId,
+          exerciseId: exerciseSessions.exerciseId,
+          duration: exerciseSessions.duration,
+          completed: exerciseSessions.completed,
+          cravingBefore: exerciseSessions.cravingBefore,
+          cravingAfter: exerciseSessions.cravingAfter,
+          createdAt: exerciseSessions.createdAt,
+          exerciseTitle: exercises.title,
+          exerciseCategory: exercises.category
+        }).from(exerciseSessions).leftJoin(exercises, eq(exerciseSessions.exerciseId, exercises.id)).where(eq(exerciseSessions.userId, userId)).orderBy(desc(exerciseSessions.createdAt)).limit(limit);
+        return sessions;
       }
       async getUserStats(userId) {
         return getDB().select().from(userStats).where(eq(userStats.userId, userId)).then((rows) => rows[0]);
@@ -1422,6 +1438,17 @@ function registerRoutes(app2) {
       res.json(sessions);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch exercise sessions" });
+    }
+  });
+  app2.get("/api/exercise-sessions/detailed", requireAuth, async (req, res) => {
+    try {
+      if (!req.session?.user) return res.status(401).json({ message: "Session non valide" });
+      const userId = req.session.user.id;
+      const limit = req.query.limit ? parseInt(req.query.limit) : void 0;
+      const sessions = await storage.getExerciseSessionsWithDetails(userId, limit);
+      res.json(sessions);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch detailed exercise sessions" });
     }
   });
   app2.post("/api/beck-analyses", requireAuth, async (req, res) => {
