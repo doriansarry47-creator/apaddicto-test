@@ -5,7 +5,7 @@
  * Ce script teste le bug décrit dans le ticket technique
  */
 
-const serverUrl = 'https://5000-i243qcymsj5siggm7x0jt-6532622b.e2b.dev';
+const serverUrl = 'https://5000-inv8i2akp0ovbkym44588-6532622b.e2b.dev';
 
 // Test functions
 async function makeRequest(method, endpoint, data = null, sessionCookie = null) {
