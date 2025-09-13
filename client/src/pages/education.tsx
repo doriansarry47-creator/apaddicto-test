@@ -1,10 +1,13 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Navigation } from "@/components/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { apiRequest } from "@/lib/queryClient";
+import type { PsychoEducationContent as APIPsychoEducationContent } from "../../../../shared/schema";
 
 interface EducationModule {
   id: string;
@@ -22,7 +25,102 @@ interface EducationModule {
   };
 }
 
-const educationModules: EducationModule[] = [
+// Mapping des catégories API vers les catégories frontend
+const categoryMapping: Record<string, keyof typeof categories> = {
+  'addiction': 'addiction',
+  'motivation': 'psychology',
+  'coping': 'psychology',
+  'relapse_prevention': 'psychology',
+  'stress_management': 'techniques',
+  'emotional_regulation': 'psychology',
+  'mindfulness': 'techniques',
+  'cognitive_therapy': 'psychology',
+  'social_support': 'psychology',
+  'lifestyle': 'exercise'
+};
+
+// Fonction pour convertir le contenu API en format frontend
+const convertAPIContentToFrontend = (apiContent: APIPsychoEducationContent): EducationModule => {
+  const mappedCategory = categoryMapping[apiContent.category] || 'addiction';
+  
+  // Parse le contenu markdown pour extraire les sections
+  const sections = parseContentSections(apiContent.content);
+  
+  return {
+    id: apiContent.id,
+    title: apiContent.title,
+    description: apiContent.content.substring(0, 200) + '...', // Première partie comme description
+    category: mappedCategory,
+    duration: apiContent.estimatedReadTime || 10,
+    difficulty: (apiContent.difficulty as 'beginner' | 'intermediate' | 'advanced') || 'beginner',
+    content: {
+      sections: sections
+    }
+  };
+};
+
+// Fonction pour parser le contenu markdown et extraire les sections
+function parseContentSections(content: string): { title: string; content: string; keyPoints?: string[] }[] {
+  const sections: { title: string; content: string; keyPoints?: string[] }[] = [];
+  const lines = content.split('\n');
+  
+  let currentSection: { title: string; content: string; keyPoints?: string[] } | null = null;
+  let inKeyPoints = false;
+  
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    
+    // Détection des titres de section (## Titre)
+    if (trimmedLine.startsWith('## ')) {
+      // Sauvegarder la section précédente
+      if (currentSection) {
+        sections.push(currentSection);
+      }
+      
+      // Créer une nouvelle section
+      currentSection = {
+        title: trimmedLine.substring(3),
+        content: '',
+        keyPoints: []
+      };
+      inKeyPoints = false;
+    }
+    // Détection des listes à puces (points clés)
+    else if (trimmedLine.startsWith('- ') && currentSection) {
+      if (!currentSection.keyPoints) {
+        currentSection.keyPoints = [];
+      }
+      currentSection.keyPoints.push(trimmedLine.substring(2));
+      inKeyPoints = true;
+    }
+    // Contenu normal
+    else if (trimmedLine && currentSection && !inKeyPoints) {
+      currentSection.content += (currentSection.content ? '\n' : '') + trimmedLine;
+    }
+    // Ligne vide réinitialise les points clés
+    else if (!trimmedLine) {
+      inKeyPoints = false;
+    }
+  }
+  
+  // Ajouter la dernière section
+  if (currentSection) {
+    sections.push(currentSection);
+  }
+  
+  // Si aucune section n'a été trouvée, créer une section par défaut
+  if (sections.length === 0) {
+    sections.push({
+      title: 'Contenu',
+      content: content
+    });
+  }
+  
+  return sections;
+}
+
+// Données statiques de fallback en cas de problème avec l'API
+const fallbackEducationModules: EducationModule[] = [
   {
     id: 'addiction-cycle',
     title: 'Comprendre le Cycle de l\'Addiction',
@@ -165,7 +263,52 @@ export default function Education() {
   const [selectedCategory, setSelectedCategory] = useState<keyof typeof categories>('addiction');
   const [completedModules, setCompletedModules] = useState<string[]>([]);
 
+  // Récupération du contenu psychoéducationnel depuis l'API
+  const { data: apiContent, isLoading, error } = useQuery<APIPsychoEducationContent[]>({
+    queryKey: ['psycho-education'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/psycho-education');
+      return response.json();
+    },
+    initialData: []
+  });
+
+  // Conversion du contenu API vers le format frontend, avec fallback
+  const educationModules = apiContent.length > 0 
+    ? apiContent.map(convertAPIContentToFrontend)
+    : fallbackEducationModules;
+
   const filteredModules = educationModules.filter(module => module.category === selectedCategory);
+
+  if (isLoading) {
+    return (
+      <>
+        <Navigation />
+        <main className="container mx-auto px-4 py-6 pb-20 md:pb-6">
+          <div className="flex items-center justify-center min-h-96">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Chargement du contenu éducatif...</p>
+            </div>
+          </div>
+        </main>
+      </>
+    );
+  }
+
+  if (error) {
+    return (
+      <>
+        <Navigation />
+        <main className="container mx-auto px-4 py-6 pb-20 md:pb-6">
+          <div className="text-center py-12">
+            <p className="text-muted-foreground mb-4">Erreur lors du chargement du contenu éducatif.</p>
+            <Button onClick={() => window.location.reload()}>Réessayer</Button>
+          </div>
+        </main>
+      </>
+    );
+  }
 
   const markAsCompleted = (moduleId: string) => {
     if (!completedModules.includes(moduleId)) {
@@ -290,11 +433,12 @@ export default function Education() {
             </h2>
             <span className="text-sm text-muted-foreground" data-testid="text-module-count">
               {filteredModules.length} module{filteredModules.length !== 1 ? 's' : ''}
+              {apiContent.length > 0 && ' (depuis la base de données)'}
             </span>
           </div>
 
           <div className="space-y-6" data-testid="modules-list">
-            {filteredModules.map((module) => {
+            {filteredModules.length > 0 ? filteredModules.map((module) => {
               const isCompleted = completedModules.includes(module.id);
               
               return (
@@ -376,7 +520,25 @@ export default function Education() {
                   </CardContent>
                 </Card>
               );
-            })}
+            }) : (
+              <Card className="shadow-material">
+                <CardContent className="p-8 text-center">
+                  <span className="material-icons text-6xl text-muted-foreground mb-4">school</span>
+                  <h3 className="text-xl font-medium text-foreground mb-2">Aucun contenu disponible</h3>
+                  <p className="text-muted-foreground mb-4">
+                    {apiContent.length === 0 ? 
+                      "Aucun contenu éducatif disponible pour cette catégorie. Les administrateurs peuvent en ajouter via l'interface d'administration." :
+                      "Aucun contenu disponible pour cette catégorie."
+                    }
+                  </p>
+                  <Button
+                    onClick={() => setSelectedCategory('addiction')}
+                  >
+                    Voir la catégorie Addiction
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </section>
 

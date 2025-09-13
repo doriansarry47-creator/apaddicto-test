@@ -1,16 +1,97 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { Navigation } from "@/components/navigation";
 import { ExerciseCard } from "@/components/exercise-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { exercises, categories, levels } from "@/lib/exercises-data";
-import type { Exercise } from "@/lib/exercises-data";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import type { Exercise as APIExercise } from "../../../../shared/schema";
+
+// Types pour la compatibilité avec le composant ExerciseCard existant
+interface Exercise {
+  id: string;
+  title: string;
+  description: string;
+  category: 'craving_reduction' | 'relaxation' | 'energy_boost' | 'emotion_management';
+  level: 'beginner' | 'intermediate' | 'advanced' | 'all_levels';
+  duration: number;
+  intensity: 'gentle' | 'moderate' | 'dynamic';
+  type: 'physical' | 'breathing' | 'relaxation' | 'emergency';
+  imageUrl: string;
+  instructions: string[];
+  benefits: string[];
+}
+
+// Mappages des catégories API vers les catégories frontend
+const categoryMapping: Record<string, keyof typeof categories> = {
+  'cardio': 'craving_reduction',
+  'strength': 'energy_boost', 
+  'flexibility': 'relaxation',
+  'mindfulness': 'emotion_management',
+  'relaxation': 'relaxation',
+  'respiration': 'emotion_management',
+  'meditation': 'relaxation',
+  'etirement': 'relaxation',
+  'renforcement': 'energy_boost',
+  'debutant': 'craving_reduction'
+};
+
+// Fonction pour convertir les exercices API en format frontend
+const convertAPIExerciseToFrontend = (apiExercise: APIExercise): Exercise => {
+  const mappedCategory = categoryMapping[apiExercise.category] || 'craving_reduction';
+  
+  return {
+    id: apiExercise.id,
+    title: apiExercise.title,
+    description: apiExercise.description || '',
+    category: mappedCategory,
+    level: (apiExercise.difficulty as 'beginner' | 'intermediate' | 'advanced') || 'beginner',
+    duration: apiExercise.duration || 10,
+    intensity: 'moderate', // Valeur par défaut, pourrait être déterminée par la durée/catégorie
+    type: apiExercise.category === 'mindfulness' ? 'breathing' : 
+          apiExercise.category === 'flexibility' ? 'relaxation' :
+          'physical',
+    imageUrl: apiExercise.imageUrl || 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=200',
+    instructions: apiExercise.instructions ? apiExercise.instructions.split('\n').filter(Boolean) : [],
+    benefits: apiExercise.benefits ? apiExercise.benefits.split('\n').filter(Boolean) : []
+  };
+};
+
+// Catégories et niveaux pour l'interface utilisateur
+const categories = {
+  craving_reduction: 'Réduction Craving',
+  relaxation: 'Détente',
+  energy_boost: 'Regain d\'Énergie',
+  emotion_management: 'Gestion Émotions'
+} as const;
+
+const levels = {
+  beginner: 'Débutant',
+  intermediate: 'Intermédiaire', 
+  advanced: 'Avancé',
+  all_levels: 'Tous niveaux'
+} as const;
 
 export default function Exercises() {
   const [selectedCategory, setSelectedCategory] = useState<keyof typeof categories>('craving_reduction');
+  const [selectedLevel, setSelectedLevel] = useState<keyof typeof levels | 'all'>('all');
   const [location] = useLocation();
+  const { toast } = useToast();
+
+  // Récupération des exercices depuis l'API
+  const { data: apiExercises, isLoading, error } = useQuery<APIExercise[]>({
+    queryKey: ['exercises'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/exercises');
+      return response.json();
+    },
+    initialData: []
+  });
+
+  // Conversion des exercices API vers le format frontend
+  const exercises = apiExercises.map(convertAPIExerciseToFrontend);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -19,14 +100,42 @@ export default function Exercises() {
       setSelectedCategory(category as keyof typeof categories);
     }
   }, [location.search]);
-  const [selectedLevel, setSelectedLevel] = useState<keyof typeof levels | 'all'>('all');
-  const { toast } = useToast();
 
   const filteredExercises = exercises.filter((exercise) => {
     const categoryMatch = exercise.category === selectedCategory;
     const levelMatch = selectedLevel === 'all' || exercise.level === selectedLevel;
     return categoryMatch && levelMatch;
   });
+
+  if (isLoading) {
+    return (
+      <>
+        <Navigation />
+        <main className="container mx-auto px-4 py-6 pb-20 md:pb-6">
+          <div className="flex items-center justify-center min-h-96">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Chargement des exercices...</p>
+            </div>
+          </div>
+        </main>
+      </>
+    );
+  }
+
+  if (error) {
+    return (
+      <>
+        <Navigation />
+        <main className="container mx-auto px-4 py-6 pb-20 md:pb-6">
+          <div className="text-center py-12">
+            <p className="text-muted-foreground mb-4">Erreur lors du chargement des exercices.</p>
+            <Button onClick={() => window.location.reload()}>Réessayer</Button>
+          </div>
+        </main>
+      </>
+    );
+  }
 
   const handleStartExercise = (exercise: Exercise) => {
     toast({
@@ -135,7 +244,10 @@ export default function Exercises() {
                 <span className="material-icons text-6xl text-muted-foreground mb-4">search_off</span>
                 <h3 className="text-xl font-medium text-foreground mb-2">Aucun exercice trouvé</h3>
                 <p className="text-muted-foreground mb-4">
-                  Essayez de modifier vos filtres pour voir plus d'exercices.
+                  {exercises.length === 0 ? 
+                    "Aucun exercice disponible pour le moment. Les administrateurs peuvent en ajouter via l'interface d'administration." :
+                    "Essayez de modifier vos filtres pour voir plus d'exercices."
+                  }
                 </p>
                 <Button
                   onClick={() => {
