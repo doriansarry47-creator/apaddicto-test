@@ -595,26 +595,54 @@ export function registerRoutes(app: Express) {
       const userId = req.session.user!.id;
       const { strategies } = req.body;
       
+      console.log('Received strategies request:', { userId, strategiesCount: strategies?.length });
+      
       if (!Array.isArray(strategies)) {
+        console.error('Invalid strategies format:', typeof strategies);
         return res.status(400).json({ message: "Les stratégies doivent être un tableau" });
       }
 
+      if (strategies.length === 0) {
+        return res.status(400).json({ message: "Au moins une stratégie doit être fournie" });
+      }
+
+      // Validate strategies structure
+      for (let i = 0; i < strategies.length; i++) {
+        const strategy = strategies[i];
+        if (!strategy.context || !strategy.exercise || !strategy.effort) {
+          console.error(`Invalid strategy at index ${i}:`, strategy);
+          return res.status(400).json({ message: `Stratégie ${i + 1}: contexte, exercice et effort sont requis` });
+        }
+      }
+
       const savedStrategies = await storage.createAntiCravingStrategies(userId, strategies);
-      res.json(savedStrategies);
+      
+      console.log(`Successfully saved ${savedStrategies.length} strategies for user ${userId}`);
+      res.json({ 
+        success: true, 
+        strategies: savedStrategies,
+        message: `${savedStrategies.length} stratégie(s) sauvegardée(s) avec succès` 
+      });
     } catch (error) {
       console.error("Error saving anti-craving strategies:", error);
-      res.status(500).json({ message: "Erreur lors de la sauvegarde des stratégies" });
+      const errorMessage = error instanceof Error ? error.message : "Erreur lors de la sauvegarde des stratégies";
+      res.status(500).json({ message: errorMessage });
     }
   });
 
   app.get("/api/strategies", requireAuth, async (req, res) => {
     try {
       const userId = req.session.user!.id;
+      console.log(`Fetching strategies for user ${userId}`);
+      
       const strategies = await storage.getAntiCravingStrategies(userId);
+      
+      console.log(`Found ${strategies.length} strategies for user ${userId}`);
       res.json(strategies);
     } catch (error) {
       console.error("Error fetching anti-craving strategies:", error);
-      res.status(500).json({ message: "Erreur lors de la récupération des stratégies" });
+      const errorMessage = error instanceof Error ? error.message : "Erreur lors de la récupération des stratégies";
+      res.status(500).json({ message: errorMessage });
     }
   });
 

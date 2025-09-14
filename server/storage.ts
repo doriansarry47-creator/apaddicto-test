@@ -498,17 +498,44 @@ export class DbStorage implements IStorage {
 
   // Anti-craving strategies operations
   async createAntiCravingStrategies(userId: string, strategies: InsertAntiCravingStrategy[]): Promise<AntiCravingStrategy[]> {
+    const db = getDB();
+    
+    // Validate input
+    if (!Array.isArray(strategies) || strategies.length === 0) {
+      throw new Error("Au moins une stratégie doit être fournie");
+    }
+
+    // Validate each strategy
+    for (const strategy of strategies) {
+      if (!strategy.context || !strategy.exercise || !strategy.effort || 
+          typeof strategy.duration !== 'number' || 
+          typeof strategy.cravingBefore !== 'number' || 
+          typeof strategy.cravingAfter !== 'number') {
+        throw new Error("Tous les champs de stratégie sont requis");
+      }
+    }
+    
     const strategiesWithUserId = strategies.map(strategy => ({
       ...strategy,
-      userId
+      userId,
+      // Ensure proper data types
+      duration: Number(strategy.duration),
+      cravingBefore: Number(strategy.cravingBefore),
+      cravingAfter: Number(strategy.cravingAfter)
     }));
     
-    const result = await getDB()
-      .insert(antiCravingStrategies)
-      .values(strategiesWithUserId)
-      .returning();
-    
-    return result;
+    try {
+      const result = await db
+        .insert(antiCravingStrategies)
+        .values(strategiesWithUserId)
+        .returning();
+      
+      console.log(`Successfully saved ${result.length} anti-craving strategies for user ${userId}`);
+      return result;
+    } catch (error) {
+      console.error('Error saving anti-craving strategies:', error);
+      throw new Error(`Erreur lors de la sauvegarde des stratégies: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    }
   }
 
   async getAntiCravingStrategies(userId: string): Promise<AntiCravingStrategy[]> {
