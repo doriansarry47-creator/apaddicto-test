@@ -53,23 +53,16 @@ export function StrategiesBox({ userId, onSuccess }: StrategiesBoxProps) {
     mutationFn: async (data: InsertAntiCravingStrategy[]) => {
       console.log('Sending strategies to API:', data);
       
-      const response = await apiRequest("POST", "/api/strategies", { strategies: data });
-      
-      if (!response.ok) {
-        let errorMessage;
-        try {
-          const errorJson = await response.json();
-          errorMessage = errorJson.message || `HTTP ${response.status}`;
-        } catch {
-          const errorText = await response.text();
-          errorMessage = errorText || `HTTP ${response.status}`;
-        }
-        throw new Error(errorMessage);
+      try {
+        const response = await apiRequest("POST", "/api/strategies", { strategies: data });
+        const result = await response.json();
+        console.log('API response:', result);
+        return result;
+      } catch (error) {
+        console.error('Error in mutation:', error);
+        // Re-throw to let the mutation handle it
+        throw error;
       }
-      
-      const result = await response.json();
-      console.log('API response:', result);
-      return result;
     },
     onSuccess: (result) => {
       const count = result.strategies?.length || result.length || 0;
@@ -90,6 +83,10 @@ export function StrategiesBox({ userId, onSuccess }: StrategiesBoxProps) {
     },
     onError: (error) => {
       console.error("Error saving strategies:", error);
+      console.error("Error details:", {
+        message: error instanceof Error ? error.message : 'Erreur inconnue',
+        stack: error instanceof Error ? error.stack : undefined
+      });
       toast({
         title: "Erreur de sauvegarde",
         description: `Impossible de sauvegarder les stratégies: ${error instanceof Error ? error.message : 'Erreur inconnue'}`,
