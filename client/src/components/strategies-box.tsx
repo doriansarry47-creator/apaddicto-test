@@ -51,7 +51,8 @@ export function StrategiesBox({ userId, onSuccess }: StrategiesBoxProps) {
 
   const saveStrategiesMutation = useMutation({
     mutationFn: async (data: InsertAntiCravingStrategy[]) => {
-      return await apiRequest("POST", "/api/strategies", { strategies: data });
+      const response = await apiRequest("POST", "/api/strategies", { strategies: data });
+      return await response.json();
     },
     onSuccess: () => {
       toast({
