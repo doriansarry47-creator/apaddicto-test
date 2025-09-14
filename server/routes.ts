@@ -595,23 +595,60 @@ export function registerRoutes(app: Express) {
       const userId = req.session.user!.id;
       const { strategies } = req.body;
       
-      console.log('Received strategies request:', { userId, strategiesCount: strategies?.length });
+      console.log('Received strategies request:', { userId, strategiesCount: strategies?.length, body: req.body });
       
       if (!Array.isArray(strategies)) {
-        console.error('Invalid strategies format:', typeof strategies);
-        return res.status(400).json({ message: "Les stratégies doivent être un tableau" });
+        console.error('Invalid strategies format:', { type: typeof strategies, value: strategies });
+        return res.status(400).json({ 
+          message: "Les stratégies doivent être un tableau",
+          received: typeof strategies,
+          expected: "array"
+        });
       }
 
       if (strategies.length === 0) {
         return res.status(400).json({ message: "Au moins une stratégie doit être fournie" });
       }
 
-      // Validate strategies structure
+      // Validate strategies structure with detailed logging
       for (let i = 0; i < strategies.length; i++) {
         const strategy = strategies[i];
-        if (!strategy.context || !strategy.exercise || !strategy.effort) {
-          console.error(`Invalid strategy at index ${i}:`, strategy);
-          return res.status(400).json({ message: `Stratégie ${i + 1}: contexte, exercice et effort sont requis` });
+        console.log(`Validating strategy ${i + 1}:`, strategy);
+        
+        const requiredFields = ['context', 'exercise', 'effort', 'duration', 'cravingBefore', 'cravingAfter'];
+        const missingFields = requiredFields.filter(field => 
+          strategy[field] === undefined || strategy[field] === null || strategy[field] === ''
+        );
+        
+        if (missingFields.length > 0) {
+          console.error(`Strategy ${i + 1} missing fields:`, missingFields);
+          return res.status(400).json({ 
+            message: `Stratégie ${i + 1}: champs manquants - ${missingFields.join(', ')}`,
+            strategy: strategy,
+            missingFields: missingFields
+          });
+        }
+
+        // Validate data types
+        if (typeof strategy.duration !== 'number' || strategy.duration <= 0) {
+          return res.status(400).json({ 
+            message: `Stratégie ${i + 1}: la durée doit être un nombre positif`,
+            received: strategy.duration
+          });
+        }
+        
+        if (typeof strategy.cravingBefore !== 'number' || strategy.cravingBefore < 0 || strategy.cravingBefore > 10) {
+          return res.status(400).json({ 
+            message: `Stratégie ${i + 1}: le craving avant doit être un nombre entre 0 et 10`,
+            received: strategy.cravingBefore
+          });
+        }
+        
+        if (typeof strategy.cravingAfter !== 'number' || strategy.cravingAfter < 0 || strategy.cravingAfter > 10) {
+          return res.status(400).json({ 
+            message: `Stratégie ${i + 1}: le craving après doit être un nombre entre 0 et 10`,
+            received: strategy.cravingAfter
+          });
         }
       }
 
@@ -621,12 +658,16 @@ export function registerRoutes(app: Express) {
       res.json({ 
         success: true, 
         strategies: savedStrategies,
-        message: `${savedStrategies.length} stratégie(s) sauvegardée(s) avec succès` 
+        message: `${savedStrategies.length} stratégie(s) sauvegardée(s) avec succès`,
+        count: savedStrategies.length
       });
     } catch (error) {
       console.error("Error saving anti-craving strategies:", error);
       const errorMessage = error instanceof Error ? error.message : "Erreur lors de la sauvegarde des stratégies";
-      res.status(500).json({ message: errorMessage });
+      res.status(500).json({ 
+        message: errorMessage,
+        error: error instanceof Error ? error.stack : String(error)
+      });
     }
   });
 

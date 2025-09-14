@@ -538,12 +538,31 @@ var init_storage = __esm({
       }
       // Anti-craving strategies operations
       async createAntiCravingStrategies(userId, strategies) {
+        const db2 = getDB();
+        if (!Array.isArray(strategies) || strategies.length === 0) {
+          throw new Error("Au moins une strat\xE9gie doit \xEAtre fournie");
+        }
+        for (const strategy of strategies) {
+          if (!strategy.context || !strategy.exercise || !strategy.effort || typeof strategy.duration !== "number" || typeof strategy.cravingBefore !== "number" || typeof strategy.cravingAfter !== "number") {
+            throw new Error("Tous les champs de strat\xE9gie sont requis");
+          }
+        }
         const strategiesWithUserId = strategies.map((strategy) => ({
           ...strategy,
-          userId
+          userId,
+          // Ensure proper data types
+          duration: Number(strategy.duration),
+          cravingBefore: Number(strategy.cravingBefore),
+          cravingAfter: Number(strategy.cravingAfter)
         }));
-        const result = await getDB().insert(antiCravingStrategies).values(strategiesWithUserId).returning();
-        return result;
+        try {
+          const result = await db2.insert(antiCravingStrategies).values(strategiesWithUserId).returning();
+          console.log(`Successfully saved ${result.length} anti-craving strategies for user ${userId}`);
+          return result;
+        } catch (error) {
+          console.error("Error saving anti-craving strategies:", error);
+          throw new Error(`Erreur lors de la sauvegarde des strat\xE9gies: ${error instanceof Error ? error.message : "Erreur inconnue"}`);
+        }
       }
       async getAntiCravingStrategies(userId) {
         return getDB().select().from(antiCravingStrategies).where(eq(antiCravingStrategies.userId, userId)).orderBy(desc(antiCravingStrategies.createdAt));
@@ -1702,24 +1721,80 @@ function registerRoutes(app2) {
     try {
       const userId = req.session.user.id;
       const { strategies } = req.body;
+      console.log("Received strategies request:", { userId, strategiesCount: strategies?.length, body: req.body });
       if (!Array.isArray(strategies)) {
-        return res.status(400).json({ message: "Les strat\xE9gies doivent \xEAtre un tableau" });
+        console.error("Invalid strategies format:", { type: typeof strategies, value: strategies });
+        return res.status(400).json({
+          message: "Les strat\xE9gies doivent \xEAtre un tableau",
+          received: typeof strategies,
+          expected: "array"
+        });
+      }
+      if (strategies.length === 0) {
+        return res.status(400).json({ message: "Au moins une strat\xE9gie doit \xEAtre fournie" });
+      }
+      for (let i = 0; i < strategies.length; i++) {
+        const strategy = strategies[i];
+        console.log(`Validating strategy ${i + 1}:`, strategy);
+        const requiredFields = ["context", "exercise", "effort", "duration", "cravingBefore", "cravingAfter"];
+        const missingFields = requiredFields.filter(
+          (field) => strategy[field] === void 0 || strategy[field] === null || strategy[field] === ""
+        );
+        if (missingFields.length > 0) {
+          console.error(`Strategy ${i + 1} missing fields:`, missingFields);
+          return res.status(400).json({
+            message: `Strat\xE9gie ${i + 1}: champs manquants - ${missingFields.join(", ")}`,
+            strategy,
+            missingFields
+          });
+        }
+        if (typeof strategy.duration !== "number" || strategy.duration <= 0) {
+          return res.status(400).json({
+            message: `Strat\xE9gie ${i + 1}: la dur\xE9e doit \xEAtre un nombre positif`,
+            received: strategy.duration
+          });
+        }
+        if (typeof strategy.cravingBefore !== "number" || strategy.cravingBefore < 0 || strategy.cravingBefore > 10) {
+          return res.status(400).json({
+            message: `Strat\xE9gie ${i + 1}: le craving avant doit \xEAtre un nombre entre 0 et 10`,
+            received: strategy.cravingBefore
+          });
+        }
+        if (typeof strategy.cravingAfter !== "number" || strategy.cravingAfter < 0 || strategy.cravingAfter > 10) {
+          return res.status(400).json({
+            message: `Strat\xE9gie ${i + 1}: le craving apr\xE8s doit \xEAtre un nombre entre 0 et 10`,
+            received: strategy.cravingAfter
+          });
+        }
       }
       const savedStrategies = await storage.createAntiCravingStrategies(userId, strategies);
-      res.json(savedStrategies);
+      console.log(`Successfully saved ${savedStrategies.length} strategies for user ${userId}`);
+      res.json({
+        success: true,
+        strategies: savedStrategies,
+        message: `${savedStrategies.length} strat\xE9gie(s) sauvegard\xE9e(s) avec succ\xE8s`,
+        count: savedStrategies.length
+      });
     } catch (error) {
       console.error("Error saving anti-craving strategies:", error);
-      res.status(500).json({ message: "Erreur lors de la sauvegarde des strat\xE9gies" });
+      const errorMessage = error instanceof Error ? error.message : "Erreur lors de la sauvegarde des strat\xE9gies";
+      res.status(500).json({
+        message: errorMessage,
+        error: error instanceof Error ? error.stack : String(error)
+      });
     }
   });
   app2.get("/api/strategies", requireAuth, async (req, res) => {
     try {
       const userId = req.session.user.id;
+      console.log(`Fetching strategies for user ${userId}`);
       const strategies = await storage.getAntiCravingStrategies(userId);
+      console.log(`Found ${strategies.length} strategies for user ${userId}`);
       res.json(strategies);
     } catch (error) {
       console.error("Error fetching anti-craving strategies:", error);
-      res.status(500).json({ message: "Erreur lors de la r\xE9cup\xE9ration des strat\xE9gies" });
+      const errorMessage = error instanceof Error ? error.message : "Erreur lors de la r\xE9cup\xE9ration des strat\xE9gies";
+      res.status(500).json({ message: errorMessage });
     }
   });
 }

@@ -78,12 +78,24 @@ export function StrategiesBox({ userId, onSuccess }: StrategiesBoxProps) {
         description: `${count} stratégie(s) enregistrée(s) avec succès dans l'onglet Suivi.`,
       });
       
-      // Invalider tous les caches liés aux stratégies
+      // Invalider tous les caches liés aux stratégies avec les clés correctes
       queryClient.invalidateQueries({ queryKey: ["/api/strategies"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/strategies", userId] });
       queryClient.invalidateQueries({ queryKey: ["/api/users/stats"] });
       
-      // Forcer un refetch immédiat pour mettre à jour l'affichage
-      queryClient.refetchQueries({ queryKey: ["/api/strategies"] });
+      // Invalider toutes les queries relatives aux stratégies pour être sûr
+      queryClient.invalidateQueries({ 
+        predicate: (query) => {
+          const key = query.queryKey;
+          return Array.isArray(key) && key.length > 0 && key[0] === "/api/strategies";
+        }
+      });
+      
+      // Refetch immédiat
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: ["/api/strategies"] });
+        queryClient.refetchQueries({ queryKey: ["/api/strategies", userId] });
+      }, 100);
       
       console.log('Strategies saved successfully, caches invalidated');
       onSuccess?.();
@@ -129,22 +141,36 @@ export function StrategiesBox({ userId, onSuccess }: StrategiesBoxProps) {
     const validStrategies = strategies
       .filter(strategy => {
         const hasExercise = strategy.exercise && strategy.exercise.trim().length > 0;
-        console.log('Strategy validation:', { exercise: strategy.exercise, hasExercise });
+        console.log('Strategy validation:', { 
+          id: strategy.id,
+          exercise: strategy.exercise, 
+          hasExercise,
+          context: strategy.context,
+          effort: strategy.effort,
+          duration: strategy.duration,
+          cravingBefore: strategy.cravingBefore,
+          cravingAfter: strategy.cravingAfter
+        });
         return hasExercise;
       })
-      .map(strategy => ({
-        // Don't include userId here as it will be added by the server
-        context: strategy.context,
-        exercise: strategy.exercise.trim(),
-        effort: strategy.effort,
-        duration: Number(strategy.duration),
-        cravingBefore: Number(strategy.cravingBefore),
-        cravingAfter: Number(strategy.cravingAfter)
-      }));
+      .map(strategy => {
+        const mappedStrategy = {
+          // Don't include userId here as it will be added by the server
+          context: strategy.context,
+          exercise: strategy.exercise.trim(),
+          effort: strategy.effort,
+          duration: Number(strategy.duration),
+          cravingBefore: Number(strategy.cravingBefore),
+          cravingAfter: Number(strategy.cravingAfter)
+        };
+        console.log('Mapped strategy:', mappedStrategy);
+        return mappedStrategy;
+      });
 
     console.log('Valid strategies to save:', validStrategies);
 
     if (validStrategies.length === 0) {
+      console.warn('No valid strategies found');
       toast({
         title: "Aucune stratégie valide",
         description: "Veuillez remplir au moins une stratégie avec un exercice décrit avant de sauvegarder.",
@@ -153,29 +179,43 @@ export function StrategiesBox({ userId, onSuccess }: StrategiesBoxProps) {
       return;
     }
 
-    // Validation supplémentaire
+    // Validation supplémentaire avec logs détaillés
     for (let i = 0; i < validStrategies.length; i++) {
       const strategy = validStrategies[i];
-      if (strategy.duration < 1 || strategy.duration > 180) {
+      console.log(`Validating strategy ${i + 1}:`, strategy);
+      
+      if (isNaN(strategy.duration) || strategy.duration < 1 || strategy.duration > 180) {
+        console.error(`Invalid duration for strategy ${i + 1}:`, strategy.duration);
         toast({
           title: "Durée invalide",
-          description: `La durée de la stratégie ${i + 1} doit être entre 1 et 180 minutes.`,
+          description: `La durée de la stratégie ${i + 1} doit être entre 1 et 180 minutes. (Actuel: ${strategy.duration})`,
           variant: "destructive",
         });
         return;
       }
-      if (strategy.cravingBefore < 0 || strategy.cravingBefore > 10 || 
-          strategy.cravingAfter < 0 || strategy.cravingAfter > 10) {
+      
+      if (isNaN(strategy.cravingBefore) || strategy.cravingBefore < 0 || strategy.cravingBefore > 10) {
+        console.error(`Invalid cravingBefore for strategy ${i + 1}:`, strategy.cravingBefore);
         toast({
           title: "Niveau de craving invalide",
-          description: `Les niveaux de craving de la stratégie ${i + 1} doivent être entre 0 et 10.`,
+          description: `Le craving avant de la stratégie ${i + 1} doit être entre 0 et 10. (Actuel: ${strategy.cravingBefore})`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (isNaN(strategy.cravingAfter) || strategy.cravingAfter < 0 || strategy.cravingAfter > 10) {
+        console.error(`Invalid cravingAfter for strategy ${i + 1}:`, strategy.cravingAfter);
+        toast({
+          title: "Niveau de craving invalide",
+          description: `Le craving après de la stratégie ${i + 1} doit être entre 0 et 10. (Actuel: ${strategy.cravingAfter})`,
           variant: "destructive",
         });
         return;
       }
     }
 
-    console.log('Starting mutation with valid strategies:', validStrategies.length);
+    console.log('All validation passed. Starting mutation with valid strategies:', validStrategies);
     saveStrategiesMutation.mutate(validStrategies);
   };
 
