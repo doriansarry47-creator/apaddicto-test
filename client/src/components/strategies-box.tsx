@@ -51,32 +51,50 @@ export function StrategiesBox({ userId, onSuccess }: StrategiesBoxProps) {
 
   const saveStrategiesMutation = useMutation({
     mutationFn: async (data: InsertAntiCravingStrategy[]) => {
+      console.log('Sending strategies to API:', data);
+      
       const response = await apiRequest("POST", "/api/strategies", { strategies: data });
+      
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
+        let errorMessage;
+        try {
+          const errorJson = await response.json();
+          errorMessage = errorJson.message || `HTTP ${response.status}`;
+        } catch {
+          const errorText = await response.text();
+          errorMessage = errorText || `HTTP ${response.status}`;
+        }
+        throw new Error(errorMessage);
       }
-      return await response.json();
+      
+      const result = await response.json();
+      console.log('API response:', result);
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      const count = result.strategies?.length || result.length || 0;
       toast({
-        title: "Stratégies sauvegardées",
-        description: "Vos stratégies anti-craving ont été enregistrées avec succès.",
+        title: "Stratégies sauvegardées !",
+        description: `${count} stratégie(s) enregistrée(s) avec succès dans l'onglet Suivi.`,
       });
+      
       // Invalider tous les caches liés aux stratégies
       queryClient.invalidateQueries({ queryKey: ["/api/strategies"] });
       queryClient.invalidateQueries({ queryKey: ["/api/users/stats"] });
-      // Forcer un refetch immédiat
+      
+      // Forcer un refetch immédiat pour mettre à jour l'affichage
       queryClient.refetchQueries({ queryKey: ["/api/strategies"] });
+      
+      console.log('Strategies saved successfully, caches invalidated');
       onSuccess?.();
     },
     onError: (error) => {
+      console.error("Error saving strategies:", error);
       toast({
-        title: "Erreur",
+        title: "Erreur de sauvegarde",
         description: `Impossible de sauvegarder les stratégies: ${error instanceof Error ? error.message : 'Erreur inconnue'}`,
         variant: "destructive",
       });
-      console.error("Error saving strategies:", error);
     },
   });
 
@@ -106,27 +124,58 @@ export function StrategiesBox({ userId, onSuccess }: StrategiesBoxProps) {
   };
 
   const handleSave = () => {
+    console.log('Handle save called, current strategies:', strategies);
+    
     const validStrategies = strategies
-      .filter(strategy => strategy.exercise.trim())
+      .filter(strategy => {
+        const hasExercise = strategy.exercise && strategy.exercise.trim().length > 0;
+        console.log('Strategy validation:', { exercise: strategy.exercise, hasExercise });
+        return hasExercise;
+      })
       .map(strategy => ({
-        userId,
+        // Don't include userId here as it will be added by the server
         context: strategy.context,
-        exercise: strategy.exercise,
+        exercise: strategy.exercise.trim(),
         effort: strategy.effort,
-        duration: strategy.duration,
-        cravingBefore: strategy.cravingBefore,
-        cravingAfter: strategy.cravingAfter
+        duration: Number(strategy.duration),
+        cravingBefore: Number(strategy.cravingBefore),
+        cravingAfter: Number(strategy.cravingAfter)
       }));
+
+    console.log('Valid strategies to save:', validStrategies);
 
     if (validStrategies.length === 0) {
       toast({
-        title: "Aucune stratégie",
-        description: "Veuillez remplir au moins une stratégie avant de sauvegarder.",
+        title: "Aucune stratégie valide",
+        description: "Veuillez remplir au moins une stratégie avec un exercice décrit avant de sauvegarder.",
         variant: "destructive",
       });
       return;
     }
 
+    // Validation supplémentaire
+    for (let i = 0; i < validStrategies.length; i++) {
+      const strategy = validStrategies[i];
+      if (strategy.duration < 1 || strategy.duration > 180) {
+        toast({
+          title: "Durée invalide",
+          description: `La durée de la stratégie ${i + 1} doit être entre 1 et 180 minutes.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      if (strategy.cravingBefore < 0 || strategy.cravingBefore > 10 || 
+          strategy.cravingAfter < 0 || strategy.cravingAfter > 10) {
+        toast({
+          title: "Niveau de craving invalide",
+          description: `Les niveaux de craving de la stratégie ${i + 1} doivent être entre 0 et 10.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    console.log('Starting mutation with valid strategies:', validStrategies.length);
     saveStrategiesMutation.mutate(validStrategies);
   };
 
@@ -302,7 +351,17 @@ export function StrategiesBox({ userId, onSuccess }: StrategiesBoxProps) {
             className="bg-primary text-primary-foreground hover:bg-primary/90"
             data-testid="button-save-strategies"
           >
-            {saveStrategiesMutation.isPending ? "Sauvegarde..." : "Sauvegarder dans l'onglet Suivi"}
+            {saveStrategiesMutation.isPending ? (
+              <>
+                <span className="material-icons animate-spin mr-2 text-sm">refresh</span>
+                Sauvegarde en cours...
+              </>
+            ) : (
+              <>
+                <span className="material-icons mr-2 text-sm">save</span>
+                Sauvegarder dans l'onglet Suivi
+              </>
+            )}
           </Button>
         </div>
       </CardContent>
