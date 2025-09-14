@@ -52,6 +52,10 @@ export function StrategiesBox({ userId, onSuccess }: StrategiesBoxProps) {
   const saveStrategiesMutation = useMutation({
     mutationFn: async (data: InsertAntiCravingStrategy[]) => {
       const response = await apiRequest("POST", "/api/strategies", { strategies: data });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
       return await response.json();
     },
     onSuccess: () => {
@@ -59,14 +63,17 @@ export function StrategiesBox({ userId, onSuccess }: StrategiesBoxProps) {
         title: "Stratégies sauvegardées",
         description: "Vos stratégies anti-craving ont été enregistrées avec succès.",
       });
+      // Invalider tous les caches liés aux stratégies
       queryClient.invalidateQueries({ queryKey: ["/api/strategies"] });
       queryClient.invalidateQueries({ queryKey: ["/api/users/stats"] });
+      // Forcer un refetch immédiat
+      queryClient.refetchQueries({ queryKey: ["/api/strategies"] });
       onSuccess?.();
     },
     onError: (error) => {
       toast({
         title: "Erreur",
-        description: "Impossible de sauvegarder les stratégies. Veuillez réessayer.",
+        description: `Impossible de sauvegarder les stratégies: ${error instanceof Error ? error.message : 'Erreur inconnue'}`,
         variant: "destructive",
       });
       console.error("Error saving strategies:", error);
