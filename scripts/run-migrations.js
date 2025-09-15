@@ -39,6 +39,11 @@ async function runMigrations() {
     console.log('🔧 Vérification de la table anti_craving_strategies...');
     await ensureAntiCravingTable();
     
+    // Corriger le schéma de user_stats
+    console.log('🔧 Correction du schéma user_stats...');
+    const { fixUserStatsSchema } = await import('./fix-user-stats-schema.js');
+    await fixUserStatsSchema();
+    
     console.log('🎉 Toutes les migrations sont terminées avec succès');
     
   } catch (error) {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Navigation } from "@/components/navigation";
 import { ExerciseCard } from "@/components/exercise-card";
 import { Button } from "@/components/ui/button";
@@ -84,15 +84,18 @@ export default function Exercises() {
   const [selectedLevel, setSelectedLevel] = useState<keyof typeof levels | 'all'>('all');
   const [location] = useLocation();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Récupération des exercices depuis l'API
-  const { data: apiExercises, isLoading, error } = useQuery<APIExercise[]>({
+  const { data: apiExercises, isLoading, error, refetch: refetchExercises } = useQuery<APIExercise[]>({
     queryKey: ['exercises'],
     queryFn: async () => {
       const response = await apiRequest('GET', '/api/exercises');
       return response.json();
     },
-    initialData: []
+    initialData: [],
+    staleTime: 0, // Forcer le refetch
+    cacheTime: 300000, // 5 minutes de cache
   });
 
   // Conversion des exercices API vers le format frontend
@@ -105,6 +108,11 @@ export default function Exercises() {
       setSelectedCategory(category as keyof typeof categories);
     }
   }, [location.search]);
+
+  // Rafraîchir les exercices quand on arrive sur la page
+  useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ['exercises'] });
+  }, [queryClient]);
 
   const filteredExercises = exercises.filter((exercise) => {
     const categoryMatch = selectedCategory === 'all' || exercise.category === selectedCategory;
@@ -158,10 +166,22 @@ export default function Exercises() {
         
         {/* Page Header */}
         <section className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Bibliothèque d'Exercices</h1>
-          <p className="text-muted-foreground">
-            Choisissez parmi nos exercices adaptés à votre niveau et vos besoins du moment.
-          </p>
+          <div className="flex justify-between items-center mb-2">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground mb-2">Bibliothèque d'Exercices</h1>
+              <p className="text-muted-foreground">
+                Choisissez parmi nos exercices adaptés à votre niveau et vos besoins du moment.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => refetchExercises()}
+              className="flex items-center space-x-2"
+            >
+              <span className="material-icons">refresh</span>
+              <span>Actualiser</span>
+            </Button>
+          </div>
         </section>
 
         {/* Filters */}

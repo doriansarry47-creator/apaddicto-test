@@ -1,4 +1,4 @@
-import { getDB } from "./db.js";
+import { getDB, getPool } from "./db.js";
 import {
   users,
   exercises,
@@ -111,13 +111,50 @@ export interface IStorage {
 }
 
 export class DbStorage implements IStorage {
+  
+  // Utilitaire pour s'assurer que la colonne beck_analyses_completed existe
+  private async ensureBeckAnalysesColumn(): Promise<void> {
+    try {
+      const pool = getPool();
+      if (!pool) return;
+      
+      // Vérifier si la colonne existe
+      const checkResult = await pool.query(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.columns 
+          WHERE table_name = 'user_stats' 
+          AND column_name = 'beck_analyses_completed'
+        );
+      `);
+      
+      if (!checkResult.rows[0].exists) {
+        console.log('⚠️ Ajout automatique de la colonne beck_analyses_completed...');
+        await pool.query(`
+          ALTER TABLE "user_stats" 
+          ADD COLUMN "beck_analyses_completed" integer DEFAULT 0;
+        `);
+        console.log('✅ Colonne beck_analyses_completed ajoutée automatiquement');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la vérification de la colonne beck_analyses_completed:', error);
+    }
+  }
+
   private async updateUserStatsForBeckAnalysis(userId: string): Promise<void> {
+    // Ensure the column exists
+    await this.ensureBeckAnalysesColumn();
+    
     const stats = await this.getUserStats(userId);
     if (stats) {
-      await this.updateUserStats(userId, {
-        beckAnalysesCompleted: (stats.beckAnalysesCompleted || 0) + 1,
-        updatedAt: new Date(),
-      });
+      try {
+        await this.updateUserStats(userId, {
+          beckAnalysesCompleted: (stats.beckAnalysesCompleted || 0) + 1,
+          updatedAt: new Date(),
+        });
+      } catch (error) {
+        console.log('⚠️ Erreur mise à jour stats Beck, ignorée:', error instanceof Error ? error.message : error);
+        // Continue silently if beck_analyses_completed update fails
+      }
     }
   }
 
@@ -131,8 +168,32 @@ export class DbStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const newUser = await getDB().insert(users).values(insertUser).returning().then(rows => rows[0]);
+    
+    // Ensure beck_analyses_completed column exists before trying to use it
+    await this.ensureBeckAnalysesColumn();
+    
     // Initialize stats for the new user
-    await getDB().insert(userStats).values({ userId: newUser.id });
+    try {
+      await getDB().insert(userStats).values({ 
+        userId: newUser.id,
+        exercisesCompleted: 0,
+        totalDuration: 0,
+        currentStreak: 0,
+        longestStreak: 0,
+        beckAnalysesCompleted: 0
+      });
+    } catch (error) {
+      // Fallback: try without beckAnalysesCompleted if it still fails
+      console.log('⚠️ Tentative d\'insertion sans beck_analyses_completed...');
+      await getDB().insert(userStats).values({ 
+        userId: newUser.id,
+        exercisesCompleted: 0,
+        totalDuration: 0,
+        currentStreak: 0,
+        longestStreak: 0
+      });
+    }
+    
     return newUser;
   }
 
@@ -571,6 +632,9 @@ export class DbStorage implements IStorage {
         try {
           // Essayer de créer la table directement via SQL
           const pool = getPool();
+          if (!pool) {
+            throw new Error("Impossible d'obtenir la connexion à la base de données");
+          }
           await pool.query(`
             CREATE TABLE IF NOT EXISTS "anti_craving_strategies" (
               "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
