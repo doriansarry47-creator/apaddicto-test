@@ -60,7 +60,18 @@ const convertAPIExerciseToFrontend = (apiExercise: APIExercise): Exercise => {
   };
 };
 
-// Catégories et niveaux pour l'interface utilisateur - alignées avec l'admin
+// Catégories par objectif adaptées à l'addictologie
+const objectives = {
+  apaisement: '🧘 Apaisement / Gestion du Stress',
+  energie: '⚡ Énergie / Activation',
+  renforcement: '💪 Renforcement Musculaire',
+  mobilite: '🤸 Mobilité & Relâchement',
+  coordination: '⚖️ Coordination & Équilibre',
+  relaxation: '😌 Relaxation & Pleine Conscience',
+  focus: '🧠 Focus Cognitif'
+} as const;
+
+// Catégories techniques (pour la correspondance avec l'API)
 const categories = {
   cardio: 'Cardio Training',
   strength: 'Renforcement Musculaire',
@@ -72,6 +83,18 @@ const categories = {
   debutant: 'Exercices Débutant'
 } as const;
 
+// Mappage catégories API vers objectifs addictologie
+const categoryToObjective: Record<string, keyof typeof objectives> = {
+  'respiration': 'apaisement',
+  'meditation': 'apaisement',
+  'mindfulness': 'apaisement',
+  'relaxation': 'relaxation',
+  'cardio': 'energie',
+  'strength': 'renforcement',
+  'flexibility': 'mobilite',
+  'debutant': 'focus'
+};
+
 const levels = {
   beginner: 'Débutant',
   intermediate: 'Intermédiaire', 
@@ -80,8 +103,10 @@ const levels = {
 } as const;
 
 export default function Exercises() {
+  const [selectedObjective, setSelectedObjective] = useState<keyof typeof objectives | 'all'>('all');
   const [selectedCategory, setSelectedCategory] = useState<keyof typeof categories | 'all'>('all');
   const [selectedLevel, setSelectedLevel] = useState<keyof typeof levels | 'all'>('all');
+  const [cravingLevel, setCravingLevel] = useState<number | null>(null);
   const [location] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -114,11 +139,43 @@ export default function Exercises() {
     queryClient.invalidateQueries({ queryKey: ['exercises'] });
   }, [queryClient]);
 
+  // Fonction pour déterminer l'objectif d'un exercice
+  const getExerciseObjective = (exercise: Exercise): keyof typeof objectives => {
+    return categoryToObjective[exercise.category] || 'focus';
+  };
+
+  // Fonction de suggestion intelligente selon le craving
+  const getSuggestedExercises = (cravingLevel: number) => {
+    if (cravingLevel >= 7) {
+      // Craving élevé -> priorité apaisement, niveau débutant
+      return exercises.filter(ex => 
+        getExerciseObjective(ex) === 'apaisement' && 
+        ex.level === 'beginner' && 
+        ex.duration <= 10
+      );
+    } else if (cravingLevel >= 4) {
+      // Craving modéré -> relaxation ou mobilité douce
+      return exercises.filter(ex => 
+        ['apaisement', 'relaxation', 'mobilite'].includes(getExerciseObjective(ex)) &&
+        ['beginner', 'intermediate'].includes(ex.level)
+      );
+    } else {
+      // Craving faible -> énergie ou renforcement
+      return exercises.filter(ex => 
+        ['energie', 'renforcement', 'coordination'].includes(getExerciseObjective(ex))
+      );
+    }
+  };
+
   const filteredExercises = exercises.filter((exercise) => {
+    const objectiveMatch = selectedObjective === 'all' || getExerciseObjective(exercise) === selectedObjective;
     const categoryMatch = selectedCategory === 'all' || exercise.category === selectedCategory;
     const levelMatch = selectedLevel === 'all' || exercise.level === selectedLevel;
-    return categoryMatch && levelMatch;
+    return objectiveMatch && categoryMatch && levelMatch;
   });
+
+  // Suggestion intelligente si un niveau de craving est défini
+  const suggestedExercises = cravingLevel !== null ? getSuggestedExercises(cravingLevel) : [];
 
   if (isLoading) {
     return (
@@ -191,25 +248,62 @@ export default function Exercises() {
               <CardTitle className="text-lg">Filtres</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Category Filter */}
+              {/* Évaluation du craving */}
               <div>
-                <h3 className="text-sm font-medium text-foreground mb-3">Catégorie</h3>
+                <h3 className="text-sm font-medium text-foreground mb-3">Comment vous sentez-vous maintenant ? (0-10)</h3>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {[0,1,2,3,4,5,6,7,8,9,10].map((level) => (
+                    <Button
+                      key={level}
+                      variant={cravingLevel === level ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCravingLevel(level)}
+                      className={`${level >= 7 ? 'text-red-600' : level >= 4 ? 'text-orange-600' : 'text-green-600'}`}
+                    >
+                      {level}
+                    </Button>
+                  ))}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setCravingLevel(null)}
+                  >
+                    Réinitialiser
+                  </Button>
+                </div>
+                {cravingLevel !== null && (
+                  <div className="p-3 bg-secondary rounded-lg text-sm">
+                    <p className="font-medium mb-1">
+                      {cravingLevel >= 7 ? '🚨 Niveau élevé - Exercices d\'apaisement recommandés' :
+                       cravingLevel >= 4 ? '⚠️ Niveau modéré - Relaxation et mobilité douce' :
+                       '✅ Niveau faible - Énergie et renforcement possibles'}
+                    </p>
+                    <p className="text-muted-foreground">
+                      {suggestedExercises.length} exercice{suggestedExercises.length > 1 ? 's' : ''} adapté{suggestedExercises.length > 1 ? 's' : ''} à votre état
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Objectif Filter */}
+              <div>
+                <h3 className="text-sm font-medium text-foreground mb-3">Objectif</h3>
                 <div className="flex flex-wrap gap-2">
                   <Button
-                    variant={selectedCategory === 'all' ? "default" : "outline"}
+                    variant={selectedObjective === 'all' ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setSelectedCategory('all')}
-                    data-testid="button-category-all"
+                    onClick={() => setSelectedObjective('all')}
+                    data-testid="button-objective-all"
                   >
-                    Toutes les catégories
+                    Tous les objectifs
                   </Button>
-                  {Object.entries(categories).map(([key, label]) => (
+                  {Object.entries(objectives).map(([key, label]) => (
                     <Button
                       key={key}
-                      variant={selectedCategory === key ? "default" : "outline"}
+                      variant={selectedObjective === key ? "default" : "outline"}
                       size="sm"
-                      onClick={() => setSelectedCategory(key as keyof typeof categories)}
-                      data-testid={`button-category-${key}`}
+                      onClick={() => setSelectedObjective(key as keyof typeof objectives)}
+                      data-testid={`button-objective-${key}`}
                     >
                       {label}
                     </Button>
@@ -246,11 +340,50 @@ export default function Exercises() {
           </Card>
         </section>
 
+        {/* Suggestions intelligentes */}
+        {cravingLevel !== null && suggestedExercises.length > 0 && (
+          <section className="mb-8">
+            <Card className="bg-gradient-to-r from-primary/10 to-secondary/10 border-primary/20">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <span className="material-icons">psychology</span>
+                  <span>Exercices recommandés pour vous</span>
+                </CardTitle>
+                <CardDescription>
+                  Basé sur votre évaluation actuelle ({cravingLevel}/10)
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {suggestedExercises.slice(0, 3).map((exercise) => (
+                    <ExerciseCard
+                      key={exercise.id}
+                      exercise={exercise}
+                      onStart={() => handleStartExercise(exercise)}
+                    />
+                  ))}
+                </div>
+                {suggestedExercises.length > 3 && (
+                  <Button
+                    className="mt-4"
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedObjective(getExerciseObjective(suggestedExercises[0]));
+                    }}
+                  >
+                    Voir tous les exercices recommandés ({suggestedExercises.length})
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          </section>
+        )}
+
         {/* Results Summary */}
         <section className="mb-6">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-medium text-foreground">
-              {selectedCategory === 'all' ? 'Tous les exercices' : categories[selectedCategory as keyof typeof categories]}
+              {selectedObjective === 'all' ? 'Tous les exercices' : objectives[selectedObjective as keyof typeof objectives]}
               {selectedLevel !== 'all' && ` - ${levels[selectedLevel as keyof typeof levels]}`}
             </h2>
             <span className="text-sm text-muted-foreground" data-testid="text-results-count">
@@ -284,8 +417,10 @@ export default function Exercises() {
                 </p>
                 <Button
                   onClick={() => {
+                    setSelectedObjective('all');
                     setSelectedCategory('all');
                     setSelectedLevel('all');
+                    setCravingLevel(null);
                   }}
                   data-testid="button-reset-filters"
                 >
