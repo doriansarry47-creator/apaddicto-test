@@ -24,12 +24,14 @@ interface Exercise {
   benefits: string[];
 }
 
-// Mappages des catégories API vers les catégories frontend - correspondance directe
+// Mappages des catégories API vers les catégories frontend - correspondance directe et variantes
 const categoryMapping: Record<string, keyof typeof categories> = {
   // Correspondance directe avec les catégories de l'admin
   'cardio': 'cardio',
-  'strength': 'strength', 
+  'strength': 'strength',
+  'renforcement': 'strength', // Variante française
   'flexibility': 'flexibility',
+  'etirement': 'flexibility', // Variante française
   'mindfulness': 'mindfulness',
   'relaxation': 'relaxation',
   'respiration': 'respiration',
