@@ -561,6 +561,47 @@ var init_storage = __esm({
           return result;
         } catch (error) {
           console.error("Error saving anti-craving strategies:", error);
+          if (error instanceof Error && error.message.includes('relation "anti_craving_strategies" does not exist')) {
+            console.error("Table anti_craving_strategies manquante. Tentative de cr\xE9ation...");
+            try {
+              const pool3 = getPool();
+              await pool3.query(`
+            CREATE TABLE IF NOT EXISTS "anti_craving_strategies" (
+              "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+              "user_id" varchar NOT NULL,
+              "context" varchar NOT NULL,
+              "exercise" text NOT NULL,
+              "effort" varchar NOT NULL,
+              "duration" integer NOT NULL,
+              "craving_before" integer NOT NULL,
+              "craving_after" integer NOT NULL,
+              "created_at" timestamp DEFAULT now(),
+              "updated_at" timestamp DEFAULT now()
+            );
+          `);
+              await pool3.query(`
+            DO $$ 
+            BEGIN
+              IF NOT EXISTS (
+                SELECT 1 FROM information_schema.table_constraints 
+                WHERE constraint_name = 'anti_craving_strategies_user_id_users_id_fk'
+              ) THEN
+                ALTER TABLE "anti_craving_strategies" 
+                ADD CONSTRAINT "anti_craving_strategies_user_id_users_id_fk" 
+                FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") 
+                ON DELETE cascade ON UPDATE no action;
+              END IF;
+            END $$;
+          `);
+              console.log("Table anti_craving_strategies cr\xE9\xE9e avec succ\xE8s. Nouvelle tentative de sauvegarde...");
+              const retryResult = await db2.insert(antiCravingStrategies).values(strategiesWithUserId).returning();
+              console.log(`Successfully saved ${retryResult.length} anti-craving strategies for user ${userId} apr\xE8s cr\xE9ation de table`);
+              return retryResult;
+            } catch (createError) {
+              console.error("Erreur lors de la cr\xE9ation de la table:", createError);
+              throw new Error(`Erreur lors de la sauvegarde des strat\xE9gies : la table anti_craving_strategies n'existe pas.`);
+            }
+          }
           throw new Error(`Erreur lors de la sauvegarde des strat\xE9gies: ${error instanceof Error ? error.message : "Erreur inconnue"}`);
         }
       }
@@ -1805,7 +1846,60 @@ import { drizzle as drizzle2 } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import pkg2 from "pg";
 import fs from "fs";
-var { Pool: Pool2 } = pkg2;
+var { Pool: Pool2, Client } = pkg2;
+async function ensureAntiCravingTable() {
+  const client = new Client({
+    connectionString: process.env.DATABASE_URL
+  });
+  try {
+    await client.connect();
+    const tableExists = await client.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'anti_craving_strategies'
+      );
+    `);
+    if (tableExists.rows[0].exists) {
+      console.log("\u2705 Table anti_craving_strategies existe");
+    } else {
+      console.log("\u26A0\uFE0F Cr\xE9ation de la table anti_craving_strategies...");
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS "anti_craving_strategies" (
+          "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+          "user_id" varchar NOT NULL,
+          "context" varchar NOT NULL,
+          "exercise" text NOT NULL,
+          "effort" varchar NOT NULL,
+          "duration" integer NOT NULL,
+          "craving_before" integer NOT NULL,
+          "craving_after" integer NOT NULL,
+          "created_at" timestamp DEFAULT now(),
+          "updated_at" timestamp DEFAULT now()
+        );
+      `);
+      await client.query(`
+        DO $$ 
+        BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.table_constraints 
+            WHERE constraint_name = 'anti_craving_strategies_user_id_users_id_fk'
+          ) THEN
+            ALTER TABLE "anti_craving_strategies" 
+            ADD CONSTRAINT "anti_craving_strategies_user_id_users_id_fk" 
+            FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") 
+            ON DELETE cascade ON UPDATE no action;
+          END IF;
+        END $$;
+      `);
+      console.log("\u2705 Table anti_craving_strategies cr\xE9\xE9e");
+    }
+  } catch (error) {
+    console.error("\u274C Erreur lors de la v\xE9rification de la table anti_craving_strategies:", error);
+  } finally {
+    await client.end();
+  }
+}
 async function run() {
   if (!process.env.DATABASE_URL) {
     console.error("\u274C DATABASE_URL manquant");
@@ -1820,7 +1914,8 @@ async function run() {
   const db2 = drizzle2(pool3);
   try {
     await migrate(db2, { migrationsFolder: "migrations" });
-    console.log("\u2705 Migrations appliqu\xE9es (ou d\xE9j\xE0 \xE0 jour)");
+    console.log("\u2705 Migrations Drizzle appliqu\xE9es (ou d\xE9j\xE0 \xE0 jour)");
+    await ensureAntiCravingTable();
   } catch (e) {
     console.error("\u274C Erreur migrations:", e);
   } finally {

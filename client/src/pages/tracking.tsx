@@ -1,10 +1,11 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Navigation } from "@/components/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 import { useAuthQuery } from "@/hooks/use-auth";
 import type { CravingEntry, ExerciseSession, BeckAnalysis, UserStats, AntiCravingStrategy } from "@shared/schema";
 
@@ -15,9 +16,37 @@ interface CravingStats {
 
 export default function Tracking() {
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('week');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const queryClient = useQueryClient();
   
   // Récupérer l'utilisateur authentifié
   const { data: authenticatedUser, isLoading: userLoading } = useAuthQuery();
+
+  // Fonction pour rafraîchir toutes les données
+  const refreshAllData = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["/api/cravings"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/cravings/stats"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/exercise-sessions/detailed"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/users/stats"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/beck-analyses"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/strategies"] }),
+      ]);
+    } catch (error) {
+      console.error("Erreur lors du rafraîchissement des données:", error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  // Rafraîchir automatiquement les données au chargement de la page
+  useEffect(() => {
+    if (authenticatedUser) {
+      refreshAllData();
+    }
+  }, [authenticatedUser]);
 
   const { data: cravingEntries, isLoading: cravingLoading } = useQuery<CravingEntry[]>({
     queryKey: ["/api/cravings"],
@@ -152,7 +181,21 @@ export default function Tracking() {
         
         {/* Page Header */}
         <section className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Suivi de Votre Progression</h1>
+          <div className="flex items-center justify-between mb-2">
+            <h1 className="text-3xl font-bold text-foreground">Suivi de Votre Progression</h1>
+            <Button 
+              onClick={refreshAllData}
+              disabled={isRefreshing}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <span className={`material-icons text-sm ${isRefreshing ? 'animate-spin' : ''}`}>
+                {isRefreshing ? 'hourglass_empty' : 'refresh'}
+              </span>
+              {isRefreshing ? 'Actualisation...' : 'Actualiser'}
+            </Button>
+          </div>
           <p className="text-muted-foreground">
             Analysez votre évolution et identifiez les patterns qui vous aident.
           </p>

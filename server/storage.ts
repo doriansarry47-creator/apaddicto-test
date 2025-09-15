@@ -534,6 +534,62 @@ export class DbStorage implements IStorage {
       return result;
     } catch (error) {
       console.error('Error saving anti-craving strategies:', error);
+      
+      // Vérifier si l'erreur est due à une table manquante
+      if (error instanceof Error && error.message.includes('relation "anti_craving_strategies" does not exist')) {
+        console.error('Table anti_craving_strategies manquante. Tentative de création...');
+        
+        try {
+          // Essayer de créer la table directement via SQL
+          const pool = getPool();
+          await pool.query(`
+            CREATE TABLE IF NOT EXISTS "anti_craving_strategies" (
+              "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+              "user_id" varchar NOT NULL,
+              "context" varchar NOT NULL,
+              "exercise" text NOT NULL,
+              "effort" varchar NOT NULL,
+              "duration" integer NOT NULL,
+              "craving_before" integer NOT NULL,
+              "craving_after" integer NOT NULL,
+              "created_at" timestamp DEFAULT now(),
+              "updated_at" timestamp DEFAULT now()
+            );
+          `);
+          
+          // Ajouter la contrainte de clé étrangère si elle n'existe pas
+          await pool.query(`
+            DO $$ 
+            BEGIN
+              IF NOT EXISTS (
+                SELECT 1 FROM information_schema.table_constraints 
+                WHERE constraint_name = 'anti_craving_strategies_user_id_users_id_fk'
+              ) THEN
+                ALTER TABLE "anti_craving_strategies" 
+                ADD CONSTRAINT "anti_craving_strategies_user_id_users_id_fk" 
+                FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") 
+                ON DELETE cascade ON UPDATE no action;
+              END IF;
+            END $$;
+          `);
+          
+          console.log('Table anti_craving_strategies créée avec succès. Nouvelle tentative de sauvegarde...');
+          
+          // Réessayer la sauvegarde
+          const retryResult = await db
+            .insert(antiCravingStrategies)
+            .values(strategiesWithUserId)
+            .returning();
+            
+          console.log(`Successfully saved ${retryResult.length} anti-craving strategies for user ${userId} après création de table`);
+          return retryResult;
+          
+        } catch (createError) {
+          console.error('Erreur lors de la création de la table:', createError);
+          throw new Error(`Erreur lors de la sauvegarde des stratégies : la table anti_craving_strategies n'existe pas.`);
+        }
+      }
+      
       throw new Error(`Erreur lors de la sauvegarde des stratégies: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     }
   }

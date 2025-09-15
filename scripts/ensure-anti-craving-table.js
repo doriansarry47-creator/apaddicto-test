@@ -1,10 +1,17 @@
-import 'dotenv/config';
-import { drizzle } from 'drizzle-orm/node-postgres';
-import { migrate } from 'drizzle-orm/node-postgres/migrator';
-import pkg from 'pg';
-import fs from 'fs';
+#!/usr/bin/env node
 
-const { Pool, Client } = pkg;
+/**
+ * Script pour s'assurer que la table anti_craving_strategies existe
+ * Peut être exécuté en production pour réparer la base de données
+ */
+
+import dotenv from 'dotenv';
+import pkg from 'pg';
+
+// Charger les variables d'environnement
+dotenv.config();
+
+const { Client } = pkg;
 
 async function ensureAntiCravingTable() {
   const client = new Client({
@@ -12,6 +19,7 @@ async function ensureAntiCravingTable() {
   });
 
   try {
+    console.log('🔧 Connexion à la base de données...');
     await client.connect();
     
     // Vérifier si la table existe
@@ -24,9 +32,9 @@ async function ensureAntiCravingTable() {
     `);
     
     if (tableExists.rows[0].exists) {
-      console.log('✅ Table anti_craving_strategies existe');
+      console.log('✅ La table anti_craving_strategies existe déjà');
     } else {
-      console.log('⚠️ Création de la table anti_craving_strategies...');
+      console.log('⚠️ La table anti_craving_strategies n\'existe pas, création...');
       
       // Créer la table
       await client.query(`
@@ -60,40 +68,43 @@ async function ensureAntiCravingTable() {
         END $$;
       `);
       
-      console.log('✅ Table anti_craving_strategies créée');
+      console.log('✅ Table anti_craving_strategies créée avec succès');
     }
     
+    // Vérifier la structure de la table
+    const columns = await client.query(`
+      SELECT column_name, data_type, is_nullable, column_default
+      FROM information_schema.columns 
+      WHERE table_name = 'anti_craving_strategies' 
+      ORDER BY ordinal_position;
+    `);
+    
+    console.log('📋 Structure de la table :');
+    columns.rows.forEach(col => {
+      console.log(`  - ${col.column_name}: ${col.data_type} ${col.is_nullable === 'NO' ? 'NOT NULL' : ''}`);
+    });
+    
+    console.log('🎉 Vérification terminée avec succès');
+    
   } catch (error) {
-    console.error('❌ Erreur lors de la vérification de la table anti_craving_strategies:', error);
+    console.error('❌ Erreur lors de la vérification/création de la table:', error);
+    throw error;
   } finally {
     await client.end();
   }
 }
 
-async function run() {
-  if (!process.env.DATABASE_URL) {
-    console.error('❌ DATABASE_URL manquant');
-    return;
-  }
-  if (!fs.existsSync('migrations')) {
-    console.log('ℹ️ Dossier migrations/ absent, exécution ignorée.');
-    return;
-  }
-  console.log('🔧 Migration runner: démarrage');
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-  const db = drizzle(pool);
-  try {
-    await migrate(db, { migrationsFolder: 'migrations' });
-    console.log('✅ Migrations Drizzle appliquées (ou déjà à jour)');
-    
-    // Vérifier et créer la table anti_craving_strategies si nécessaire
-    await ensureAntiCravingTable();
-    
-  } catch (e) {
-    console.error('❌ Erreur migrations:', e);
-  } finally {
-    await pool.end();
-  }
+// Exécuter le script si appelé directement
+if (import.meta.url === `file://${process.argv[1]}`) {
+  ensureAntiCravingTable()
+    .then(() => {
+      console.log('✨ Script terminé avec succès');
+      process.exit(0);
+    })
+    .catch((error) => {
+      console.error('💥 Échec du script:', error);
+      process.exit(1);
+    });
 }
 
-run();
+export { ensureAntiCravingTable };
