@@ -11,6 +11,7 @@ import Dashboard from "@/pages/dashboard";
 import Exercises from "@/pages/exercises";
 import ExerciseDetail from "@/pages/exercise-detail";
 import TherapeuticExercises from "@/pages/therapeutic-exercises";
+import RelaxationExercises from "@/pages/relaxation-exercises";
 import Tracking from "@/pages/tracking";
 import Education from "@/pages/education";
 import Profile from "@/pages/profile";
@@ -58,6 +59,11 @@ function AppContent() {
       <Route path="/therapeutic-exercises">
         <ProtectedRoute>
           <TherapeuticExercises />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/relaxation-exercises">
+        <ProtectedRoute>
+          <RelaxationExercises />
         </ProtectedRoute>
       </Route>
       <Route path="/education">

@@ -51,6 +51,13 @@ export function Navigation() {
               )} data-testid="nav-therapeutic">
                 Thérapeutique
               </Link>
+              <Link to="/relaxation-exercises" className={cn("px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                isActive("/relaxation-exercises") 
+                  ? "bg-primary text-primary-foreground" 
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              )} data-testid="nav-relaxation">
+                Relaxation
+              </Link>
               <Link to="/tracking" className={cn("px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                 isActive("/tracking") 
                   ? "bg-primary text-primary-foreground" 
@@ -90,7 +97,7 @@ export function Navigation() {
 
       {/* Bottom navigation for mobile */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-40">
-        <div className={cn("grid h-16", user?.role === 'admin' ? 'grid-cols-6' : 'grid-cols-5')}>
+        <div className={cn("grid h-16", user?.role === 'admin' ? 'grid-cols-7' : 'grid-cols-6')}>
           <Link to="/" className={cn("flex flex-col items-center justify-center space-y-1 transition-colors",
             isActive("/") ? "text-primary" : "text-muted-foreground hover:text-primary"
           )} data-testid="nav-mobile-home">
@@ -114,6 +121,12 @@ export function Navigation() {
           )} data-testid="nav-mobile-education">
             <span className="material-icons text-lg">school</span>
             <span className="text-xs">Éducation</span>
+          </Link>
+          <Link to="/relaxation-exercises" className={cn("flex flex-col items-center justify-center space-y-1 transition-colors",
+            isActive("/relaxation-exercises") ? "text-primary" : "text-muted-foreground hover:text-primary"
+          )} data-testid="nav-mobile-relaxation">
+            <span className="material-icons text-lg">spa</span>
+            <span className="text-xs">Relaxation</span>
           </Link>
           <Link to="/profile" className={cn("flex flex-col items-center justify-center space-y-1 transition-colors",
             isActive("/profile") ? "text-primary" : "text-muted-foreground hover:text-primary"
