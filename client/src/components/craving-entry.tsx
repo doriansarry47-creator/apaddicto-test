@@ -2,16 +2,60 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { InsertCravingEntry } from "@shared/schema";
 
-const triggers = [
-  "Stress", "Ennui", "Solitude", "Conflit", "Fatigue", "Frustration", "Pression sociale", "Nostalgie"
-];
+const triggersCategories = {
+  "Régulation émotionnelle": [
+    "Recherche de calme / apaisement",
+    "Besoin de réduire le stress",
+    "Gestion de l'anxiété",
+    "Fuir un sentiment de solitude",
+    "Combler l'ennui",
+    "Échapper à la tristesse ou à la dépression",
+    "Besoin de contrôle face à une situation vécue comme chaotique"
+  ],
+  "Besoin de récompense / plaisir": [
+    "Volonté de se récompenser après un effort ou une frustration",
+    "Recherche de plaisir immédiat",
+    "Comportement associé à une habitude (ex : après le repas, en soirée)",
+    "Association à des souvenirs positifs (fêtes, moments entre amis, vacances)"
+  ],
+  "Besoin physiologique": [
+    "Manque d'énergie, fatigue",
+    "Besoin de stimulation (se réveiller, rester concentré)",
+    "Faim réelle ou perçue",
+    "Déséquilibre du sommeil",
+    "Désir de réguler une tension corporelle (agitation, inconfort, douleur)"
+  ],
+  "Contexte social et environnemental": [
+    "Influence du groupe / entourage",
+    "Présence de signaux visuels, olfactifs ou sonores (odeurs, lieux, pubs, images)",
+    "Situations de fête, convivialité",
+    "Routines (trajet, pause, moment précis de la journée)"
+  ],
+  "Besoin identitaire / psychologique profond": [
+    "Sentiment d'appartenance (faire comme les autres)",
+    "Recherche de valorisation de soi",
+    "Besoin de remplir un vide intérieur",
+    "Échapper à des pensées intrusives ou ruminations"
+  ]
+};
 
 const emotions = [
-  "Anxiété", "Tristesse", "Colère", "Frustration", "Honte", "Culpabilité", "Vide", "Irritabilité"
+  "Anxiété", "Angoisse", "Peur", "Panique", "Inquiétude", "Nervosité",
+  "Tristesse", "Mélancolie", "Désespoir", "Abattement", "Nostalgie", "Chagrin",
+  "Colère", "Rage", "Irritabilité", "Indignation", "Exaspération", "Agacement",
+  "Frustration", "Déception", "Amertume", "Ressentiment", "Contrariété",
+  "Honte", "Embarras", "Humiliation", "Gêne", "Confusion",
+  "Culpabilité", "Remords", "Regret", "Auto-critique", "Responsabilité excessive",
+  "Vide", "Ennui", "Apathie", "Indifférence", "Détachement", "Isolement",
+  "Excitation", "Euphorie", "Joie excessive", "Hyperactivité émotionnelle",
+  "Jalousie", "Envie", "Possessivité", "Comparaison sociale",
+  "Solitude", "Abandon", "Rejet", "Exclusion", "Incompréhension"
 ];
 
 interface CravingEntryProps {
@@ -121,18 +165,47 @@ export function CravingEntry({ userId, onSuccess }: CravingEntryProps) {
         {/* Triggers */}
         <div>
           <label className="block text-sm font-medium text-foreground mb-3">Déclencheurs identifiés</label>
-          <div className="flex flex-wrap gap-2">
-            {triggers.map((trigger) => (
-              <Button
-                key={trigger}
-                variant={selectedTriggers.includes(trigger) ? "default" : "outline"}
-                size="sm"
-                onClick={() => toggleTrigger(trigger)}
-                className="text-xs"
-                data-testid={`button-trigger-${trigger.toLowerCase()}`}
-              >
-                {trigger}
-              </Button>
+          
+          {/* Selected Triggers Display */}
+          {selectedTriggers.length > 0 && (
+            <div className="mb-4">
+              <div className="text-xs text-muted-foreground mb-2">Déclencheurs sélectionnés :</div>
+              <div className="flex flex-wrap gap-1">
+                {selectedTriggers.map((trigger, index) => (
+                  <Badge
+                    key={index}
+                    variant="default"
+                    className="text-xs cursor-pointer hover:bg-destructive hover:text-destructive-foreground"
+                    onClick={() => toggleTrigger(trigger)}
+                  >
+                    {trigger} ×
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Category Selection */}
+          <div className="space-y-3">
+            {Object.entries(triggersCategories).map(([category, triggers]) => (
+              <div key={category}>
+                <Select onValueChange={(value) => toggleTrigger(value)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={`🔹 ${category}`} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {triggers.map((trigger) => (
+                      <SelectItem
+                        key={trigger}
+                        value={trigger}
+                        disabled={selectedTriggers.includes(trigger)}
+                      >
+                        {selectedTriggers.includes(trigger) ? `✓ ${trigger}` : trigger}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             ))}
           </div>
         </div>
