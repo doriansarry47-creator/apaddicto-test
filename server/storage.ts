@@ -73,6 +73,7 @@ export interface IStorage {
 
   // Beck analysis operations
   createBeckAnalysis(analysis: InsertBeckAnalysis): Promise<BeckAnalysis>;
+  updateUserStatsForBeckAnalysis(userId: string): Promise<void>;
   getBeckAnalyses(userId: string, limit?: number): Promise<BeckAnalysis[]>;
 
   // Badge operations
@@ -110,6 +111,16 @@ export interface IStorage {
 }
 
 export class DbStorage implements IStorage {
+  private async updateUserStatsForBeckAnalysis(userId: string): Promise<void> {
+    const stats = await this.getUserStats(userId);
+    if (stats) {
+      await this.updateUserStats(userId, {
+        beckAnalysesCompleted: (stats.beckAnalysesCompleted || 0) + 1,
+        updatedAt: new Date(),
+      });
+    }
+  }
+
   async getUser(id: string): Promise<User | undefined> {
     return getDB().select().from(users).where(eq(users.id, id)).then(rows => rows[0]);
   }
@@ -327,7 +338,9 @@ export class DbStorage implements IStorage {
   }
 
   async createBeckAnalysis(insertAnalysis: InsertBeckAnalysis): Promise<BeckAnalysis> {
-    return getDB().insert(beckAnalyses).values(insertAnalysis).returning().then(rows => rows[0]);
+    const analysis = await getDB().insert(beckAnalyses).values(insertAnalysis).returning().then(rows => rows[0]);
+    await this.updateUserStatsForBeckAnalysis(analysis.userId);
+    return analysis;
   }
 
   async getBeckAnalyses(userId: string, limit = 20): Promise<BeckAnalysis[]> {
@@ -620,3 +633,5 @@ export class DbStorage implements IStorage {
 }
 
 export const storage = new DbStorage();
+
+

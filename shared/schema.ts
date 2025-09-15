@@ -107,6 +107,7 @@ export const userStats = pgTable("user_stats", {
   currentStreak: integer("current_streak").default(0),
   longestStreak: integer("longest_streak").default(0),
   averageCraving: integer("average_craving"), // calculated average
+  beckAnalysesCompleted: integer("beck_analyses_completed").default(0),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 

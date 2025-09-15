@@ -282,7 +282,7 @@ export default function Tracking() {
                   </div>
                 </div>
                 <div className="text-center p-4 bg-secondary/10 rounded-lg">
-                  <div className="text-2xl font-bold text-secondary mb-2">{beckAnalyses?.length || 0}</div>
+                  <div className="text-2xl font-bold text-secondary mb-2">{userStats?.beckAnalysesCompleted || 0}</div>
                   <div className="text-sm text-muted-foreground">Analyses Beck</div>
                   <div className="text-xs text-muted-foreground mt-1">
                     Dernière analyse: {beckAnalyses && beckAnalyses.length > 0 ? formatDate(beckAnalyses[0].createdAt) : 'Aucune'}
