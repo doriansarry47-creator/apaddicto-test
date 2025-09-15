@@ -73,8 +73,8 @@ export function Navigation() {
               <Link to="/" className="p-2 text-muted-foreground hover:bg-muted rounded-full transition-colors" data-testid="button-toolbox">
                 <span className="material-icons">build</span>
               </Link>
-              <Link to="/profile" className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center text-white text-sm font-medium" data-testid="link-profile">
-                DS
+              <Link to="/profile" className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center text-white text-sm" data-testid="link-profile">
+                <span className="material-icons text-sm">person</span>
               </Link>
             </div>
           </div>
