@@ -14,7 +14,7 @@ interface Exercise {
   id: string;
   title: string;
   description: string;
-  category: 'craving_reduction' | 'relaxation' | 'energy_boost' | 'emotion_management';
+  category: 'cardio' | 'strength' | 'flexibility' | 'mindfulness' | 'relaxation' | 'respiration' | 'meditation' | 'debutant';
   level: 'beginner' | 'intermediate' | 'advanced' | 'all_levels';
   duration: number;
   intensity: 'gentle' | 'moderate' | 'dynamic';
@@ -24,25 +24,22 @@ interface Exercise {
   benefits: string[];
 }
 
-// Mappages des catégories API vers les catégories frontend
+// Mappages des catégories API vers les catégories frontend - correspondance directe
 const categoryMapping: Record<string, keyof typeof categories> = {
-  // Catégories principales de la base de données
-  'cardio': 'craving_reduction',
-  'strength': 'energy_boost', 
-  'flexibility': 'relaxation',
-  'mindfulness': 'emotion_management',
-  // Catégories supplémentaires de l'interface admin
+  // Correspondance directe avec les catégories de l'admin
+  'cardio': 'cardio',
+  'strength': 'strength', 
+  'flexibility': 'flexibility',
+  'mindfulness': 'mindfulness',
   'relaxation': 'relaxation',
-  'respiration': 'emotion_management',
-  'meditation': 'emotion_management',
-  'etirement': 'relaxation',
-  'renforcement': 'energy_boost',
-  'debutant': 'craving_reduction'
+  'respiration': 'respiration',
+  'meditation': 'meditation',
+  'debutant': 'debutant'
 };
 
 // Fonction pour convertir les exercices API en format frontend
 const convertAPIExerciseToFrontend = (apiExercise: APIExercise): Exercise => {
-  const mappedCategory = categoryMapping[apiExercise.category] || 'craving_reduction';
+  const mappedCategory = categoryMapping[apiExercise.category] || apiExercise.category as Exercise['category'];
   
   return {
     id: apiExercise.id,
@@ -53,8 +50,7 @@ const convertAPIExerciseToFrontend = (apiExercise: APIExercise): Exercise => {
     duration: apiExercise.duration || 10,
     intensity: 'moderate', // Valeur par défaut, pourrait être déterminée par la durée/catégorie
     type: ['mindfulness', 'respiration', 'meditation'].includes(apiExercise.category) ? 'breathing' : 
-          ['flexibility', 'relaxation', 'etirement'].includes(apiExercise.category) ? 'relaxation' :
-          apiExercise.category === 'emergency' ? 'emergency' :
+          ['flexibility', 'relaxation'].includes(apiExercise.category) ? 'relaxation' :
           'physical',
     imageUrl: apiExercise.imageUrl || 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=200',
     instructions: apiExercise.instructions ? apiExercise.instructions.split('\n').filter(Boolean) : [],
@@ -62,12 +58,16 @@ const convertAPIExerciseToFrontend = (apiExercise: APIExercise): Exercise => {
   };
 };
 
-// Catégories et niveaux pour l'interface utilisateur
+// Catégories et niveaux pour l'interface utilisateur - alignées avec l'admin
 const categories = {
-  craving_reduction: 'Réduction Craving',
-  relaxation: 'Détente',
-  energy_boost: 'Regain d\'Énergie',
-  emotion_management: 'Gestion Émotions'
+  cardio: 'Cardio Training',
+  strength: 'Renforcement Musculaire',
+  flexibility: 'Étirement & Flexibilité',
+  mindfulness: 'Pleine Conscience & Méditation',
+  relaxation: 'Relaxation',
+  respiration: 'Exercices de Respiration',
+  meditation: 'Méditation',
+  debutant: 'Exercices Débutant'
 } as const;
 
 const levels = {
@@ -78,7 +78,7 @@ const levels = {
 } as const;
 
 export default function Exercises() {
-  const [selectedCategory, setSelectedCategory] = useState<keyof typeof categories>('craving_reduction');
+  const [selectedCategory, setSelectedCategory] = useState<keyof typeof categories | 'all'>('all');
   const [selectedLevel, setSelectedLevel] = useState<keyof typeof levels | 'all'>('all');
   const [location] = useLocation();
   const { toast } = useToast();
@@ -105,7 +105,7 @@ export default function Exercises() {
   }, [location.search]);
 
   const filteredExercises = exercises.filter((exercise) => {
-    const categoryMatch = exercise.category === selectedCategory;
+    const categoryMatch = selectedCategory === 'all' || exercise.category === selectedCategory;
     const levelMatch = selectedLevel === 'all' || exercise.level === selectedLevel;
     return categoryMatch && levelMatch;
   });
@@ -173,6 +173,14 @@ export default function Exercises() {
               <div>
                 <h3 className="text-sm font-medium text-foreground mb-3">Catégorie</h3>
                 <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant={selectedCategory === 'all' ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedCategory('all')}
+                    data-testid="button-category-all"
+                  >
+                    Toutes les catégories
+                  </Button>
                   {Object.entries(categories).map(([key, label]) => (
                     <Button
                       key={key}
@@ -220,7 +228,7 @@ export default function Exercises() {
         <section className="mb-6">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-medium text-foreground">
-              {categories[selectedCategory]}
+              {selectedCategory === 'all' ? 'Tous les exercices' : categories[selectedCategory as keyof typeof categories]}
               {selectedLevel !== 'all' && ` - ${levels[selectedLevel as keyof typeof levels]}`}
             </h2>
             <span className="text-sm text-muted-foreground" data-testid="text-results-count">
@@ -254,7 +262,7 @@ export default function Exercises() {
                 </p>
                 <Button
                   onClick={() => {
-                    setSelectedCategory('craving_reduction');
+                    setSelectedCategory('all');
                     setSelectedLevel('all');
                   }}
                   data-testid="button-reset-filters"

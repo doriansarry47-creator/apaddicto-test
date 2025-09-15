@@ -34,6 +34,8 @@ export function BeckColumn({ userId, onSuccess }: BeckColumnProps) {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/beck-analyses"] });
       queryClient.invalidateQueries({ queryKey: ["/api/users/stats"] });
+      // Vider le formulaire après sauvegarde réussie
+      clearForm();
       onSuccess?.();
     },
     onError: (error) => {

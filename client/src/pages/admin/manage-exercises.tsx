@@ -85,6 +85,7 @@ export default function ManageExercises() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "exercises"] });
+      queryClient.invalidateQueries({ queryKey: ["exercises"] }); // Invalider aussi le cache patient
       toast({
         title: "Succès",
         description: "Exercice créé avec succès.",
@@ -106,6 +107,7 @@ export default function ManageExercises() {
     mutationFn: (exerciseId: string) => apiRequest("DELETE", `/api/admin/exercises/${exerciseId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "exercises"] });
+      queryClient.invalidateQueries({ queryKey: ["exercises"] }); // Invalider aussi le cache patient
       toast({
         title: "Succès",
         description: "Exercice supprimé avec succès.",
