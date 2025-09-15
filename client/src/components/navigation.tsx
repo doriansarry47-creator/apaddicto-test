@@ -44,13 +44,7 @@ export function Navigation() {
               )} data-testid="nav-exercises">
                 Exercices
               </Link>
-              <Link to="/therapeutic-exercises" className={cn("px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                isActive("/therapeutic-exercises") 
-                  ? "bg-primary text-primary-foreground" 
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
-              )} data-testid="nav-therapeutic">
-                Thérapeutique
-              </Link>
+
               <Link to="/tracking" className={cn("px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                 isActive("/tracking") 
                   ? "bg-primary text-primary-foreground" 

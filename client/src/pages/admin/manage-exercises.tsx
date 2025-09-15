@@ -21,14 +21,51 @@ type FormData = InsertExercise;
 
 // Catégories prédéfinies (alignées avec la base de données)
 const EXERCISE_CATEGORIES = [
-  { value: "cardio", label: "Cardio Training" },
-  { value: "strength", label: "Renforcement Musculaire" },
-  { value: "flexibility", label: "Étirement & Flexibilité" },
-  { value: "mindfulness", label: "Pleine Conscience & Méditation" },
-  { value: "relaxation", label: "Relaxation" },
-  { value: "respiration", label: "Exercices de Respiration" },
-  { value: "meditation", label: "Méditation" },
-  { value: "debutant", label: "Exercices Débutant" },
+  { value: "cardio", label: "Cardio Training", objective: "energie" },
+  { value: "strength", label: "Renforcement Musculaire", objective: "renforcement" },
+  { value: "flexibility", label: "Étirement & Flexibilité", objective: "mobilite" },
+  { value: "mindfulness", label: "Pleine Conscience & Méditation", objective: "apaisement" },
+  { value: "relaxation", label: "Relaxation", objective: "relaxation" },
+  { value: "respiration", label: "Exercices de Respiration", objective: "apaisement" },
+  { value: "meditation", label: "Méditation", objective: "apaisement" },
+  { value: "debutant", label: "Exercices Débutant", objective: "focus" },
+];
+
+// Templates prêts à l'emploi pour l'APa
+const APA_TEMPLATES = [
+  {
+    id: "coherence-cardiaque",
+    title: "Cohérence Cardiaque",
+    description: "Technique de respiration 5-5 pour réduire stress et craving. Respirez calmement en suivant le rythme : inspirez 5 secondes, expirez 5 secondes pendant 5 minutes.",
+    category: "respiration",
+    difficulty: "beginner",
+    duration: 5,
+    instructions: "1. Installez-vous confortablement, pieds au sol\n2. Posez une main sur le ventre, l'autre sur la poitrine\n3. Inspirez par le nez pendant 5 secondes\n4. Expirez par la bouche pendant 5 secondes\n5. Continuez ce rythme pendant 5 minutes\n6. Si vous perdez le rythme, reprenez calmement",
+    benefits: "• Réduction du stress et de l'anxiété\n• Diminution des cravings\n• Amélioration de la variabilité cardiaque\n• Apaisement du système nerveux\n• Meilleure gestion émotionnelle",
+    mediaSupport: "Audio guidé ou GIF de respiration recommandé"
+  },
+  {
+    id: "marche-pleine-conscience",
+    title: "Marche en Pleine Conscience",
+    description: "Marche lente et consciente de 10 minutes pour recentrage et gestion du craving.",
+    category: "mindfulness",
+    difficulty: "beginner", 
+    duration: 10,
+    instructions: "1. Trouvez un espace de marche de 5-10 pas\n2. Marchez très lentement\n3. Concentrez-vous sur les sensations des pieds\n4. Si votre esprit divague, revenez aux sensations\n5. Faites demi-tour consciemment\n6. Continuez pendant 10 minutes",
+    benefits: "• Ancrage dans le moment présent\n• Réduction des pensées obsessionnelles\n• Activation corporelle douce\n• Amélioration de la concentration\n• Gestion des envies impulsives",
+    mediaSupport: "Pas de média spécifique nécessaire"
+  },
+  {
+    id: "routine-urgence-3min",
+    title: "Routine d'Urgence 3 Minutes",
+    description: "Enchaînement rapide et efficace pour gérer un craving intense immédiatement.",
+    category: "debutant",
+    difficulty: "beginner",
+    duration: 3,
+    instructions: "1. STOP - Arrêtez-vous immédiatement (30s)\n2. RESPIREZ - 10 respirations profondes (1min)\n3. BOUGEZ - Sautillez sur place ou marchez (1min)\n4. OBSERVEZ - Notez votre état actuel (30s)\n5. CHOISISSEZ - Décidez de votre prochaine action consciente",
+    benefits: "• Action immédiate sur craving intense\n• Interruption du cycle automatique\n• Activation de la réflexion\n• Retour au contrôle conscient\n• Prévention des rechutes",
+    mediaSupport: "Timer avec alertes sonores recommandé"
+  }
 ];
 
 // Niveaux de difficulté
@@ -46,6 +83,7 @@ export default function ManageExercises() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [emergencyRoutineSteps, setEmergencyRoutineSteps] = useState<string[]>(['']);
+  const [showTemplates, setShowTemplates] = useState(false);
 
   const { data: exercises, isLoading } = useQuery<Exercise[]>({
     queryKey: ["admin", "exercises"],
@@ -204,6 +242,21 @@ export default function ManageExercises() {
 
   const onSubmit: SubmitHandler<FormData> = (data) => {
     mutation.mutate(data);
+  };
+
+  const useTemplate = (template: typeof APA_TEMPLATES[0]) => {
+    setValue("title", template.title);
+    setValue("description", template.description);
+    setValue("category", template.category);
+    setValue("difficulty", template.difficulty);
+    setValue("duration", template.duration);
+    setValue("instructions", template.instructions);
+    setValue("benefits", template.benefits);
+    setShowTemplates(false);
+    toast({
+      title: "Template appliqué",
+      description: `Le template "${template.title}" a été chargé. Vous pouvez le modifier avant de créer l'exercice.`,
+    });
   };
 
   const addRoutineStep = () => {
@@ -367,10 +420,49 @@ export default function ManageExercises() {
             <div className="lg:col-span-1">
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Plus className="h-5 w-5" />
-                    <span>Créer un Exercice</span>
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Plus className="h-5 w-5" />
+                      <span>Créer un Exercice</span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowTemplates(!showTemplates)}
+                      className="flex items-center space-x-1"
+                    >
+                      <span className="material-icons text-sm">psychology</span>
+                      <span>Templates APa</span>
+                    </Button>
                   </CardTitle>
+                  {showTemplates && (
+                    <CardDescription>
+                      <div className="mt-4 space-y-3">
+                        <h4 className="font-medium text-sm">Templates prêts à l'emploi pour l'Activité Physique Adaptée :</h4>
+                        {APA_TEMPLATES.map((template) => (
+                          <div key={template.id} className="border rounded-lg p-3">
+                            <div className="flex items-center justify-between mb-2">
+                              <h5 className="font-medium text-sm">{template.title}</h5>
+                              <Badge variant="outline">{template.duration}min</Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground mb-2">{template.description}</p>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-muted-foreground">{template.mediaSupport}</span>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => useTemplate(template)}
+                              >
+                                Utiliser
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardDescription>
+                  )}
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -456,15 +548,18 @@ export default function ManageExercises() {
                     </div>
 
                     <div>
-                      <Label htmlFor="image">Image</Label>
+                      <Label htmlFor="image">Image / Média</Label>
                       <div className="space-y-2">
                         <Input
                           id="image"
                           type="file"
-                          accept="image/*"
+                          accept="image/*,audio/*,video/*"
                           onChange={handleImageChange}
                           className="cursor-pointer"
                         />
+                        <div className="text-xs text-muted-foreground">
+                          Supporté : Images (JPG, PNG, GIF), Audio (MP3, WAV), Vidéos (MP4, WEBM)
+                        </div>
                         {imagePreview && (
                           <div className="relative">
                             <img
@@ -486,6 +581,21 @@ export default function ManageExercises() {
                             </Button>
                           </div>
                         )}
+                      </div>
+                    </div>
+
+                    {/* Assistant de création APa */}
+                    <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2 flex items-center">
+                        <span className="material-icons text-sm mr-1">psychology</span>
+                        Assistant APa - Recommandations
+                      </h4>
+                      <div className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
+                        <p>• <strong>Durée recommandée :</strong> 3-15 min pour addictologie</p>
+                        <p>• <strong>Instructions :</strong> Max 6 étapes simples et claires</p>
+                        <p>• <strong>Bénéfices :</strong> Mentionner impact sur craving/stress</p>
+                        <p>• <strong>Média :</strong> Audio/GIF pour exercices de respiration</p>
+                        <p>• <strong>Niveau :</strong> Privilégier 'Débutant' pour accessibilité</p>
                       </div>
                     </div>
 
