@@ -11,6 +11,11 @@ import {
   emergencyRoutines,
   quickResources,
   antiCravingStrategies,
+  timerSessions,
+  professionalReports,
+  visualizationContent,
+  audioContent,
+  exerciseEnhancements,
   type User,
   type InsertUser,
   type Exercise,
@@ -32,6 +37,16 @@ import {
   type InsertQuickResource,
   type AntiCravingStrategy,
   type InsertAntiCravingStrategy,
+  type TimerSession,
+  type InsertTimerSession,
+  type ProfessionalReport,
+  type InsertProfessionalReport,
+  type VisualizationContent,
+  type InsertVisualizationContent,
+  type AudioContent,
+  type InsertAudioContent,
+  type ExerciseEnhancement,
+  type InsertExerciseEnhancement,
 } from "../shared/schema.js";
 import { randomUUID } from "crypto";
 import { eq, desc, sql, and, gte } from "drizzle-orm";
@@ -440,51 +455,7 @@ export class DbStorage implements IStorage {
     return newBadges;
   }
 
-  // Admin operations
-  async getAllUsersWithStats(): Promise<any[]> {
-    const db = getDB();
-    
-    const allUsers = await db
-      .select({
-        id: users.id,
-        email: users.email,
-        firstName: users.firstName,
-        lastName: users.lastName,
-        role: users.role,
-        createdAt: users.createdAt,
-        isActive: users.isActive,
-      })
-      .from(users)
-      .orderBy(desc(users.createdAt));
-
-    // Récupérer les statistiques d'activité pour chaque utilisateur
-    const usersWithStats = await Promise.all(
-      allUsers.map(async (user) => {
-        // Compter les exercices complétés
-        const exerciseCount = await db
-          .select({ count: sql<number>`COUNT(*)` })
-          .from(exerciseSessions)
-          .where(eq(exerciseSessions.userId, user.id))
-          .then(result => result[0]?.count || 0);
-
-        // Compter les cravings enregistrés
-        const cravingCount = await db
-          .select({ count: sql<number>`COUNT(*)` })
-          .from(cravingEntries)
-          .where(eq(cravingEntries.userId, user.id))
-          .then(result => result[0]?.count || 0);
-
-        return {
-          ...user,
-          exerciseCount,
-          cravingCount,
-          lastLoginAt: null, // Pas de tracking de dernière connexion actuellement
-        };
-      })
-    );
-
-    return usersWithStats;
-  }
+  // Admin operations - method removed (duplicate, see below)
 
   async getAllMediaFiles(): Promise<any[]> {
     return [];
@@ -693,6 +664,253 @@ export class DbStorage implements IStorage {
       .from(antiCravingStrategies)
       .where(eq(antiCravingStrategies.userId, userId))
       .orderBy(desc(antiCravingStrategies.createdAt));
+  }
+
+  // ============================
+  // NEW THERAPEUTIC FEATURES
+  // ============================
+
+  // Update last login for user activity tracking
+  async updateUserLastLogin(userId: string): Promise<void> {
+    await getDB()
+      .update(users)
+      .set({ lastLoginAt: new Date() })
+      .where(eq(users.id, userId));
+  }
+
+  // Timer sessions
+  async createTimerSession(session: InsertTimerSession): Promise<TimerSession> {
+    return getDB().insert(timerSessions).values(session).returning().then(rows => rows[0]);
+  }
+
+  async getTimerSessions(userId: string, limit = 20): Promise<TimerSession[]> {
+    return getDB()
+      .select()
+      .from(timerSessions)
+      .where(eq(timerSessions.userId, userId))
+      .orderBy(desc(timerSessions.createdAt))
+      .limit(limit);
+  }
+
+  // Professional reports
+  async createProfessionalReport(report: InsertProfessionalReport): Promise<ProfessionalReport> {
+    return getDB().insert(professionalReports).values(report).returning().then(rows => rows[0]);
+  }
+
+  async getProfessionalReports(therapistId?: string): Promise<ProfessionalReport[]> {
+    const query = getDB()
+      .select({
+        id: professionalReports.id,
+        patientId: professionalReports.patientId,
+        therapistId: professionalReports.therapistId,
+        reportType: professionalReports.reportType,
+        title: professionalReports.title,
+        content: professionalReports.content,
+        data: professionalReports.data,
+        startDate: professionalReports.startDate,
+        endDate: professionalReports.endDate,
+        isPrivate: professionalReports.isPrivate,
+        tags: professionalReports.tags,
+        createdAt: professionalReports.createdAt,
+        updatedAt: professionalReports.updatedAt,
+        patient: {
+          id: users.id,
+          email: users.email,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          lastLoginAt: users.lastLoginAt,
+        }
+      })
+      .from(professionalReports)
+      .leftJoin(users, eq(professionalReports.patientId, users.id))
+      .orderBy(desc(professionalReports.createdAt));
+
+    if (therapistId) {
+      query.where(eq(professionalReports.therapistId, therapistId));
+    }
+
+    return query;
+  }
+
+  async updateProfessionalReport(reportId: string, data: Partial<InsertProfessionalReport>): Promise<ProfessionalReport> {
+    return getDB()
+      .update(professionalReports)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(professionalReports.id, reportId))
+      .returning()
+      .then(rows => rows[0]);
+  }
+
+  async deleteProfessionalReport(reportId: string): Promise<void> {
+    await getDB().delete(professionalReports).where(eq(professionalReports.id, reportId));
+  }
+
+  // Visualization content
+  async getVisualizationContent(): Promise<VisualizationContent[]> {
+    return getDB()
+      .select()
+      .from(visualizationContent)
+      .where(eq(visualizationContent.isActive, true))
+      .orderBy(visualizationContent.category, visualizationContent.title);
+  }
+
+  async createVisualizationContent(content: InsertVisualizationContent): Promise<VisualizationContent> {
+    return getDB().insert(visualizationContent).values(content).returning().then(rows => rows[0]);
+  }
+
+  async updateVisualizationContent(contentId: string, data: Partial<InsertVisualizationContent>): Promise<VisualizationContent> {
+    return getDB()
+      .update(visualizationContent)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(visualizationContent.id, contentId))
+      .returning()
+      .then(rows => rows[0]);
+  }
+
+  async deleteVisualizationContent(contentId: string): Promise<void> {
+    await getDB().delete(visualizationContent).where(eq(visualizationContent.id, contentId));
+  }
+
+  // Audio content
+  async getAudioContent(): Promise<AudioContent[]> {
+    return getDB()
+      .select()
+      .from(audioContent)
+      .where(eq(audioContent.isActive, true))
+      .orderBy(audioContent.category, audioContent.title);
+  }
+
+  async createAudioContent(content: InsertAudioContent): Promise<AudioContent> {
+    return getDB().insert(audioContent).values(content).returning().then(rows => rows[0]);
+  }
+
+  async updateAudioContent(contentId: string, data: Partial<InsertAudioContent>): Promise<AudioContent> {
+    return getDB()
+      .update(audioContent)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(audioContent.id, contentId))
+      .returning()
+      .then(rows => rows[0]);
+  }
+
+  async deleteAudioContent(contentId: string): Promise<void> {
+    await getDB().delete(audioContent).where(eq(audioContent.id, contentId));
+  }
+
+  // Exercise enhancements
+  async getExerciseEnhancements(exerciseId: string): Promise<ExerciseEnhancement | undefined> {
+    return getDB()
+      .select()
+      .from(exerciseEnhancements)
+      .where(and(eq(exerciseEnhancements.exerciseId, exerciseId), eq(exerciseEnhancements.isActive, true)))
+      .then(rows => rows[0]);
+  }
+
+  async createExerciseEnhancement(enhancement: InsertExerciseEnhancement): Promise<ExerciseEnhancement> {
+    return getDB().insert(exerciseEnhancements).values(enhancement).returning().then(rows => rows[0]);
+  }
+
+  async updateExerciseEnhancement(exerciseId: string, data: Partial<InsertExerciseEnhancement>): Promise<ExerciseEnhancement> {
+    return getDB()
+      .update(exerciseEnhancements)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(exerciseEnhancements.exerciseId, exerciseId))
+      .returning()
+      .then(rows => rows[0]);
+  }
+
+  // User management with inactivity tracking
+  async getAllUsersWithStats(): Promise<any[]> {
+    return getDB()
+      .select({
+        id: users.id,
+        email: users.email,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        role: users.role,
+        isActive: users.isActive,
+        lastLoginAt: users.lastLoginAt,
+        inactivityThreshold: users.inactivityThreshold,
+        notes: users.notes,
+        createdAt: users.createdAt,
+        exerciseCount: sql<number>`COALESCE((SELECT COUNT(*) FROM ${exerciseSessions} WHERE ${exerciseSessions.userId} = ${users.id}), 0)`,
+        cravingCount: sql<number>`COALESCE((SELECT COUNT(*) FROM ${cravingEntries} WHERE ${cravingEntries.userId} = ${users.id}), 0)`,
+      })
+      .from(users)
+      .orderBy(desc(users.createdAt));
+  }
+
+  async updateUserNotes(userId: string, notes: string): Promise<void> {
+    await getDB()
+      .update(users)
+      .set({ notes, updatedAt: new Date() })
+      .where(eq(users.id, userId));
+  }
+
+  async setUserInactivityThreshold(userId: string, threshold: number): Promise<void> {
+    await getDB()
+      .update(users)
+      .set({ inactivityThreshold: threshold, updatedAt: new Date() })
+      .where(eq(users.id, userId));
+  }
+
+  async getInactiveUsers(threshold?: number): Promise<User[]> {
+    const thresholdDays = threshold || 30;
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - thresholdDays);
+
+    return getDB()
+      .select()
+      .from(users)
+      .where(
+        and(
+          eq(users.role, 'patient'),
+          eq(users.isActive, true),
+          sql`${users.lastLoginAt} < ${cutoffDate.toISOString()} OR ${users.lastLoginAt} IS NULL`
+        )
+      )
+      .orderBy(users.lastLoginAt);
+  }
+
+  // Generate automatic reports based on user data
+  async generateUserProgressReport(patientId: string, startDate: Date, endDate: Date): Promise<any> {
+    const exerciseStats = await getDB()
+      .select({
+        count: sql<number>`COUNT(*)`,
+        totalDuration: sql<number>`SUM(${exerciseSessions.duration})`,
+        avgCravingBefore: sql<number>`AVG(${exerciseSessions.cravingBefore})`,
+        avgCravingAfter: sql<number>`AVG(${exerciseSessions.cravingAfter})`,
+      })
+      .from(exerciseSessions)
+      .where(
+        and(
+          eq(exerciseSessions.userId, patientId),
+          gte(exerciseSessions.createdAt, startDate),
+          sql`${exerciseSessions.createdAt} <= ${endDate}`
+        )
+      )
+      .then(rows => rows[0]);
+
+    const cravingStats = await getDB()
+      .select({
+        count: sql<number>`COUNT(*)`,
+        avgIntensity: sql<number>`AVG(${cravingEntries.intensity})`,
+      })
+      .from(cravingEntries)
+      .where(
+        and(
+          eq(cravingEntries.userId, patientId),
+          gte(cravingEntries.createdAt, startDate),
+          sql`${cravingEntries.createdAt} <= ${endDate}`
+        )
+      )
+      .then(rows => rows[0]);
+
+    return {
+      exerciseStats,
+      cravingStats,
+      period: { startDate, endDate }
+    };
   }
 }
 

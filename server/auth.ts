@@ -33,6 +33,14 @@ export class AuthService {
       throw new Error('Un utilisateur avec cet email existe déjà');
     }
 
+    // SÉCURITÉ: Empêcher l'inscription en tant qu'admin sauf pour l'email autorisé
+    const authorizedAdminEmail = 'doriansarry@yahoo.fr';
+    const requestedRole = userData.role || 'patient';
+    
+    if (requestedRole === 'admin' && userData.email.toLowerCase() !== authorizedAdminEmail.toLowerCase()) {
+      throw new Error('Accès administrateur non autorisé pour cet email');
+    }
+
     // Hacher le mot de passe
     const hashedPassword = await this.hashPassword(userData.password);
 
@@ -42,7 +50,7 @@ export class AuthService {
       password: hashedPassword,
       firstName: userData.firstName || null,
       lastName: userData.lastName || null,
-      role: userData.role || 'patient',
+      role: requestedRole,
     };
 
     const user = await storage.createUser(newUser);
@@ -73,6 +81,9 @@ export class AuthService {
     if (!user.isActive) {
       throw new Error('Compte désactivé');
     }
+
+    // Mettre à jour la dernière connexion
+    await storage.updateUserLastLogin(user.id);
 
     return {
       id: user.id,

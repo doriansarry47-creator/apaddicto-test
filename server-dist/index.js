@@ -12,31 +12,41 @@ var __export = (target, all) => {
 var schema_exports = {};
 __export(schema_exports, {
   antiCravingStrategies: () => antiCravingStrategies,
+  audioContent: () => audioContent,
   beckAnalyses: () => beckAnalyses,
   cravingEntries: () => cravingEntries,
   emergencyRoutines: () => emergencyRoutines,
+  exerciseEnhancements: () => exerciseEnhancements,
   exerciseSessions: () => exerciseSessions,
   exercises: () => exercises,
   insertAntiCravingStrategySchema: () => insertAntiCravingStrategySchema,
+  insertAudioContentSchema: () => insertAudioContentSchema,
   insertBeckAnalysisSchema: () => insertBeckAnalysisSchema,
   insertCravingEntrySchema: () => insertCravingEntrySchema,
   insertEmergencyRoutineSchema: () => insertEmergencyRoutineSchema,
+  insertExerciseEnhancementSchema: () => insertExerciseEnhancementSchema,
   insertExerciseSchema: () => insertExerciseSchema,
   insertExerciseSessionSchema: () => insertExerciseSessionSchema,
+  insertProfessionalReportSchema: () => insertProfessionalReportSchema,
   insertPsychoEducationContentSchema: () => insertPsychoEducationContentSchema,
   insertQuickResourceSchema: () => insertQuickResourceSchema,
+  insertTimerSessionSchema: () => insertTimerSessionSchema,
   insertUserBadgeSchema: () => insertUserBadgeSchema,
   insertUserSchema: () => insertUserSchema,
+  insertVisualizationContentSchema: () => insertVisualizationContentSchema,
+  professionalReports: () => professionalReports,
   psychoEducationContent: () => psychoEducationContent,
   quickResources: () => quickResources,
+  timerSessions: () => timerSessions,
   userBadges: () => userBadges,
   userStats: () => userStats,
-  users: () => users
+  users: () => users,
+  visualizationContent: () => visualizationContent
 });
 import { sql } from "drizzle-orm";
 import { pgTable, text, varchar, integer, timestamp, jsonb, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
-var users, exercises, psychoEducationContent, cravingEntries, exerciseSessions, beckAnalyses, userBadges, userStats, insertUserSchema, insertExerciseSchema, insertPsychoEducationContentSchema, insertCravingEntrySchema, insertExerciseSessionSchema, insertBeckAnalysisSchema, insertUserBadgeSchema, emergencyRoutines, insertEmergencyRoutineSchema, quickResources, insertQuickResourceSchema, antiCravingStrategies, insertAntiCravingStrategySchema;
+var users, exercises, psychoEducationContent, cravingEntries, exerciseSessions, beckAnalyses, userBadges, userStats, insertUserSchema, insertExerciseSchema, insertPsychoEducationContentSchema, insertCravingEntrySchema, insertExerciseSessionSchema, insertBeckAnalysisSchema, insertUserBadgeSchema, emergencyRoutines, insertEmergencyRoutineSchema, quickResources, insertQuickResourceSchema, antiCravingStrategies, insertAntiCravingStrategySchema, timerSessions, professionalReports, visualizationContent, audioContent, exerciseEnhancements, insertTimerSessionSchema, insertProfessionalReportSchema, insertVisualizationContentSchema, insertAudioContentSchema, insertExerciseEnhancementSchema;
 var init_schema = __esm({
   "shared/schema.ts"() {
     "use strict";
@@ -52,6 +62,11 @@ var init_schema = __esm({
       level: integer("level").default(1),
       points: integer("points").default(0),
       isActive: boolean("is_active").default(true),
+      lastLoginAt: timestamp("last_login_at"),
+      inactivityThreshold: integer("inactivity_threshold").default(30),
+      // jours avant considéré inactif
+      notes: text("notes"),
+      // notes du thérapeute sur le patient
       createdAt: timestamp("created_at").defaultNow(),
       updatedAt: timestamp("updated_at").defaultNow()
     });
@@ -143,6 +158,7 @@ var init_schema = __esm({
       longestStreak: integer("longest_streak").default(0),
       averageCraving: integer("average_craving"),
       // calculated average
+      beckAnalysesCompleted: integer("beck_analyses_completed").default(0),
       updatedAt: timestamp("updated_at").defaultNow()
     });
     insertUserSchema = createInsertSchema(users).omit({
@@ -243,6 +259,125 @@ var init_schema = __esm({
       createdAt: true,
       updatedAt: true
     });
+    timerSessions = pgTable("timer_sessions", {
+      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+      userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+      exerciseId: varchar("exercise_id").notNull().references(() => exercises.id, { onDelete: "cascade" }),
+      type: varchar("type").notNull(),
+      // 'interval', 'continuous', 'breathing'
+      duration: integer("duration").notNull(),
+      // in seconds
+      intervals: jsonb("intervals"),
+      // for interval timers
+      audioUrl: varchar("audio_url"),
+      // background audio/music
+      completed: boolean("completed").default(false),
+      heartRateBefore: integer("heart_rate_before"),
+      heartRateAfter: integer("heart_rate_after"),
+      stressLevelBefore: integer("stress_level_before"),
+      // 1-10 scale
+      stressLevelAfter: integer("stress_level_after"),
+      // 1-10 scale
+      notes: text("notes"),
+      createdAt: timestamp("created_at").defaultNow()
+    });
+    professionalReports = pgTable("professional_reports", {
+      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+      patientId: varchar("patient_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+      therapistId: varchar("therapist_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+      reportType: varchar("report_type").notNull(),
+      // 'weekly', 'monthly', 'session', 'progress'
+      title: varchar("title").notNull(),
+      content: text("content").notNull(),
+      data: jsonb("data"),
+      // structured data (charts, stats, etc.)
+      startDate: timestamp("start_date"),
+      endDate: timestamp("end_date"),
+      isPrivate: boolean("is_private").default(true),
+      tags: jsonb("tags").$type().default([]),
+      createdAt: timestamp("created_at").defaultNow(),
+      updatedAt: timestamp("updated_at").defaultNow()
+    });
+    visualizationContent = pgTable("visualization_content", {
+      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+      title: varchar("title").notNull(),
+      description: text("description"),
+      type: varchar("type").notNull(),
+      // 'guided_imagery', 'meditation', 'breathing', 'visualization'
+      category: varchar("category").notNull(),
+      // 'relaxation', 'stress_reduction', 'pain_management', 'emotional_regulation'
+      difficulty: varchar("difficulty").default("beginner"),
+      duration: integer("duration"),
+      // in minutes
+      audioUrl: varchar("audio_url"),
+      videoUrl: varchar("video_url"),
+      imageUrl: varchar("image_url"),
+      script: text("script"),
+      // text script for the visualization
+      instructions: text("instructions"),
+      benefits: text("benefits"),
+      isActive: boolean("is_active").default(true),
+      createdAt: timestamp("created_at").defaultNow(),
+      updatedAt: timestamp("updated_at").defaultNow()
+    });
+    audioContent = pgTable("audio_content", {
+      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+      title: varchar("title").notNull(),
+      description: text("description"),
+      type: varchar("type").notNull(),
+      // 'relaxation', 'nature_sounds', 'meditation', 'breathing_guide', 'asmr'
+      category: varchar("category").notNull(),
+      duration: integer("duration"),
+      // in seconds
+      audioUrl: varchar("audio_url").notNull(),
+      thumbnailUrl: varchar("thumbnail_url"),
+      isLoopable: boolean("is_loopable").default(false),
+      volumeRecommendation: varchar("volume_recommendation").default("medium"),
+      tags: jsonb("tags").$type().default([]),
+      isActive: boolean("is_active").default(true),
+      createdAt: timestamp("created_at").defaultNow(),
+      updatedAt: timestamp("updated_at").defaultNow()
+    });
+    exerciseEnhancements = pgTable("exercise_enhancements", {
+      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+      exerciseId: varchar("exercise_id").notNull().references(() => exercises.id, { onDelete: "cascade" }),
+      audioUrls: jsonb("audio_urls").$type().default([]),
+      // multiple audio tracks
+      videoUrls: jsonb("video_urls").$type().default([]),
+      imageUrls: jsonb("image_urls").$type().default([]),
+      timerSettings: jsonb("timer_settings"),
+      // interval timer configuration
+      breathingPattern: jsonb("breathing_pattern"),
+      // for breathing exercises
+      visualizationScript: text("visualization_script"),
+      isActive: boolean("is_active").default(true),
+      createdAt: timestamp("created_at").defaultNow(),
+      updatedAt: timestamp("updated_at").defaultNow()
+    });
+    insertTimerSessionSchema = createInsertSchema(timerSessions).omit({
+      id: true,
+      createdAt: true
+    });
+    insertProfessionalReportSchema = createInsertSchema(professionalReports).omit({
+      id: true,
+      createdAt: true,
+      updatedAt: true
+    });
+    insertVisualizationContentSchema = createInsertSchema(visualizationContent).omit({
+      id: true,
+      createdAt: true,
+      updatedAt: true
+    });
+    insertAudioContentSchema = createInsertSchema(audioContent).omit({
+      id: true,
+      createdAt: true,
+      updatedAt: true
+    });
+    insertExerciseEnhancementSchema = createInsertSchema(exerciseEnhancements).omit({
+      id: true,
+      createdAt: true,
+      updatedAt: true
+    });
   }
 });
 
@@ -261,6 +396,12 @@ function getDB() {
   }
   return db;
 }
+function getPool() {
+  if (!pool) {
+    getDB();
+  }
+  return pool;
+}
 var Pool, pool, db;
 var init_db = __esm({
   "server/db.ts"() {
@@ -273,7 +414,7 @@ var init_db = __esm({
 });
 
 // server/storage.ts
-import { eq, desc, and, gte } from "drizzle-orm";
+import { eq, desc, sql as sql2, and, gte } from "drizzle-orm";
 var DbStorage, storage;
 var init_storage = __esm({
   "server/storage.ts"() {
@@ -281,6 +422,44 @@ var init_storage = __esm({
     init_db();
     init_schema();
     DbStorage = class {
+      // Utilitaire pour s'assurer que la colonne beck_analyses_completed existe
+      async ensureBeckAnalysesColumn() {
+        try {
+          const pool3 = getPool();
+          if (!pool3) return;
+          const checkResult = await pool3.query(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.columns 
+          WHERE table_name = 'user_stats' 
+          AND column_name = 'beck_analyses_completed'
+        );
+      `);
+          if (!checkResult.rows[0].exists) {
+            console.log("\u26A0\uFE0F Ajout automatique de la colonne beck_analyses_completed...");
+            await pool3.query(`
+          ALTER TABLE "user_stats" 
+          ADD COLUMN "beck_analyses_completed" integer DEFAULT 0;
+        `);
+            console.log("\u2705 Colonne beck_analyses_completed ajout\xE9e automatiquement");
+          }
+        } catch (error) {
+          console.error("Erreur lors de la v\xE9rification de la colonne beck_analyses_completed:", error);
+        }
+      }
+      async updateUserStatsForBeckAnalysis(userId) {
+        await this.ensureBeckAnalysesColumn();
+        const stats = await this.getUserStats(userId);
+        if (stats) {
+          try {
+            await this.updateUserStats(userId, {
+              beckAnalysesCompleted: (stats.beckAnalysesCompleted || 0) + 1,
+              updatedAt: /* @__PURE__ */ new Date()
+            });
+          } catch (error) {
+            console.log("\u26A0\uFE0F Erreur mise \xE0 jour stats Beck, ignor\xE9e:", error instanceof Error ? error.message : error);
+          }
+        }
+      }
       async getUser(id) {
         return getDB().select().from(users).where(eq(users.id, id)).then((rows) => rows[0]);
       }
@@ -289,7 +468,26 @@ var init_storage = __esm({
       }
       async createUser(insertUser) {
         const newUser = await getDB().insert(users).values(insertUser).returning().then((rows) => rows[0]);
-        await getDB().insert(userStats).values({ userId: newUser.id });
+        await this.ensureBeckAnalysesColumn();
+        try {
+          await getDB().insert(userStats).values({
+            userId: newUser.id,
+            exercisesCompleted: 0,
+            totalDuration: 0,
+            currentStreak: 0,
+            longestStreak: 0,
+            beckAnalysesCompleted: 0
+          });
+        } catch (error) {
+          console.log("\u26A0\uFE0F Tentative d'insertion sans beck_analyses_completed...");
+          await getDB().insert(userStats).values({
+            userId: newUser.id,
+            exercisesCompleted: 0,
+            totalDuration: 0,
+            currentStreak: 0,
+            longestStreak: 0
+          });
+        }
         return newUser;
       }
       async updateUser(userId, data) {
@@ -425,7 +623,9 @@ var init_storage = __esm({
         return getDB().select().from(userStats).where(eq(userStats.userId, userId)).then((rows) => rows[0]);
       }
       async createBeckAnalysis(insertAnalysis) {
-        return getDB().insert(beckAnalyses).values(insertAnalysis).returning().then((rows) => rows[0]);
+        const analysis = await getDB().insert(beckAnalyses).values(insertAnalysis).returning().then((rows) => rows[0]);
+        await this.updateUserStatsForBeckAnalysis(analysis.userId);
+        return analysis;
       }
       async getBeckAnalyses(userId, limit = 20) {
         return getDB().select().from(beckAnalyses).where(eq(beckAnalyses.userId, userId)).orderBy(desc(beckAnalyses.createdAt)).limit(limit);
@@ -448,35 +648,7 @@ var init_storage = __esm({
         }
         return newBadges;
       }
-      // Admin operations
-      async getAllUsersWithStats() {
-        const db2 = getDB();
-        const allUsers = await db2.select({
-          id: users.id,
-          email: users.email,
-          firstName: users.firstName,
-          lastName: users.lastName,
-          role: users.role,
-          createdAt: users.createdAt,
-          isActive: users.isActive
-        }).from(users);
-        const usersWithFullStats = await Promise.all(
-          allUsers.map(async (user) => {
-            const stats = await this.getUserStats(user.id);
-            return {
-              ...user,
-              stats: stats || {
-                exercisesCompleted: 0,
-                totalDuration: 0,
-                currentStreak: 0,
-                longestStreak: 0,
-                averageCraving: null
-              }
-            };
-          })
-        );
-        return usersWithFullStats;
-      }
+      // Admin operations - method removed (duplicate, see below)
       async getAllMediaFiles() {
         return [];
       }
@@ -565,6 +737,9 @@ var init_storage = __esm({
             console.error("Table anti_craving_strategies manquante. Tentative de cr\xE9ation...");
             try {
               const pool3 = getPool();
+              if (!pool3) {
+                throw new Error("Impossible d'obtenir la connexion \xE0 la base de donn\xE9es");
+              }
               await pool3.query(`
             CREATE TABLE IF NOT EXISTS "anti_craving_strategies" (
               "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
@@ -607,6 +782,159 @@ var init_storage = __esm({
       }
       async getAntiCravingStrategies(userId) {
         return getDB().select().from(antiCravingStrategies).where(eq(antiCravingStrategies.userId, userId)).orderBy(desc(antiCravingStrategies.createdAt));
+      }
+      // ============================
+      // NEW THERAPEUTIC FEATURES
+      // ============================
+      // Update last login for user activity tracking
+      async updateUserLastLogin(userId) {
+        await getDB().update(users).set({ lastLoginAt: /* @__PURE__ */ new Date() }).where(eq(users.id, userId));
+      }
+      // Timer sessions
+      async createTimerSession(session2) {
+        return getDB().insert(timerSessions).values(session2).returning().then((rows) => rows[0]);
+      }
+      async getTimerSessions(userId, limit = 20) {
+        return getDB().select().from(timerSessions).where(eq(timerSessions.userId, userId)).orderBy(desc(timerSessions.createdAt)).limit(limit);
+      }
+      // Professional reports
+      async createProfessionalReport(report) {
+        return getDB().insert(professionalReports).values(report).returning().then((rows) => rows[0]);
+      }
+      async getProfessionalReports(therapistId) {
+        const query = getDB().select({
+          id: professionalReports.id,
+          patientId: professionalReports.patientId,
+          therapistId: professionalReports.therapistId,
+          reportType: professionalReports.reportType,
+          title: professionalReports.title,
+          content: professionalReports.content,
+          data: professionalReports.data,
+          startDate: professionalReports.startDate,
+          endDate: professionalReports.endDate,
+          isPrivate: professionalReports.isPrivate,
+          tags: professionalReports.tags,
+          createdAt: professionalReports.createdAt,
+          updatedAt: professionalReports.updatedAt,
+          patient: {
+            id: users.id,
+            email: users.email,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            lastLoginAt: users.lastLoginAt
+          }
+        }).from(professionalReports).leftJoin(users, eq(professionalReports.patientId, users.id)).orderBy(desc(professionalReports.createdAt));
+        if (therapistId) {
+          query.where(eq(professionalReports.therapistId, therapistId));
+        }
+        return query;
+      }
+      async updateProfessionalReport(reportId, data) {
+        return getDB().update(professionalReports).set({ ...data, updatedAt: /* @__PURE__ */ new Date() }).where(eq(professionalReports.id, reportId)).returning().then((rows) => rows[0]);
+      }
+      async deleteProfessionalReport(reportId) {
+        await getDB().delete(professionalReports).where(eq(professionalReports.id, reportId));
+      }
+      // Visualization content
+      async getVisualizationContent() {
+        return getDB().select().from(visualizationContent).where(eq(visualizationContent.isActive, true)).orderBy(visualizationContent.category, visualizationContent.title);
+      }
+      async createVisualizationContent(content) {
+        return getDB().insert(visualizationContent).values(content).returning().then((rows) => rows[0]);
+      }
+      async updateVisualizationContent(contentId, data) {
+        return getDB().update(visualizationContent).set({ ...data, updatedAt: /* @__PURE__ */ new Date() }).where(eq(visualizationContent.id, contentId)).returning().then((rows) => rows[0]);
+      }
+      async deleteVisualizationContent(contentId) {
+        await getDB().delete(visualizationContent).where(eq(visualizationContent.id, contentId));
+      }
+      // Audio content
+      async getAudioContent() {
+        return getDB().select().from(audioContent).where(eq(audioContent.isActive, true)).orderBy(audioContent.category, audioContent.title);
+      }
+      async createAudioContent(content) {
+        return getDB().insert(audioContent).values(content).returning().then((rows) => rows[0]);
+      }
+      async updateAudioContent(contentId, data) {
+        return getDB().update(audioContent).set({ ...data, updatedAt: /* @__PURE__ */ new Date() }).where(eq(audioContent.id, contentId)).returning().then((rows) => rows[0]);
+      }
+      async deleteAudioContent(contentId) {
+        await getDB().delete(audioContent).where(eq(audioContent.id, contentId));
+      }
+      // Exercise enhancements
+      async getExerciseEnhancements(exerciseId) {
+        return getDB().select().from(exerciseEnhancements).where(and(eq(exerciseEnhancements.exerciseId, exerciseId), eq(exerciseEnhancements.isActive, true))).then((rows) => rows[0]);
+      }
+      async createExerciseEnhancement(enhancement) {
+        return getDB().insert(exerciseEnhancements).values(enhancement).returning().then((rows) => rows[0]);
+      }
+      async updateExerciseEnhancement(exerciseId, data) {
+        return getDB().update(exerciseEnhancements).set({ ...data, updatedAt: /* @__PURE__ */ new Date() }).where(eq(exerciseEnhancements.exerciseId, exerciseId)).returning().then((rows) => rows[0]);
+      }
+      // User management with inactivity tracking
+      async getAllUsersWithStats() {
+        return getDB().select({
+          id: users.id,
+          email: users.email,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          role: users.role,
+          isActive: users.isActive,
+          lastLoginAt: users.lastLoginAt,
+          inactivityThreshold: users.inactivityThreshold,
+          notes: users.notes,
+          createdAt: users.createdAt,
+          exerciseCount: sql2`COALESCE((SELECT COUNT(*) FROM ${exerciseSessions} WHERE ${exerciseSessions.userId} = ${users.id}), 0)`,
+          cravingCount: sql2`COALESCE((SELECT COUNT(*) FROM ${cravingEntries} WHERE ${cravingEntries.userId} = ${users.id}), 0)`
+        }).from(users).orderBy(desc(users.createdAt));
+      }
+      async updateUserNotes(userId, notes) {
+        await getDB().update(users).set({ notes, updatedAt: /* @__PURE__ */ new Date() }).where(eq(users.id, userId));
+      }
+      async setUserInactivityThreshold(userId, threshold) {
+        await getDB().update(users).set({ inactivityThreshold: threshold, updatedAt: /* @__PURE__ */ new Date() }).where(eq(users.id, userId));
+      }
+      async getInactiveUsers(threshold) {
+        const thresholdDays = threshold || 30;
+        const cutoffDate = /* @__PURE__ */ new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - thresholdDays);
+        return getDB().select().from(users).where(
+          and(
+            eq(users.role, "patient"),
+            eq(users.isActive, true),
+            sql2`${users.lastLoginAt} < ${cutoffDate.toISOString()} OR ${users.lastLoginAt} IS NULL`
+          )
+        ).orderBy(users.lastLoginAt);
+      }
+      // Generate automatic reports based on user data
+      async generateUserProgressReport(patientId, startDate, endDate) {
+        const exerciseStats = await getDB().select({
+          count: sql2`COUNT(*)`,
+          totalDuration: sql2`SUM(${exerciseSessions.duration})`,
+          avgCravingBefore: sql2`AVG(${exerciseSessions.cravingBefore})`,
+          avgCravingAfter: sql2`AVG(${exerciseSessions.cravingAfter})`
+        }).from(exerciseSessions).where(
+          and(
+            eq(exerciseSessions.userId, patientId),
+            gte(exerciseSessions.createdAt, startDate),
+            sql2`${exerciseSessions.createdAt} <= ${endDate}`
+          )
+        ).then((rows) => rows[0]);
+        const cravingStats = await getDB().select({
+          count: sql2`COUNT(*)`,
+          avgIntensity: sql2`AVG(${cravingEntries.intensity})`
+        }).from(cravingEntries).where(
+          and(
+            eq(cravingEntries.userId, patientId),
+            gte(cravingEntries.createdAt, startDate),
+            sql2`${cravingEntries.createdAt} <= ${endDate}`
+          )
+        ).then((rows) => rows[0]);
+        return {
+          exerciseStats,
+          cravingStats,
+          period: { startDate, endDate }
+        };
       }
     };
     storage = new DbStorage();
@@ -1164,13 +1492,18 @@ var AuthService = class {
     if (existingUser) {
       throw new Error("Un utilisateur avec cet email existe d\xE9j\xE0");
     }
+    const authorizedAdminEmail = "doriansarry@yahoo.fr";
+    const requestedRole = userData.role || "patient";
+    if (requestedRole === "admin" && userData.email.toLowerCase() !== authorizedAdminEmail.toLowerCase()) {
+      throw new Error("Acc\xE8s administrateur non autoris\xE9 pour cet email");
+    }
     const hashedPassword = await this.hashPassword(userData.password);
     const newUser = {
       email: userData.email,
       password: hashedPassword,
       firstName: userData.firstName || null,
       lastName: userData.lastName || null,
-      role: userData.role || "patient"
+      role: requestedRole
     };
     const user = await storage.createUser(newUser);
     return {
@@ -1193,6 +1526,7 @@ var AuthService = class {
     if (!user.isActive) {
       throw new Error("Compte d\xE9sactiv\xE9");
     }
+    await storage.updateUserLastLogin(user.id);
     return {
       id: user.id,
       email: user.email,
@@ -1292,6 +1626,12 @@ function registerRoutes(app2) {
       const { email, password, firstName, lastName, role } = req.body;
       if (!email || !password) {
         return res.status(400).json({ message: "Email et mot de passe requis" });
+      }
+      if (!email.includes("@")) {
+        return res.status(400).json({ message: "Format d'email invalide" });
+      }
+      if (password.length < 4) {
+        return res.status(400).json({ message: "Le mot de passe doit contenir au moins 4 caract\xE8res" });
       }
       const user = await AuthService.register({
         email,
@@ -1836,6 +2176,196 @@ function registerRoutes(app2) {
       console.error("Error fetching anti-craving strategies:", error);
       const errorMessage = error instanceof Error ? error.message : "Erreur lors de la r\xE9cup\xE9ration des strat\xE9gies";
       res.status(500).json({ message: errorMessage });
+    }
+  });
+  app2.post("/api/timer-sessions", requireAuth, async (req, res) => {
+    try {
+      if (!req.session?.user) return res.status(401).json({ message: "Session non valide" });
+      const sessionData = {
+        ...req.body,
+        userId: req.session.user.id
+      };
+      const session2 = await storage.createTimerSession(sessionData);
+      res.json(session2);
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Validation failed" });
+    }
+  });
+  app2.get("/api/timer-sessions", requireAuth, async (req, res) => {
+    try {
+      if (!req.session?.user) return res.status(401).json({ message: "Session non valide" });
+      const userId = req.session.user.id;
+      const limit = req.query.limit ? parseInt(req.query.limit) : void 0;
+      const sessions = await storage.getTimerSessions(userId, limit);
+      res.json(sessions);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch timer sessions" });
+    }
+  });
+  app2.get("/api/visualizations", async (req, res) => {
+    try {
+      const content = await storage.getVisualizationContent();
+      res.json(content);
+    } catch (error) {
+      res.status(500).json({ message: "Erreur lors de la r\xE9cup\xE9ration des visualisations" });
+    }
+  });
+  app2.post("/api/visualizations", requireAdmin, async (req, res) => {
+    try {
+      const content = await storage.createVisualizationContent(req.body);
+      res.json(content);
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Validation \xE9chou\xE9e" });
+    }
+  });
+  app2.get("/api/audio-content", async (req, res) => {
+    try {
+      const content = await storage.getAudioContent();
+      res.json(content);
+    } catch (error) {
+      res.status(500).json({ message: "Erreur lors de la r\xE9cup\xE9ration du contenu audio" });
+    }
+  });
+  app2.post("/api/audio-content", requireAdmin, async (req, res) => {
+    try {
+      const content = await storage.createAudioContent(req.body);
+      res.json(content);
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Validation \xE9chou\xE9e" });
+    }
+  });
+  app2.get("/api/admin/professional-reports", requireAdmin, async (req, res) => {
+    try {
+      const reports = await storage.getProfessionalReports(req.session.user.id);
+      res.json(reports);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch professional reports" });
+    }
+  });
+  app2.post("/api/admin/professional-reports", requireAdmin, async (req, res) => {
+    try {
+      const reportData = {
+        ...req.body,
+        therapistId: req.session.user.id
+      };
+      const report = await storage.createProfessionalReport(reportData);
+      res.json(report);
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to create report" });
+    }
+  });
+  app2.put("/api/admin/professional-reports/:reportId", requireAdmin, async (req, res) => {
+    try {
+      const { reportId } = req.params;
+      const report = await storage.updateProfessionalReport(reportId, req.body);
+      res.json(report);
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to update report" });
+    }
+  });
+  app2.delete("/api/admin/professional-reports/:reportId", requireAdmin, async (req, res) => {
+    try {
+      const { reportId } = req.params;
+      await storage.deleteProfessionalReport(reportId);
+      res.json({ message: "Report deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete report" });
+    }
+  });
+  app2.post("/api/admin/generate-report", requireAdmin, async (req, res) => {
+    try {
+      const { patientId, reportType } = req.body;
+      let startDate, endDate;
+      const now = /* @__PURE__ */ new Date();
+      switch (reportType) {
+        case "weekly":
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1e3);
+          endDate = now;
+          break;
+        case "monthly":
+          startDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+          endDate = now;
+          break;
+        default:
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1e3);
+          endDate = now;
+      }
+      const reportData = await storage.generateUserProgressReport(patientId, startDate, endDate);
+      const title = `Rapport ${reportType} - ${startDate.toLocaleDateString("fr-FR")} au ${endDate.toLocaleDateString("fr-FR")}`;
+      const content = `
+## R\xE9sum\xE9 de la p\xE9riode
+
+### Exercices
+- Nombre total d'exercices: ${reportData.exerciseStats?.count || 0}
+- Dur\xE9e totale: ${Math.round((reportData.exerciseStats?.totalDuration || 0) / 60)} minutes
+- Niveau de craving moyen avant exercice: ${reportData.exerciseStats?.avgCravingBefore?.toFixed(1) || "N/A"}/10
+- Niveau de craving moyen apr\xE8s exercice: ${reportData.exerciseStats?.avgCravingAfter?.toFixed(1) || "N/A"}/10
+
+### Cravings
+- Nombre d'entr\xE9es: ${reportData.cravingStats?.count || 0}
+- Intensit\xE9 moyenne: ${reportData.cravingStats?.avgIntensity?.toFixed(1) || "N/A"}/10
+
+### Observations
+${reportData.exerciseStats?.avgCravingBefore && reportData.exerciseStats?.avgCravingAfter ? `R\xE9duction moyenne du craving: ${(reportData.exerciseStats.avgCravingBefore - reportData.exerciseStats.avgCravingAfter).toFixed(1)} points` : "Donn\xE9es insuffisantes pour calculer l'efficacit\xE9 des exercices"}
+
+### Recommandations
+- ${reportData.exerciseStats?.count >= 3 ? "Bonne assiduit\xE9 dans les exercices" : "Encourager une pratique plus r\xE9guli\xE8re"}
+- ${reportData.cravingStats?.avgIntensity < 5 ? "Niveau de craving globalement ma\xEEtris\xE9" : "Focus sur les techniques de r\xE9duction du craving"}
+      `;
+      res.json({ title, content, data: reportData });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to generate report" });
+    }
+  });
+  app2.put("/api/admin/users/:userId/notes", requireAdmin, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { notes } = req.body;
+      await storage.updateUserNotes(userId, notes);
+      res.json({ message: "Notes updated successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update user notes" });
+    }
+  });
+  app2.get("/api/admin/inactive-users", requireAdmin, async (req, res) => {
+    try {
+      const threshold = req.query.threshold ? parseInt(req.query.threshold) : void 0;
+      const users2 = await storage.getInactiveUsers(threshold);
+      res.json(users2);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch inactive users" });
+    }
+  });
+  app2.put("/api/admin/users/:userId/inactivity-threshold", requireAdmin, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { threshold } = req.body;
+      await storage.setUserInactivityThreshold(userId, threshold);
+      res.json({ message: "Inactivity threshold updated successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update inactivity threshold" });
+    }
+  });
+  app2.get("/api/exercises/:exerciseId/enhancements", async (req, res) => {
+    try {
+      const { exerciseId } = req.params;
+      const enhancements = await storage.getExerciseEnhancements(exerciseId);
+      res.json(enhancements);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch exercise enhancements" });
+    }
+  });
+  app2.post("/api/admin/exercises/:exerciseId/enhancements", requireAdmin, async (req, res) => {
+    try {
+      const { exerciseId } = req.params;
+      const enhancementData = {
+        ...req.body,
+        exerciseId
+      };
+      const enhancement = await storage.createExerciseEnhancement(enhancementData);
+      res.json(enhancement);
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to create enhancement" });
     }
   });
 }

@@ -10,6 +10,7 @@ import { AdminRoute } from "@/components/admin-route";
 import Dashboard from "@/pages/dashboard";
 import Exercises from "@/pages/exercises";
 import ExerciseDetail from "@/pages/exercise-detail";
+import TherapeuticExercises from "@/pages/therapeutic-exercises";
 import Tracking from "@/pages/tracking";
 import Education from "@/pages/education";
 import Profile from "@/pages/profile";
@@ -22,6 +23,7 @@ import ManageExercises from "@/pages/admin/manage-exercises";
 import ManageContent from "@/pages/admin/manage-content";
 import ManageUsers from "@/pages/admin/manage-users";
 import ManageMedia from "@/pages/admin/manage-media";
+import ProfessionalReports from "@/pages/admin/professional-reports";
 import AdminDebug from "@/pages/admin/debug";
 
 
@@ -51,6 +53,11 @@ function AppContent() {
       <Route path="/tracking">
         <ProtectedRoute>
           <Tracking />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/therapeutic-exercises">
+        <ProtectedRoute>
+          <TherapeuticExercises />
         </ProtectedRoute>
       </Route>
       <Route path="/education">
@@ -83,6 +90,11 @@ function AppContent() {
       <Route path="/admin/manage-users">
         <AdminRoute>
           <ManageUsers />
+        </AdminRoute>
+      </Route>
+      <Route path="/admin/professional-reports">
+        <AdminRoute>
+          <ProfessionalReports />
         </AdminRoute>
       </Route>
       <Route path="/admin/manage-media">

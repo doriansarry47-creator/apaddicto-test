@@ -431,6 +431,66 @@ export default function Dashboard() {
           </Card>
         </section>
 
+        {/* New Therapeutic Features */}
+        <section className="mb-8">
+          <Card className="shadow-material border-primary/20">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <span className="material-icons mr-2 text-primary">spa</span>
+                Exercices Thérapeutiques Avancés
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Link to="/therapeutic-exercises" className="w-full">
+                  <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2 w-full hover:bg-primary/5">
+                    <span className="material-icons text-primary">timer</span>
+                    <div className="text-center">
+                      <div className="font-medium">Timer Intégré</div>
+                      <div className="text-xs text-muted-foreground">Exercices chronométrés</div>
+                    </div>
+                  </Button>
+                </Link>
+                
+                <Link to="/therapeutic-exercises?tab=visualizations" className="w-full">
+                  <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2 w-full hover:bg-purple/5">
+                    <span className="material-icons text-purple-600">visibility</span>
+                    <div className="text-center">
+                      <div className="font-medium">Visualisations</div>
+                      <div className="text-xs text-muted-foreground">Méditations guidées</div>
+                    </div>
+                  </Button>
+                </Link>
+                
+                <Link to="/therapeutic-exercises?category=breathing" className="w-full">
+                  <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2 w-full hover:bg-green/5">
+                    <span className="material-icons text-green-600">air</span>
+                    <div className="text-center">
+                      <div className="font-medium">Respiration</div>
+                      <div className="text-xs text-muted-foreground">Avec guide audio</div>
+                    </div>
+                  </Button>
+                </Link>
+                
+                <Link to="/therapeutic-exercises?category=relaxation" className="w-full">
+                  <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2 w-full hover:bg-blue/5">
+                    <span className="material-icons text-blue-600">self_improvement</span>
+                    <div className="text-center">
+                      <div className="font-medium">Relaxation</div>
+                      <div className="text-xs text-muted-foreground">Profonde & guidée</div>
+                    </div>
+                  </Button>
+                </Link>
+              </div>
+              <div className="mt-4 p-3 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg">
+                <p className="text-sm text-center">
+                  <span className="font-medium">✨ Nouveau :</span> Découvrez nos exercices avec timer intégré, pistes audio et visualisations pour une expérience thérapeutique complète !
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
         {/* Recent Activities Section */}
         {exerciseSessions && exerciseSessions.length > 0 && (
           <section className="mb-8">

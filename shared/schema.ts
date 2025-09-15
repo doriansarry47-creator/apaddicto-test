@@ -15,6 +15,9 @@ export const users = pgTable("users", {
   level: integer("level").default(1),
   points: integer("points").default(0),
   isActive: boolean("is_active").default(true),
+  lastLoginAt: timestamp("last_login_at"),
+  inactivityThreshold: integer("inactivity_threshold").default(30), // jours avant considéré inactif
+  notes: text("notes"), // notes du thérapeute sur le patient
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -212,6 +215,124 @@ export const insertAntiCravingStrategySchema = createInsertSchema(antiCravingStr
   updatedAt: true,
 });
 
+// Timer sessions for exercises with audio/video
+export const timerSessions = pgTable("timer_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  exerciseId: varchar("exercise_id").notNull().references(() => exercises.id, { onDelete: 'cascade' }),
+  type: varchar("type").notNull(), // 'interval', 'continuous', 'breathing'
+  duration: integer("duration").notNull(), // in seconds
+  intervals: jsonb("intervals"), // for interval timers
+  audioUrl: varchar("audio_url"), // background audio/music
+  completed: boolean("completed").default(false),
+  heartRateBefore: integer("heart_rate_before"),
+  heartRateAfter: integer("heart_rate_after"),
+  stressLevelBefore: integer("stress_level_before"), // 1-10 scale
+  stressLevelAfter: integer("stress_level_after"), // 1-10 scale
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Professional reports for therapist
+export const professionalReports = pgTable("professional_reports", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  patientId: varchar("patient_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  therapistId: varchar("therapist_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  reportType: varchar("report_type").notNull(), // 'weekly', 'monthly', 'session', 'progress'
+  title: varchar("title").notNull(),
+  content: text("content").notNull(),
+  data: jsonb("data"), // structured data (charts, stats, etc.)
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  isPrivate: boolean("is_private").default(true),
+  tags: jsonb("tags").$type<string[]>().default([]),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Visualization content (guided imagery, meditation videos)
+export const visualizationContent = pgTable("visualization_content", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: varchar("title").notNull(),
+  description: text("description"),
+  type: varchar("type").notNull(), // 'guided_imagery', 'meditation', 'breathing', 'visualization'
+  category: varchar("category").notNull(), // 'relaxation', 'stress_reduction', 'pain_management', 'emotional_regulation'
+  difficulty: varchar("difficulty").default("beginner"),
+  duration: integer("duration"), // in minutes
+  audioUrl: varchar("audio_url"),
+  videoUrl: varchar("video_url"),
+  imageUrl: varchar("image_url"),
+  script: text("script"), // text script for the visualization
+  instructions: text("instructions"),
+  benefits: text("benefits"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Audio content for therapy (relaxation, ASMR, nature sounds)
+export const audioContent = pgTable("audio_content", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: varchar("title").notNull(),
+  description: text("description"),
+  type: varchar("type").notNull(), // 'relaxation', 'nature_sounds', 'meditation', 'breathing_guide', 'asmr'
+  category: varchar("category").notNull(),
+  duration: integer("duration"), // in seconds
+  audioUrl: varchar("audio_url").notNull(),
+  thumbnailUrl: varchar("thumbnail_url"),
+  isLoopable: boolean("is_loopable").default(false),
+  volumeRecommendation: varchar("volume_recommendation").default("medium"),
+  tags: jsonb("tags").$type<string[]>().default([]),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Exercise enhancement with multimedia
+export const exerciseEnhancements = pgTable("exercise_enhancements", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  exerciseId: varchar("exercise_id").notNull().references(() => exercises.id, { onDelete: 'cascade' }),
+  audioUrls: jsonb("audio_urls").$type<string[]>().default([]), // multiple audio tracks
+  videoUrls: jsonb("video_urls").$type<string[]>().default([]),
+  imageUrls: jsonb("image_urls").$type<string[]>().default([]),
+  timerSettings: jsonb("timer_settings"), // interval timer configuration
+  breathingPattern: jsonb("breathing_pattern"), // for breathing exercises
+  visualizationScript: text("visualization_script"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Create insert schemas for new tables
+export const insertTimerSessionSchema = createInsertSchema(timerSessions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertProfessionalReportSchema = createInsertSchema(professionalReports).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertVisualizationContentSchema = createInsertSchema(visualizationContent).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAudioContentSchema = createInsertSchema(audioContent).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertExerciseEnhancementSchema = createInsertSchema(exerciseEnhancements).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -234,3 +355,13 @@ export type QuickResource = typeof quickResources.$inferSelect;
 export type InsertQuickResource = z.infer<typeof insertQuickResourceSchema>;
 export type AntiCravingStrategy = typeof antiCravingStrategies.$inferSelect;
 export type InsertAntiCravingStrategy = z.infer<typeof insertAntiCravingStrategySchema>;
+export type TimerSession = typeof timerSessions.$inferSelect;
+export type InsertTimerSession = z.infer<typeof insertTimerSessionSchema>;
+export type ProfessionalReport = typeof professionalReports.$inferSelect;
+export type InsertProfessionalReport = z.infer<typeof insertProfessionalReportSchema>;
+export type VisualizationContent = typeof visualizationContent.$inferSelect;
+export type InsertVisualizationContent = z.infer<typeof insertVisualizationContentSchema>;
+export type AudioContent = typeof audioContent.$inferSelect;
+export type InsertAudioContent = z.infer<typeof insertAudioContentSchema>;
+export type ExerciseEnhancement = typeof exerciseEnhancements.$inferSelect;
+export type InsertExerciseEnhancement = z.infer<typeof insertExerciseEnhancementSchema>;
