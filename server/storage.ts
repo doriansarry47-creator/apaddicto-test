@@ -100,6 +100,11 @@ export interface IStorage {
   createAntiCravingStrategies(userId: string, strategies: InsertAntiCravingStrategy[]): Promise<AntiCravingStrategy[]>;
   getAntiCravingStrategies(userId: string): Promise<AntiCravingStrategy[]>;
   
+  // Admin operations
+  getAllUsersWithStats(): Promise<any[]>;
+  getAllMediaFiles(): Promise<any[]>;
+  deleteMediaFile(mediaId: string): Promise<void>;
+  
   awardBadge(badge: InsertUserBadge): Promise<UserBadge>;
   checkAndAwardBadges(userId: string): Promise<UserBadge[]>;
 }
@@ -375,25 +380,36 @@ export class DbStorage implements IStorage {
         createdAt: users.createdAt,
         isActive: users.isActive,
       })
-      .from(users);
+      .from(users)
+      .orderBy(desc(users.createdAt));
 
-    const usersWithFullStats = await Promise.all(
+    // Récupérer les statistiques d'activité pour chaque utilisateur
+    const usersWithStats = await Promise.all(
       allUsers.map(async (user) => {
-        const stats = await this.getUserStats(user.id);
+        // Compter les exercices complétés
+        const exerciseCount = await db
+          .select({ count: sql<number>`COUNT(*)` })
+          .from(exerciseSessions)
+          .where(eq(exerciseSessions.userId, user.id))
+          .then(result => result[0]?.count || 0);
+
+        // Compter les cravings enregistrés
+        const cravingCount = await db
+          .select({ count: sql<number>`COUNT(*)` })
+          .from(cravingEntries)
+          .where(eq(cravingEntries.userId, user.id))
+          .then(result => result[0]?.count || 0);
+
         return {
           ...user,
-          stats: stats || {
-            exercisesCompleted: 0,
-            totalDuration: 0,
-            currentStreak: 0,
-            longestStreak: 0,
-            averageCraving: null,
-          },
+          exerciseCount,
+          cravingCount,
+          lastLoginAt: null, // Pas de tracking de dernière connexion actuellement
         };
       })
     );
 
-    return usersWithFullStats;
+    return usersWithStats;
   }
 
   async getAllMediaFiles(): Promise<any[]> {
