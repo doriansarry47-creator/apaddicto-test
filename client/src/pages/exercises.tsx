@@ -5,8 +5,13 @@ import { Navigation } from "@/components/navigation";
 import { ExerciseCard } from "@/components/exercise-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import RespirationPlayer from "@/components/interactive-exercises/RespirationPlayer";
+import { Heart, Square, Triangle, Sparkles } from "lucide-react";
 import type { Exercise as APIExercise } from "../../../../shared/schema";
 
 // Types pour la compatibilité avec le composant ExerciseCard existant
@@ -82,6 +87,7 @@ const levels = {
 export default function Exercises() {
   const [selectedCategory, setSelectedCategory] = useState<keyof typeof categories | 'all'>('all');
   const [selectedLevel, setSelectedLevel] = useState<keyof typeof levels | 'all'>('all');
+  const [showRespirationDialog, setShowRespirationDialog] = useState(false);
   const [location] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -242,6 +248,62 @@ export default function Exercises() {
                   ))}
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* Interactive Breathing Exercises */}
+        <section className="mb-8">
+          <Card className="shadow-material bg-gradient-to-r from-emerald-50 to-blue-50 border-emerald-200">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Sparkles className="h-5 w-5 text-emerald-600" />
+                  <CardTitle className="text-lg text-emerald-800">Exercices de Respiration Interactifs</CardTitle>
+                </div>
+                <Badge variant="secondary" className="bg-emerald-100 text-emerald-800">Nouveau</Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-emerald-700 mb-4">
+                Découvrez nos exercices de respiration guidés avec visualisation animée et personnalisation complète des durées.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div className="flex items-center space-x-3 p-3 bg-white/60 rounded-lg">
+                  <Heart className="h-5 w-5 text-red-500" />
+                  <div>
+                    <h4 className="font-medium text-sm">Cohérence Cardiaque</h4>
+                    <p className="text-xs text-muted-foreground">Synchronisation respiration-cœur</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3 p-3 bg-white/60 rounded-lg">
+                  <Square className="h-5 w-5 text-blue-500" />
+                  <div>
+                    <h4 className="font-medium text-sm">Respiration Carrée</h4>
+                    <p className="text-xs text-muted-foreground">4 phases équilibrées</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3 p-3 bg-white/60 rounded-lg">
+                  <Triangle className="h-5 w-5 text-green-500" />
+                  <div>
+                    <h4 className="font-medium text-sm">Respiration Triangle</h4>
+                    <p className="text-xs text-muted-foreground">3 phases fluides</p>
+                  </div>
+                </div>
+              </div>
+              <Dialog open={showRespirationDialog} onOpenChange={setShowRespirationDialog}>
+                <DialogTrigger asChild>
+                  <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">
+                    Ouvrir les Exercices Interactifs
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-7xl h-[90vh] p-0">
+                  <DialogHeader className="sr-only">
+                    <DialogTitle>Exercices de Respiration Interactifs</DialogTitle>
+                  </DialogHeader>
+                  <RespirationPlayer />
+                </DialogContent>
+              </Dialog>
             </CardContent>
           </Card>
         </section>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "wouter";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Navigation } from "@/components/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,8 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { getExerciseById, levels, intensities } from "@/lib/exercises-data";
-import type { InsertExerciseSession } from "@shared/schema";
+import { levels, intensities } from "@/lib/exercises-data";
+import type { InsertExerciseSession, Exercise as APIExercise } from "@shared/schema";
 
 const DEMO_USER_ID = "demo-user-123";
 
@@ -25,7 +25,15 @@ export default function ExerciseDetail() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  const exercise = getExerciseById(id!);
+  // Récupérer l'exercice depuis l'API
+  const { data: exercise, isLoading, error } = useQuery<APIExercise>({
+    queryKey: ['exercise', id],
+    queryFn: async () => {
+      const response = await apiRequest('GET', `/api/exercises/${id}`);
+      return response.json();
+    },
+    enabled: !!id,
+  });
 
   const createSessionMutation = useMutation({
     mutationFn: async (data: InsertExerciseSession) => {
@@ -51,7 +59,23 @@ export default function ExerciseDetail() {
     };
   }, [isRunning]);
 
-  if (!exercise) {
+  if (isLoading) {
+    return (
+      <>
+        <Navigation />
+        <main className="container mx-auto px-4 py-6">
+          <div className="flex items-center justify-center min-h-96">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Chargement de l'exercice...</p>
+            </div>
+          </div>
+        </main>
+      </>
+    );
+  }
+
+  if (error || !exercise) {
     return (
       <>
         <Navigation />
@@ -59,6 +83,9 @@ export default function ExerciseDetail() {
           <Card className="shadow-material">
             <CardContent className="p-8 text-center">
               <h1 className="text-2xl font-bold mb-4">Exercice non trouvé</h1>
+              <p className="text-muted-foreground mb-4">
+                L'exercice demandé n'existe pas ou n'est plus disponible.
+              </p>
               <Link to="/exercises">
                 <Button>Retour aux exercices</Button>
               </Link>
@@ -123,7 +150,8 @@ export default function ExerciseDetail() {
   };
 
   const nextStep = () => {
-    if (currentStep < exercise.instructions.length - 1) {
+    const instructions = exercise.instructions ? exercise.instructions.split('\n').filter(Boolean) : [];
+    if (currentStep < instructions.length - 1) {
       setCurrentStep(prev => prev + 1);
     } else {
       stopExercise();
@@ -149,8 +177,9 @@ export default function ExerciseDetail() {
     }
   };
 
-  const stepProgress = ((currentStep + 1) / exercise.instructions.length) * 100;
-  const expectedDuration = exercise.duration * 60; // Convert to seconds
+  const instructions = exercise.instructions ? exercise.instructions.split('\n').filter(Boolean) : [];
+  const stepProgress = instructions.length > 0 ? ((currentStep + 1) / instructions.length) * 100 : 0;
+  const expectedDuration = (exercise.duration || 10) * 60; // Convert to seconds
 
   return (
     <>
@@ -164,8 +193,8 @@ export default function ExerciseDetail() {
               <span className="material-icons mr-1">arrow_back</span>
               Retour aux exercices
             </Link>
-            <Badge className={getLevelBadgeColor(exercise.level)}>
-              {levels[exercise.level]}
+            <Badge className={getLevelBadgeColor(exercise.difficulty as keyof typeof levels)}>
+              {levels[exercise.difficulty as keyof typeof levels] || exercise.difficulty}
             </Badge>
           </div>
           
@@ -175,29 +204,29 @@ export default function ExerciseDetail() {
                 {exercise.title}
               </h1>
               <p className="text-lg text-muted-foreground mb-6" data-testid="description-exercise">
-                {exercise.description}
+                {exercise.description || "Description non disponible"}
               </p>
               
               {/* Exercise Info */}
               <div className="flex items-center space-x-6 text-sm text-muted-foreground mb-6">
                 <div className="flex items-center">
                   <span className="material-icons text-base mr-1">schedule</span>
-                  <span>{exercise.duration} minutes</span>
+                  <span>{exercise.duration || 10} minutes</span>
                 </div>
                 <div className="flex items-center">
                   <span className="material-icons text-base mr-1">fitness_center</span>
-                  <span>Intensité {intensities[exercise.intensity].toLowerCase()}</span>
+                  <span>Niveau {exercise.difficulty}</span>
                 </div>
                 <div className="flex items-center">
                   <span className="material-icons text-base mr-1">category</span>
-                  <span>{exercise.type}</span>
+                  <span>{exercise.category}</span>
                 </div>
               </div>
             </div>
             
             <div className="lg:col-span-1">
               <img 
-                src={exercise.imageUrl} 
+                src={exercise.imageUrl || 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=200'} 
                 alt={exercise.title}
                 className="w-full h-64 object-cover rounded-xl shadow-material"
                 data-testid="img-exercise"
@@ -262,7 +291,7 @@ export default function ExerciseDetail() {
                 {/* Progress Bar */}
                 <div>
                   <div className="flex justify-between text-sm text-muted-foreground mb-2">
-                    <span>Étape {currentStep + 1} sur {exercise.instructions.length}</span>
+                    <span>Étape {currentStep + 1} sur {instructions.length}</span>
                     <span>{Math.round(stepProgress)}%</span>
                   </div>
                   <Progress value={stepProgress} className="h-2" data-testid="progress-steps" />
@@ -275,7 +304,7 @@ export default function ExerciseDetail() {
                       Étape {currentStep + 1}
                     </h3>
                     <p className="text-foreground" data-testid="text-current-instruction">
-                      {exercise.instructions[currentStep]}
+                      {instructions[currentStep] || "Suivez l'exercice selon vos capacités"}
                     </p>
                   </CardContent>
                 </Card>
@@ -293,7 +322,7 @@ export default function ExerciseDetail() {
                     onClick={nextStep}
                     data-testid="button-next-step"
                   >
-                    {currentStep === exercise.instructions.length - 1 ? "Terminer" : "Suivant"}
+                    {currentStep === instructions.length - 1 ? "Terminer" : "Suivant"}
                   </Button>
                 </div>
               </CardContent>
@@ -375,14 +404,16 @@ export default function ExerciseDetail() {
             </CardHeader>
             <CardContent>
               <ol className="space-y-3">
-                {exercise.instructions.map((instruction, index) => (
+                {instructions.length > 0 ? instructions.map((instruction, index) => (
                   <li key={index} className="flex items-start">
                     <span className="flex-shrink-0 w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-medium mr-3">
                       {index + 1}
                     </span>
                     <span className="text-foreground">{instruction}</span>
                   </li>
-                ))}
+                )) : (
+                  <li className="text-muted-foreground">Aucune instruction détaillée disponible pour cet exercice.</li>
+                )}
               </ol>
             </CardContent>
           </Card>
@@ -394,12 +425,14 @@ export default function ExerciseDetail() {
             </CardHeader>
             <CardContent>
               <ul className="space-y-3">
-                {exercise.benefits.map((benefit, index) => (
+                {exercise.benefits ? exercise.benefits.split('\n').filter(Boolean).map((benefit, index) => (
                   <li key={index} className="flex items-start">
                     <span className="material-icons text-success mr-3 mt-0.5">check_circle</span>
                     <span className="text-foreground">{benefit}</span>
                   </li>
-                ))}
+                )) : (
+                  <li className="text-muted-foreground">Les bénéfices de cet exercice incluent une meilleure gestion du stress et une amélioration du bien-être.</li>
+                )}
               </ul>
             </CardContent>
           </Card>

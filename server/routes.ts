@@ -106,6 +106,19 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  app.get("/api/exercises/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const exercise = await storage.getExerciseById(id);
+      if (!exercise) {
+        return res.status(404).json({ message: "Exercice non trouvé" });
+      }
+      res.json(exercise);
+    } catch (error) {
+      res.status(500).json({ message: "Erreur lors de la récupération de l'exercice" });
+    }
+  });
+
   app.post("/api/exercises", requireAdmin, async (req, res) => {
     try {
       const data = insertExerciseSchema.parse(req.body);

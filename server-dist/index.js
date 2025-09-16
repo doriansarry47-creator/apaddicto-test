@@ -518,6 +518,10 @@ var init_storage = __esm({
       async getAllExercises() {
         return getDB().select().from(exercises).orderBy(exercises.title);
       }
+      async getExerciseById(exerciseId) {
+        const result = await getDB().select().from(exercises).where(eq(exercises.id, exerciseId));
+        return result[0];
+      }
       async createExercise(insertExercise) {
         return getDB().insert(exercises).values(insertExercise).returning().then((rows) => rows[0]);
       }
@@ -1684,6 +1688,18 @@ function registerRoutes(app2) {
       res.json(exercises2);
     } catch (error) {
       res.status(500).json({ message: "Erreur lors de la r\xE9cup\xE9ration des exercices" });
+    }
+  });
+  app2.get("/api/exercises/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const exercise = await storage.getExerciseById(id);
+      if (!exercise) {
+        return res.status(404).json({ message: "Exercice non trouv\xE9" });
+      }
+      res.json(exercise);
+    } catch (error) {
+      res.status(500).json({ message: "Erreur lors de la r\xE9cup\xE9ration de l'exercice" });
     }
   });
   app2.post("/api/exercises", requireAdmin, async (req, res) => {
