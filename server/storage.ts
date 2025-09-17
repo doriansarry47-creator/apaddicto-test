@@ -702,7 +702,7 @@ export class DbStorage implements IStorage {
   async createProfessionalReport(report: InsertProfessionalReport): Promise<ProfessionalReport> {
     const reportData = {
       ...report,
-      tags: Array.isArray(report.tags) ? report.tags : []
+      tags: Array.isArray(report.tags) ? report.tags as string[] : [] as string[]
     };
     return getDB().insert(professionalReports).values(reportData).returning().then(rows => rows[0]);
   }
@@ -745,7 +745,7 @@ export class DbStorage implements IStorage {
   async updateProfessionalReport(reportId: string, data: Partial<InsertProfessionalReport>): Promise<ProfessionalReport> {
     const updateData = {
       ...data,
-      tags: Array.isArray(data.tags) ? data.tags : data.tags || [],
+      tags: Array.isArray(data.tags) ? data.tags as string[] : (data.tags as string[] || [] as string[]),
       updatedAt: new Date()
     };
     return getDB()
@@ -798,7 +798,7 @@ export class DbStorage implements IStorage {
   async createAudioContent(content: InsertAudioContent): Promise<AudioContent> {
     const audioData = {
       ...content,
-      tags: Array.isArray(content.tags) ? content.tags : []
+      tags: Array.isArray(content.tags) ? content.tags as string[] : [] as string[]
     };
     return getDB().insert(audioContent).values(audioData).returning().then(rows => rows[0]);
   }
@@ -806,7 +806,7 @@ export class DbStorage implements IStorage {
   async updateAudioContent(contentId: string, data: Partial<InsertAudioContent>): Promise<AudioContent> {
     const updateData = {
       ...data,
-      tags: Array.isArray(data.tags) ? data.tags : data.tags || [],
+      tags: Array.isArray(data.tags) ? data.tags as string[] : (data.tags as string[] || [] as string[]),
       updatedAt: new Date()
     };
     return getDB()
@@ -833,7 +833,7 @@ export class DbStorage implements IStorage {
   async createExerciseEnhancement(enhancement: InsertExerciseEnhancement): Promise<ExerciseEnhancement> {
     const enhancementData = {
       ...enhancement,
-      audioUrls: Array.isArray(enhancement.audioUrls) ? enhancement.audioUrls : []
+      audioUrls: Array.isArray(enhancement.audioUrls) ? enhancement.audioUrls as string[] : [] as string[]
     };
     return getDB().insert(exerciseEnhancements).values(enhancementData).returning().then(rows => rows[0]);
   }
@@ -841,7 +841,7 @@ export class DbStorage implements IStorage {
   async updateExerciseEnhancement(exerciseId: string, data: Partial<InsertExerciseEnhancement>): Promise<ExerciseEnhancement> {
     const updateData = {
       ...data,
-      audioUrls: Array.isArray(data.audioUrls) ? data.audioUrls : data.audioUrls || [],
+      audioUrls: Array.isArray(data.audioUrls) ? data.audioUrls as string[] : (data.audioUrls as string[] || [] as string[]),
       updatedAt: new Date()
     };
     return getDB()
