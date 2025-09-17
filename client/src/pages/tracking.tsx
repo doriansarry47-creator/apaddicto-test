@@ -51,7 +51,12 @@ export default function Tracking() {
   const { data: cravingEntries, isLoading: cravingLoading } = useQuery<CravingEntry[]>({
     queryKey: ["/api/cravings"],
     queryFn: async () => {
-      const response = await fetch("/api/cravings");
+      const response = await fetch("/api/cravings", {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
       if (!response.ok) throw new Error("Failed to fetch cravings");
       return response.json();
     },
@@ -62,7 +67,12 @@ export default function Tracking() {
   const { data: cravingStats, isLoading: statsLoading } = useQuery<CravingStats>({
     queryKey: ["/api/cravings/stats"],
     queryFn: async () => {
-      const response = await fetch("/api/cravings/stats");
+      const response = await fetch("/api/cravings/stats", {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
       if (!response.ok) throw new Error("Failed to fetch craving stats");
       return response.json();
     },
@@ -73,7 +83,12 @@ export default function Tracking() {
   const { data: exerciseSessions, isLoading: sessionsLoading } = useQuery<any[]>({
     queryKey: ["/api/exercise-sessions/detailed"],
     queryFn: async () => {
-      const response = await fetch("/api/exercise-sessions/detailed");
+      const response = await fetch("/api/exercise-sessions/detailed", {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
       if (!response.ok) throw new Error("Failed to fetch exercise sessions");
       return response.json();
     },
@@ -84,18 +99,28 @@ export default function Tracking() {
   const { data: userStats, isLoading: userStatsLoading } = useQuery<UserStats>({
     queryKey: ["/api/users/stats"],
     queryFn: async () => {
-      const response = await fetch("/api/users/stats");
+      const response = await fetch("/api/users/stats", {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
       if (!response.ok) throw new Error("Failed to fetch user stats");
       return response.json();
     },
     enabled: !!authenticatedUser,
-    initialData: { exercisesCompleted: 0, totalDuration: 0, currentStreak: 0, longestStreak: 0, averageCraving: 0, id: '', userId: '', updatedAt: new Date() },
+    initialData: { exercisesCompleted: 0, totalDuration: 0, currentStreak: 0, longestStreak: 0, averageCraving: 0, id: '', userId: '', updatedAt: new Date(), beckAnalysesCompleted: 0 },
   });
 
   const { data: beckAnalyses, isLoading: beckLoading } = useQuery<BeckAnalysis[]>({
     queryKey: ["/api/beck-analyses"],
     queryFn: async () => {
-      const response = await fetch("/api/beck-analyses");
+      const response = await fetch("/api/beck-analyses", {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
       if (!response.ok) throw new Error("Failed to fetch beck analyses");
       return response.json();
     },
@@ -183,18 +208,26 @@ export default function Tracking() {
         <section className="mb-8">
           <div className="flex items-center justify-between mb-2">
             <h1 className="text-3xl font-bold text-foreground">Suivi de Votre Progression</h1>
-            <Button 
-              onClick={refreshAllData}
-              disabled={isRefreshing}
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <span className={`material-icons text-sm ${isRefreshing ? 'animate-spin' : ''}`}>
-                {isRefreshing ? 'hourglass_empty' : 'refresh'}
-              </span>
-              {isRefreshing ? 'Actualisation...' : 'Actualiser'}
-            </Button>
+            <div className="flex items-center gap-2">
+              {(isLoading || isRefreshing) && (
+                <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-primary"></div>
+                  Chargement...
+                </div>
+              )}
+              <Button 
+                onClick={refreshAllData}
+                disabled={isRefreshing}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <span className={`material-icons text-sm ${isRefreshing ? 'animate-spin' : ''}`}>
+                  {isRefreshing ? 'hourglass_empty' : 'refresh'}
+                </span>
+                {isRefreshing ? 'Actualisation...' : 'Actualiser'}
+              </Button>
+            </div>
           </div>
           <p className="text-muted-foreground">
             Analysez votre évolution et identifiez les patterns qui vous aident.
@@ -263,6 +296,35 @@ export default function Tracking() {
           </Card>
         </section>
 
+        {/* Debug info - temporary */}
+        {process.env.NODE_ENV === 'development' && (
+          <section className="mb-8">
+            <Card className="shadow-material border-yellow-200 bg-yellow-50">
+              <CardHeader>
+                <CardTitle className="text-sm text-yellow-800">Debug Info (Development Only)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <strong>Cravings:</strong> {cravingEntries?.length || 0} entrées
+                    <br />
+                    <strong>Beck Analyses:</strong> {beckAnalyses?.length || 0} analyses
+                    <br />
+                    <strong>Exercices:</strong> {exerciseSessions?.length || 0} sessions
+                  </div>
+                  <div>
+                    <strong>Stratégies:</strong> {antiCravingStrategies?.length || 0} testées
+                    <br />
+                    <strong>User ID:</strong> {authenticatedUser?.id || 'N/A'}
+                    <br />
+                    <strong>Loading:</strong> {isLoading ? 'Oui' : 'Non'}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </section>
+        )}
+
         {/* Summary Dashboard */}
         <section className="mb-8">
           <Card className="shadow-material">
@@ -282,7 +344,7 @@ export default function Tracking() {
                   </div>
                 </div>
                 <div className="text-center p-4 bg-secondary/10 rounded-lg">
-                  <div className="text-2xl font-bold text-secondary mb-2">{userStats?.beckAnalysesCompleted || 0}</div>
+                  <div className="text-2xl font-bold text-secondary mb-2">{beckAnalyses?.length || 0}</div>
                   <div className="text-sm text-muted-foreground">Analyses Beck</div>
                   <div className="text-xs text-muted-foreground mt-1">
                     Dernière analyse: {beckAnalyses && beckAnalyses.length > 0 ? formatDate(beckAnalyses[0].createdAt) : 'Aucune'}

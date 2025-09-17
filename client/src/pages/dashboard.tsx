@@ -8,10 +8,13 @@ import { StrategiesBox } from "@/components/strategies-box";
 import { GamificationProgress } from "@/components/gamification-progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthQuery } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
 import { getEmergencyExercises } from "@/lib/exercises-data";
+import RespirationPlayer from "@/components/interactive-exercises/RespirationPlayer";
 import type { User, UserStats, ExerciseSession, AntiCravingStrategy } from "@shared/schema";
 
 interface CravingStats {
@@ -396,7 +399,7 @@ export default function Dashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <Link to="/exercises?category=craving" className="w-full">
                   <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2 w-full" data-testid="button-craving-exercises">
                     <span className="material-icons text-destructive">emergency</span>
@@ -427,69 +430,65 @@ export default function Dashboard() {
                   </Button>
                 </Link>
               </div>
+              
+              {/* Interactive Breathing Exercises Section */}
+              <Card className="bg-gradient-to-r from-emerald-50 to-blue-50 border-emerald-200">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <span className="material-icons text-emerald-600">air</span>
+                      <CardTitle className="text-lg text-emerald-800">Exercices de Respiration Interactifs</CardTitle>
+                    </div>
+                    <Badge variant="secondary" className="bg-emerald-100 text-emerald-800">Nouveau</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-emerald-700 mb-4">
+                    Découvrez nos exercices de respiration guidés avec visualisation animée et personnalisation complète des durées.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div className="flex items-center space-x-3 p-3 bg-white/60 rounded-lg">
+                      <span className="material-icons text-red-500">favorite</span>
+                      <div>
+                        <h4 className="font-medium text-sm">Cohérence Cardiaque</h4>
+                        <p className="text-xs text-muted-foreground">Synchronisation respiration-cœur</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3 p-3 bg-white/60 rounded-lg">
+                      <span className="material-icons text-blue-500">crop_square</span>
+                      <div>
+                        <h4 className="font-medium text-sm">Respiration Carrée</h4>
+                        <p className="text-xs text-muted-foreground">4 phases équilibrées</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3 p-3 bg-white/60 rounded-lg">
+                      <span className="material-icons text-green-500">change_history</span>
+                      <div>
+                        <h4 className="font-medium text-sm">Respiration Triangle</h4>
+                        <p className="text-xs text-muted-foreground">3 phases fluides</p>
+                      </div>
+                    </div>
+                  </div>
+                  <Dialog open={showRespirationDialog} onOpenChange={setShowRespirationDialog}>
+                    <DialogTrigger asChild>
+                      <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">
+                        Ouvrir les Exercices Interactifs
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-7xl h-[90vh] p-0">
+                      <DialogHeader className="sr-only">
+                        <DialogTitle>Exercices de Respiration Interactifs</DialogTitle>
+                      </DialogHeader>
+                      <RespirationPlayer />
+                    </DialogContent>
+                  </Dialog>
+                </CardContent>
+              </Card>
             </CardContent>
           </Card>
         </section>
 
-        {/* New Therapeutic Features */}
-        <section className="mb-8">
-          <Card className="shadow-material border-primary/20">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <span className="material-icons mr-2 text-primary">spa</span>
-                Exercices Thérapeutiques Avancés
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Link to="/therapeutic-exercises" className="w-full">
-                  <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2 w-full hover:bg-primary/5">
-                    <span className="material-icons text-primary">timer</span>
-                    <div className="text-center">
-                      <div className="font-medium">Timer Intégré</div>
-                      <div className="text-xs text-muted-foreground">Exercices chronométrés</div>
-                    </div>
-                  </Button>
-                </Link>
-                
-                <Link to="/therapeutic-exercises?tab=visualizations" className="w-full">
-                  <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2 w-full hover:bg-purple/5">
-                    <span className="material-icons text-purple-600">visibility</span>
-                    <div className="text-center">
-                      <div className="font-medium">Visualisations</div>
-                      <div className="text-xs text-muted-foreground">Méditations guidées</div>
-                    </div>
-                  </Button>
-                </Link>
-                
-                <Link to="/therapeutic-exercises?category=breathing" className="w-full">
-                  <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2 w-full hover:bg-green/5">
-                    <span className="material-icons text-green-600">air</span>
-                    <div className="text-center">
-                      <div className="font-medium">Respiration</div>
-                      <div className="text-xs text-muted-foreground">Avec guide audio</div>
-                    </div>
-                  </Button>
-                </Link>
-                
-                <Link to="/therapeutic-exercises?category=relaxation" className="w-full">
-                  <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2 w-full hover:bg-blue/5">
-                    <span className="material-icons text-blue-600">self_improvement</span>
-                    <div className="text-center">
-                      <div className="font-medium">Relaxation</div>
-                      <div className="text-xs text-muted-foreground">Profonde & guidée</div>
-                    </div>
-                  </Button>
-                </Link>
-              </div>
-              <div className="mt-4 p-3 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg">
-                <p className="text-sm text-center">
-                  <span className="font-medium">✨ Nouveau :</span> Découvrez nos exercices avec timer intégré, pistes audio et visualisations pour une expérience thérapeutique complète !
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </section>
+
 
         {/* Recent Activities Section */}
         {exerciseSessions && exerciseSessions.length > 0 && (
