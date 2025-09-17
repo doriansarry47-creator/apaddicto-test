@@ -8,6 +8,7 @@ import { registerRoutes } from './routes.js';
 import './migrate.js';
 import { debugTablesRouter } from './debugTables.js';
 import { Pool } from 'pg';
+import connectPgSimple from 'connect-pg-simple';
 
 // Pour obtenir __dirname dans ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -31,15 +32,31 @@ const distPath = path.join(__dirname, '..', 'dist');
 console.log('📁 Serving static files from:', distPath);
 app.use(express.static(distPath));
 
+// === CONNEXION POSTGRES ===
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
+
+// === SESSION STORE ===
+const PgStore = connectPgSimple(session);
+const sessionStore = new PgStore({
+  pool: pool,
+  tableName: 'user_sessions', // Nom de la table pour les sessions
+  createTableIfMissing: true,
+});
+
+
 // === SESSION ===
 app.use(session({
+  store: sessionStore,
   secret: process.env.SESSION_SECRET || 'fallback-secret',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    sameSite: 'lax',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Recommandé pour Vercel
     secure: process.env.NODE_ENV === 'production',
-    maxAge: 1000 * 60 * 60 * 24 * 7,
+    maxAge: 1000 * 60 * 60 * 24 * 7, // 7 jours
+    httpOnly: true,
   },
 }));
 
@@ -55,11 +72,6 @@ app.get('/api/health', (_req, res) => {
 // === ROUTES DE L'APPLICATION ===
 registerRoutes(app);
 app.use('/api', debugTablesRouter);
-
-// === CONNEXION POSTGRES ===
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
 
 // === ENDPOINT POUR LISTER LES TABLES ===
 app.get('/api/tables', async (_req, res) => {
@@ -126,7 +138,7 @@ app._router.stack.forEach((r: any) => {
 });
 
 // === LANCEMENT DU SERVEUR ===
-const port = process.env.PORT || 3000;
+const port = Number(process.env.PORT) || 3000;
 app.listen(port, '0.0.0.0', () => {
   console.log(`🚀 Server running at http://localhost:${port}`);
 });
