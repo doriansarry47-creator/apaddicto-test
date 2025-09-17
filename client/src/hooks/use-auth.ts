@@ -91,10 +91,8 @@ export function useLoginMutation() {
     },
     onSuccess: (data) => {
       queryClient.setQueryData(["auth", "me"], data?.user || null);
-      // Pas d'invalidation immédiate pour éviter le flash
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["auth"] });
-      }, 100);
+      // Invalidation immédiate pour s'assurer de la cohérence
+      queryClient.invalidateQueries({ queryKey: ["auth"] });
     },
   });
 }

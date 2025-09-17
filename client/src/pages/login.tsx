@@ -50,6 +50,8 @@ export default function Login() {
         title: "Connexion réussie",
         description: "Bienvenue dans votre espace thérapeutique",
       });
+      // Redirection immédiate après login réussi
+      setLocation("/");
     } catch (error) {
       toast({
         title: "Erreur de connexion",
@@ -68,6 +70,8 @@ export default function Login() {
         title: "Inscription réussie",
         description: "Votre compte a été créé avec succès",
       });
+      // Redirection immédiate après inscription réussie
+      setLocation("/");
     } catch (error) {
       toast({
         title: "Erreur d'inscription",
