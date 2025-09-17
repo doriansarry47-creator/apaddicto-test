@@ -81,16 +81,27 @@ export function registerRoutes(app: Express) {
       if (err) {
         return res.status(500).json({ message: "Erreur lors de la déconnexion" });
       }
+      // Clear session cookie
+      res.clearCookie('connect.sid');
       res.json({ message: "Logout successful" }); // ✅ cohérent avec le frontend
     });
   });
 
   app.get("/api/auth/me", async (req, res) => {
     if (!req.session || !req.session.user) {
-      return res.json({ user: null }); // ✅ cohérent avec le frontend
+      return res.status(401).json({ user: null, message: "Not authenticated" });
     }
-    const user = await AuthService.getUserById(req.session.user.id);
-    res.json({ user });
+    try {
+      const user = await AuthService.getUserById(req.session.user.id);
+      if (!user) {
+        // User was deleted, clear session
+        req.session.destroy(() => {});
+        return res.status(401).json({ user: null, message: "User not found" });
+      }
+      res.json({ user });
+    } catch (error) {
+      res.status(500).json({ user: null, message: "Server error" });
+    }
   });
 
   // ========================
