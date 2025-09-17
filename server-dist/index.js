@@ -1699,15 +1699,25 @@ function registerRoutes(app2) {
       if (err) {
         return res.status(500).json({ message: "Erreur lors de la d\xE9connexion" });
       }
+      res.clearCookie("connect.sid");
       res.json({ message: "Logout successful" });
     });
   });
   app2.get("/api/auth/me", async (req, res) => {
     if (!req.session || !req.session.user) {
-      return res.json({ user: null });
+      return res.status(401).json({ user: null, message: "Not authenticated" });
     }
-    const user = await AuthService.getUserById(req.session.user.id);
-    res.json({ user });
+    try {
+      const user = await AuthService.getUserById(req.session.user.id);
+      if (!user) {
+        req.session.destroy(() => {
+        });
+        return res.status(401).json({ user: null, message: "User not found" });
+      }
+      res.json({ user });
+    } catch (error) {
+      res.status(500).json({ user: null, message: "Server error" });
+    }
   });
   app2.get("/api/exercises", async (req, res) => {
     try {
