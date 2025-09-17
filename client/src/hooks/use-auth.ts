@@ -90,8 +90,9 @@ export function useLoginMutation() {
       return data;
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(["auth", "me"], data?.user || null);
-      // Invalidation immédiate pour s'assurer de la cohérence
+      // On invalide simplement la query.
+      // La redirection et le ProtectedRoute s'occuperont de refetch.
+      // Cela évite les race conditions où le client est plus rapide que la propagation de la session en DB.
       queryClient.invalidateQueries({ queryKey: ["auth"] });
     },
   });
@@ -124,8 +125,7 @@ export function useRegisterMutation() {
 
       return data;
     },
-    onSuccess: (data) => {
-      queryClient.setQueryData(["auth", "me"], data?.user || null);
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["auth"] });
     },
   });
