@@ -1,10 +1,11 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Navigation } from "@/components/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 import { useAuthQuery } from "@/hooks/use-auth";
 import type { CravingEntry, ExerciseSession, BeckAnalysis, UserStats, AntiCravingStrategy } from "@shared/schema";
 
@@ -15,14 +16,47 @@ interface CravingStats {
 
 export default function Tracking() {
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('week');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const queryClient = useQueryClient();
   
   // Récupérer l'utilisateur authentifié
   const { data: authenticatedUser, isLoading: userLoading } = useAuthQuery();
 
+  // Fonction pour rafraîchir toutes les données
+  const refreshAllData = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["/api/cravings"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/cravings/stats"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/exercise-sessions/detailed"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/users/stats"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/beck-analyses"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/strategies"] }),
+      ]);
+    } catch (error) {
+      console.error("Erreur lors du rafraîchissement des données:", error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  // Rafraîchir automatiquement les données au chargement de la page
+  useEffect(() => {
+    if (authenticatedUser) {
+      refreshAllData();
+    }
+  }, [authenticatedUser]);
+
   const { data: cravingEntries, isLoading: cravingLoading } = useQuery<CravingEntry[]>({
     queryKey: ["/api/cravings"],
     queryFn: async () => {
-      const response = await fetch("/api/cravings");
+      const response = await fetch("/api/cravings", {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
       if (!response.ok) throw new Error("Failed to fetch cravings");
       return response.json();
     },
@@ -33,7 +67,12 @@ export default function Tracking() {
   const { data: cravingStats, isLoading: statsLoading } = useQuery<CravingStats>({
     queryKey: ["/api/cravings/stats"],
     queryFn: async () => {
-      const response = await fetch("/api/cravings/stats");
+      const response = await fetch("/api/cravings/stats", {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
       if (!response.ok) throw new Error("Failed to fetch craving stats");
       return response.json();
     },
@@ -44,7 +83,12 @@ export default function Tracking() {
   const { data: exerciseSessions, isLoading: sessionsLoading } = useQuery<any[]>({
     queryKey: ["/api/exercise-sessions/detailed"],
     queryFn: async () => {
-      const response = await fetch("/api/exercise-sessions/detailed");
+      const response = await fetch("/api/exercise-sessions/detailed", {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
       if (!response.ok) throw new Error("Failed to fetch exercise sessions");
       return response.json();
     },
@@ -55,18 +99,28 @@ export default function Tracking() {
   const { data: userStats, isLoading: userStatsLoading } = useQuery<UserStats>({
     queryKey: ["/api/users/stats"],
     queryFn: async () => {
-      const response = await fetch("/api/users/stats");
+      const response = await fetch("/api/users/stats", {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
       if (!response.ok) throw new Error("Failed to fetch user stats");
       return response.json();
     },
     enabled: !!authenticatedUser,
-    initialData: { exercisesCompleted: 0, totalDuration: 0, currentStreak: 0, longestStreak: 0, averageCraving: 0, id: '', userId: '', updatedAt: new Date() },
+    initialData: { exercisesCompleted: 0, totalDuration: 0, currentStreak: 0, longestStreak: 0, averageCraving: 0, id: '', userId: '', updatedAt: new Date(), beckAnalysesCompleted: 0 },
   });
 
   const { data: beckAnalyses, isLoading: beckLoading } = useQuery<BeckAnalysis[]>({
     queryKey: ["/api/beck-analyses"],
     queryFn: async () => {
-      const response = await fetch("/api/beck-analyses");
+      const response = await fetch("/api/beck-analyses", {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
       if (!response.ok) throw new Error("Failed to fetch beck analyses");
       return response.json();
     },
@@ -152,7 +206,29 @@ export default function Tracking() {
         
         {/* Page Header */}
         <section className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Suivi de Votre Progression</h1>
+          <div className="flex items-center justify-between mb-2">
+            <h1 className="text-3xl font-bold text-foreground">Suivi de Votre Progression</h1>
+            <div className="flex items-center gap-2">
+              {(isLoading || isRefreshing) && (
+                <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-primary"></div>
+                  Chargement...
+                </div>
+              )}
+              <Button 
+                onClick={refreshAllData}
+                disabled={isRefreshing}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <span className={`material-icons text-sm ${isRefreshing ? 'animate-spin' : ''}`}>
+                  {isRefreshing ? 'hourglass_empty' : 'refresh'}
+                </span>
+                {isRefreshing ? 'Actualisation...' : 'Actualiser'}
+              </Button>
+            </div>
+          </div>
           <p className="text-muted-foreground">
             Analysez votre évolution et identifiez les patterns qui vous aident.
           </p>
@@ -220,6 +296,35 @@ export default function Tracking() {
           </Card>
         </section>
 
+        {/* Debug info - temporary */}
+        {process.env.NODE_ENV === 'development' && (
+          <section className="mb-8">
+            <Card className="shadow-material border-yellow-200 bg-yellow-50">
+              <CardHeader>
+                <CardTitle className="text-sm text-yellow-800">Debug Info (Development Only)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <strong>Cravings:</strong> {cravingEntries?.length || 0} entrées
+                    <br />
+                    <strong>Beck Analyses:</strong> {beckAnalyses?.length || 0} analyses
+                    <br />
+                    <strong>Exercices:</strong> {exerciseSessions?.length || 0} sessions
+                  </div>
+                  <div>
+                    <strong>Stratégies:</strong> {antiCravingStrategies?.length || 0} testées
+                    <br />
+                    <strong>User ID:</strong> {authenticatedUser?.id || 'N/A'}
+                    <br />
+                    <strong>Loading:</strong> {isLoading ? 'Oui' : 'Non'}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </section>
+        )}
+
         {/* Summary Dashboard */}
         <section className="mb-8">
           <Card className="shadow-material">
@@ -262,7 +367,7 @@ export default function Tracking() {
 
         {/* Detailed Tracking */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5" data-testid="tabs-tracking">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 gap-1" data-testid="tabs-tracking">
             <TabsTrigger value="overview" data-testid="tab-overview">Vue d'ensemble</TabsTrigger>
             <TabsTrigger value="cravings" data-testid="tab-cravings">Cravings</TabsTrigger>
             <TabsTrigger value="exercises" data-testid="tab-exercises">Exercices</TabsTrigger>
@@ -529,9 +634,9 @@ export default function Tracking() {
                         </div>
                         
                         {session.cravingBefore !== null && session.cravingAfter !== null && (
-                          <div className="flex items-center space-x-4 text-sm">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm">
                             <span>Craving avant: <strong>{session.cravingBefore}/10</strong></span>
-                            <span className="material-icons text-primary">arrow_forward</span>
+                            <span className="material-icons text-primary hidden sm:inline">arrow_forward</span>
                             <span>Craving après: <strong>{session.cravingAfter}/10</strong></span>
                             {session.cravingBefore > session.cravingAfter && (
                               <Badge className="bg-success text-success-foreground">
@@ -588,7 +693,7 @@ export default function Tracking() {
                           )}
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div className="grid grid-cols-1 gap-4 text-sm overflow-hidden">
                           <div>
                             <h4 className="font-medium text-foreground mb-1">Situation:</h4>
                             <p className="text-muted-foreground">{analysis.situation}</p>
@@ -660,9 +765,9 @@ export default function Tracking() {
                           {strategy.exercise}
                         </div>
                         
-                        <div className="flex items-center space-x-4 text-sm">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm">
                           <span>Craving avant: <strong className={`${strategy.cravingBefore > 6 ? 'text-destructive' : strategy.cravingBefore > 3 ? 'text-warning' : 'text-success'}`}>{strategy.cravingBefore}/10</strong></span>
-                          <span className="material-icons text-primary">arrow_forward</span>
+                          <span className="material-icons text-primary hidden sm:inline">arrow_forward</span>
                           <span>Craving après: <strong className={`${strategy.cravingAfter > 6 ? 'text-destructive' : strategy.cravingAfter > 3 ? 'text-warning' : 'text-success'}`}>{strategy.cravingAfter}/10</strong></span>
                           {strategy.cravingBefore > strategy.cravingAfter && (
                             <Badge className="bg-success text-success-foreground">

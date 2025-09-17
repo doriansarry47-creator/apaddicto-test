@@ -54,15 +54,21 @@ export function useAuthQuery() {
       const response = await fetch("/api/auth/me");
       if (!response.ok) {
         if (response.status === 401) {
-          return null;
+          return null; // User not authenticated
         }
         throw new Error("Failed to fetch user");
       }
       const data = await safeJson(response);
       return data?.user || null;
     },
-    retry: false,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: (failureCount, error) => {
+      // Don't retry on 401 (authentication errors)
+      if (error instanceof Error && error.message.includes('401')) {
+        return false;
+      }
+      return failureCount < 3;
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutes (reduced for better session handling)
     refetchOnWindowFocus: false,
     refetchOnMount: true,
   });
@@ -91,10 +97,8 @@ export function useLoginMutation() {
     },
     onSuccess: (data) => {
       queryClient.setQueryData(["auth", "me"], data?.user || null);
-      // Pas d'invalidation immédiate pour éviter le flash
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["auth"] });
-      }, 100);
+      // Invalidation immédiate pour s'assurer de la cohérence
+      queryClient.invalidateQueries({ queryKey: ["auth"] });
     },
   });
 }

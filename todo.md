@@ -1,46 +1,30 @@
-# TODO - Améliorations Interface Administrateur
+## To-Do List
 
-## Phase 3: Améliorer la gestion des utilisateurs
-- [x] Vérifier que tous les comptes patients sont affichés dans la liste
-- [x] Ajouter des filtres par rôle (patient/admin)
-- [x] Ajouter une fonction de recherche avancée
-- [x] Améliorer l'affichage des statistiques utilisateur
-- [ ] Ajouter la possibilité de modifier le rôle d'un utilisateur
+### Phase 1: Cloner le repository et analyser le code
+- [x] Cloner le repository GitHub
+- [x] Analyser la structure du projet et les fichiers de configuration
 
-## Phase 4: Développer la gestion du contenu avec exercices et catégories
-- [x] Améliorer le formulaire d'ajout d'exercices pour inclure les images
-- [x] Ajouter un système de catégories prédéfinies (débutant, cardio training, relaxation, etc.)
-- [x] Implémenter l'upload d'images pour les exercices
-- [x] Ajouter la gestion des niveaux de difficulté
-- [x] Créer une interface pour organiser les exercices par catégories
-- [x] Ajouter la possibilité de modifier/supprimer des exercices existants
+### Phase 2: Diagnostiquer le problème de page blanche
+- [x] Examiner les logs de déploiement Vercel (si disponibles)
+- [x] Vérifier les dépendances du projet
+- [x] Examiner le code source pour les erreurs potentielles (par exemple, chemins de fichiers incorrects, variables d'environnement manquantes)
 
-## Phase 5: Améliorer la section psycho-éducation
-- [x] Améliorer l'interface de gestion du contenu psycho-éducationnel
-- [x] Ajouter l'upload d'images pour le contenu psycho-éducationnel
-- [x] Créer des catégories prédéfinies pour le contenu
-- [x] Ajouter la possibilité de modifier/supprimer du contenu existant
-- [x] Implémenter un éditeur de texte riche pour le contenu
+### Phase 3: Réparer les problèmes identifiés
+- [x] Nettoyer le fichier HTML de production (retirer les scripts de développement)
+- [x] Corriger la configuration vercel.json pour une SPA React
+- [x] Optimiser la configuration Vite pour la production
 
-## Phase 6: Tester l'application localement
-- [x] Démarrer les serveurs de développement (backend et frontend)
-- [x] Créer un compte administrateur de test
-- [x] Tester la page de gestion des utilisateurs avec les nouveaux filtres
-- [x] Tester la page de gestion des exercices avec les catégories et upload d'images
-- [x] Tester la page de gestion du contenu psycho-éducationnel
-- [x] Vérifier que toutes les fonctionnalités administrateur fonctionnent correctement
+### Phase 4: Tester l'application localement
+- [x] Installer les dépendances
+- [x] Lancer l'application localement
+- [x] Vérifier que la page blanche est résolue
 
-## Phase 7: Déployer les modifications sur GitHub et Vercel
-- [x] Configurer Git avec les identifiants appropriés
-- [x] Ajouter tous les fichiers modifiés au commit
-- [x] Créer un commit avec un message descriptif
-- [x] Pousser les modifications sur GitHub avec le token fourni
-- [x] Vérifier que le déploiement Vercel se déclenche automatiquement
+### Phase 5: Pousser les modifications sur GitHub
+- [ ] Commiter les changements
+- [ ] Pousser les changements vers le repository GitHub
 
-## Fonctionnalités administratives supplémentaires
-- [ ] Tableau de bord avec statistiques globales
-- [ ] Gestion des badges et récompenses
-- [ ] Système de notifications pour les administrateurs
-- [ ] Export de données utilisateur
-- [ ] Logs d'activité administrateur
+## Problèmes identifiés:
+1. Scripts de développement (Replit, Vercel Live) présents dans le HTML de production
+2. Configuration vercel.json non optimale pour une SPA React
+3. Possible problème de routage côté client
 

@@ -32,8 +32,13 @@ export function BeckColumn({ userId, onSuccess }: BeckColumnProps) {
         title: "Analyse sauvegardée",
         description: "Votre analyse cognitive a été sauvegardée avec succès.",
       });
+      // Invalidation plus large pour s'assurer que toutes les données sont actualisées
       queryClient.invalidateQueries({ queryKey: ["/api/beck-analyses"] });
       queryClient.invalidateQueries({ queryKey: ["/api/users/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["beck-analyses"] });
+      queryClient.invalidateQueries({ queryKey: ["users", "stats"] });
+      // Vider le formulaire après sauvegarde réussie
+      clearForm();
       onSuccess?.();
     },
     onError: (error) => {
@@ -94,11 +99,18 @@ export function BeckColumn({ userId, onSuccess }: BeckColumnProps) {
           {/* Column 1: Situation */}
           <div className="space-y-3">
             <label className="block text-sm font-medium text-foreground">1. Situation</label>
+            <div className="text-xs text-muted-foreground mb-2">
+              <strong>Exemples :</strong><br/>
+              • "J'ai vu mon dealer dans la rue"<br/>
+              • "Mon conjoint m'a critiqué"<br/>
+              • "Je me suis dispute avec un ami"<br/>
+              • "J'ai reçu une mauvaise nouvelle au travail"
+            </div>
             <textarea
               value={situation}
               onChange={(e) => setSituation(e.target.value)}
               className="w-full p-3 border border-input rounded-lg resize-none h-24 text-sm bg-background"
-              placeholder="Décrivez la situation déclenchante..."
+              placeholder="Décrivez la situation déclenchante de façon factuelle et objective..."
               data-testid="textarea-situation"
             />
           </div>
@@ -106,11 +118,19 @@ export function BeckColumn({ userId, onSuccess }: BeckColumnProps) {
           {/* Column 2: Automatic Thoughts */}
           <div className="space-y-3">
             <label className="block text-sm font-medium text-foreground">2. Pensées Automatiques</label>
+            <div className="text-xs text-muted-foreground mb-2">
+              <strong>Exemples :</strong><br/>
+              • "Je n'y arriverai jamais"<br/>
+              • "Personne ne me comprend"<br/>
+              • "C'est trop dur, j'ai besoin de consommer"<br/>
+              • "Je suis nul(le), je mérite de souffrir"<br/>
+              • "Une seule fois ne changera rien"
+            </div>
             <textarea
               value={automaticThoughts}
               onChange={(e) => setAutomaticThoughts(e.target.value)}
               className="w-full p-3 border border-input rounded-lg resize-none h-24 text-sm bg-background"
-              placeholder="Quelles pensées vous sont venues spontanément?"
+              placeholder="Quelles pensées vous sont venues spontanément? (sans les censurer)"
               data-testid="textarea-thoughts"
             />
           </div>
@@ -118,11 +138,19 @@ export function BeckColumn({ userId, onSuccess }: BeckColumnProps) {
           {/* Column 3: Emotions */}
           <div className="space-y-3">
             <label className="block text-sm font-medium text-foreground">3. Émotions</label>
+            <div className="text-xs text-muted-foreground mb-2">
+              <strong>Exemples :</strong><br/>
+              • "Anxiété, peur du manque"<br/>
+              • "Tristesse profonde, désespoir"<br/>
+              • "Colère contre moi-même"<br/>
+              • "Honte, culpabilité"<br/>
+              • "Vide intérieur, solitude"
+            </div>
             <textarea
               value={emotions}
               onChange={(e) => setEmotions(e.target.value)}
               className="w-full p-3 border border-input rounded-lg resize-none h-20 text-sm bg-background"
-              placeholder="Quelles émotions avez-vous ressenties?"
+              placeholder="Nommez les émotions ressenties avec précision..."
               data-testid="textarea-emotions"
             />
             <div className="flex items-center space-x-2">
@@ -145,11 +173,19 @@ export function BeckColumn({ userId, onSuccess }: BeckColumnProps) {
           {/* Column 4: Rational Responses */}
           <div className="space-y-3">
             <label className="block text-sm font-medium text-foreground">4. Réponses Rationnelles</label>
+            <div className="text-xs text-muted-foreground mb-2">
+              <strong>Exemples :</strong><br/>
+              • "J'ai déjà surmonté des difficultés avant"<br/>
+              • "Cette émotion va passer, comme les autres"<br/>
+              • "Consommer ne résoudra pas mon problème"<br/>
+              • "Je peux demander de l'aide"<br/>
+              • "Chaque jour sobre est une victoire"
+            </div>
             <textarea
               value={rationalResponse}
               onChange={(e) => setRationalResponse(e.target.value)}
               className="w-full p-3 border border-input rounded-lg resize-none h-24 text-sm bg-background"
-              placeholder="Quelle serait une pensée plus équilibrée?"
+              placeholder="Reformulez vos pensées de manière plus équilibrée et bienveillante..."
               data-testid="textarea-rational-response"
             />
           </div>
@@ -157,11 +193,18 @@ export function BeckColumn({ userId, onSuccess }: BeckColumnProps) {
           {/* Column 5: Result */}
           <div className="space-y-3">
             <label className="block text-sm font-medium text-foreground">5. Nouveau Ressenti</label>
+            <div className="text-xs text-muted-foreground mb-2">
+              <strong>Exemples :</strong><br/>
+              • "Plus calme, moins d'urgence"<br/>
+              • "Toujours triste mais avec de l'espoir"<br/>
+              • "Moins de colère, plus de compréhension"<br/>
+              • "Un peu soulagé(e), plus confiant(e)"<br/>
+            </div>
             <textarea
               value={newFeeling}
               onChange={(e) => setNewFeeling(e.target.value)}
               className="w-full p-3 border border-input rounded-lg resize-none h-20 text-sm bg-background"
-              placeholder="Comment vous sentez-vous maintenant?"
+              placeholder="Décrivez votre nouvel état émotionnel après la restructuration..."
               data-testid="textarea-new-feeling"
             />
             <div className="flex items-center space-x-2">

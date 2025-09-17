@@ -55,6 +55,26 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
+        <Card className="border-primary/20">
+          <CardHeader>
+            <CardTitle className="flex items-center text-primary">
+              <span className="material-icons mr-2">description</span>
+              Rapports Professionnels
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-4 text-muted-foreground">
+              Créer et gérer des rapports de progression pour vos patients.
+            </p>
+            <Link to="/admin/professional-reports">
+              <Button className="w-full bg-primary">
+                <span className="material-icons mr-2">assessment</span>
+                Gérer les Rapports
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">

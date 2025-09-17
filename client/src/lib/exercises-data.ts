@@ -18,7 +18,7 @@ export const exercises: Exercise[] = [
     id: 'gentle-stretching',
     title: 'Étirements Doux Anti-Stress',
     description: 'Séquence d\'étirements simples pour apaiser le système nerveux et réduire les tensions.',
-    category: 'craving_reduction',
+    category: 'cardio',
     level: 'beginner',
     duration: 5,
     intensity: 'gentle',
@@ -42,7 +42,7 @@ export const exercises: Exercise[] = [
     id: 'breathing-coherence',
     title: 'Respiration Cohérence Cardiaque',
     description: 'Technique de respiration guidée pour réguler le système nerveux et réduire l\'anxiété.',
-    category: 'emotion_management',
+    category: 'mindfulness',
     level: 'all_levels',
     duration: 6,
     intensity: 'gentle',
@@ -68,7 +68,7 @@ export const exercises: Exercise[] = [
     id: 'cardio-circuit',
     title: 'Circuit Cardio Doux',
     description: 'Enchaînement de mouvements pour activer la circulation et libérer les endorphines.',
-    category: 'craving_reduction',
+    category: 'cardio',
     level: 'intermediate',
     duration: 8,
     intensity: 'moderate',
@@ -118,7 +118,7 @@ export const exercises: Exercise[] = [
     id: 'hiit-anti-craving',
     title: 'HIIT Anti-Craving',
     description: 'Entraînement intensif pour une libération maximale d\'endorphines et réduction rapide du craving.',
-    category: 'craving_reduction',
+    category: 'cardio',
     level: 'advanced',
     duration: 12,
     intensity: 'dynamic',
@@ -144,7 +144,7 @@ export const exercises: Exercise[] = [
     id: 'emergency-routine',
     title: 'Routine Urgence Anti-Craving',
     description: 'Séquence rapide et efficace pour casser immédiatement un pic de craving intense.',
-    category: 'craving_reduction',
+    category: 'cardio',
     level: 'all_levels',
     duration: 3,
     intensity: 'moderate',
@@ -170,7 +170,7 @@ export const exercises: Exercise[] = [
     id: 'morning-energizer',
     title: 'Réveil Énergisant',
     description: 'Routine matinale pour commencer la journée avec énergie et motivation.',
-    category: 'energy_boost',
+    category: 'strength',
     level: 'intermediate',
     duration: 7,
     intensity: 'moderate',
@@ -196,7 +196,7 @@ export const exercises: Exercise[] = [
     id: 'anxiety-relief',
     title: 'Gestion de l\'Anxiété',
     description: 'Combinaison de mouvements et respiration pour gérer l\'anxiété et les émotions difficiles.',
-    category: 'emotion_management',
+    category: 'mindfulness',
     level: 'beginner',
     duration: 8,
     intensity: 'gentle',
@@ -245,10 +245,14 @@ export const exercises: Exercise[] = [
 ];
 
 export const categories = {
-  craving_reduction: 'Réduction Craving',
-  relaxation: 'Détente',
-  energy_boost: 'Regain d\'Énergie',
-  emotion_management: 'Gestion Émotions'
+  cardio: 'Cardio Training',
+  strength: 'Renforcement Musculaire',
+  flexibility: 'Étirement & Flexibilité',
+  mindfulness: 'Pleine Conscience & Méditation',
+  relaxation: 'Relaxation',
+  respiration: 'Exercices de Respiration',
+  meditation: 'Méditation',
+  debutant: 'Exercices Débutant'
 } as const;
 
 export const levels = {

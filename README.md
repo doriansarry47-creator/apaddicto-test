@@ -135,3 +135,4 @@ Pour toute question ou problème, contactez l'équipe de développement.
 
 Propriétaire - Tous droits réservés
 
+<!-- Trigger Vercel redeployment - $(date) -->

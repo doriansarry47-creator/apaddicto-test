@@ -15,54 +15,54 @@ export function Navigation() {
   return (
     <>
       {/* Header for desktop */}
-      <header className="bg-card shadow-material-lg sticky top-0 z-50">
+      <header className="bg-white/90 backdrop-blur-md shadow-lg sticky top-0 z-50 border-b border-primary/10">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <Link to="/" className="flex items-center space-x-3" data-testid="link-home">
-              <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
+            <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity" data-testid="link-home">
+              <div className="w-10 h-10 bg-gradient-to-r from-primary to-secondary rounded-full flex items-center justify-center shadow-lg">
                 <span className="material-icons text-white text-lg">fitness_center</span>
               </div>
-              <div>
-                <h1 className="text-xl font-medium text-foreground">Activité Physique Adaptée</h1>
-                <p className="text-sm text-muted-foreground">Gestion des cravings par le mouvement</p>
+              <div className="hidden sm:block">
+                <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Apaddicto</h1>
+                <p className="text-sm text-muted-foreground">Thérapie par le mouvement</p>
               </div>
             </Link>
             
             {/* Desktop navigation - hidden on mobile */}
-            <nav className="hidden md:flex items-center space-x-6">
-              <Link to="/" className={cn("px-3 py-2 rounded-lg text-sm font-medium transition-colors", 
+            <nav className="hidden md:flex items-center space-x-2">
+              <Link to="/" className={cn("px-4 py-2 rounded-full text-sm font-medium transition-all duration-200", 
                 isActive("/") 
-                  ? "bg-primary text-primary-foreground" 
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  ? "bg-primary text-primary-foreground shadow-lg scale-105" 
+                  : "text-muted-foreground hover:text-foreground hover:bg-white/50"
               )} data-testid="nav-dashboard">
                 Accueil
               </Link>
-              <Link to="/exercises" className={cn("px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+              <Link to="/exercises" className={cn("px-4 py-2 rounded-full text-sm font-medium transition-all duration-200",
                 isActive("/exercises") 
-                  ? "bg-primary text-primary-foreground" 
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  ? "bg-primary text-primary-foreground shadow-lg scale-105" 
+                  : "text-muted-foreground hover:text-foreground hover:bg-white/50"
               )} data-testid="nav-exercises">
                 Exercices
               </Link>
-              <Link to="/tracking" className={cn("px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+              <Link to="/tracking" className={cn("px-4 py-2 rounded-full text-sm font-medium transition-all duration-200",
                 isActive("/tracking") 
-                  ? "bg-primary text-primary-foreground" 
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  ? "bg-primary text-primary-foreground shadow-lg scale-105" 
+                  : "text-muted-foreground hover:text-foreground hover:bg-white/50"
               )} data-testid="nav-tracking">
                 Suivi
               </Link>
-              <Link to="/education" className={cn("px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+              <Link to="/education" className={cn("px-4 py-2 rounded-full text-sm font-medium transition-all duration-200",
                 isActive("/education") 
-                  ? "bg-primary text-primary-foreground" 
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  ? "bg-primary text-primary-foreground shadow-lg scale-105" 
+                  : "text-muted-foreground hover:text-foreground hover:bg-white/50"
               )} data-testid="nav-education">
                 Éducation
               </Link>
               {user?.role === 'admin' && (
-                <Link to="/admin" className={cn("px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                <Link to="/admin" className={cn("px-4 py-2 rounded-full text-sm font-medium transition-all duration-200",
                   isActive("/admin")
-                    ? "bg-destructive text-destructive-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    ? "bg-destructive text-destructive-foreground shadow-lg scale-105"
+                    : "text-muted-foreground hover:text-foreground hover:bg-white/50"
                 )} data-testid="nav-admin">
                   Admin
                 </Link>
@@ -70,11 +70,8 @@ export function Navigation() {
             </nav>
 
             <div className="flex items-center space-x-2">
-              <Link to="/" className="p-2 text-muted-foreground hover:bg-muted rounded-full transition-colors" data-testid="button-toolbox">
-                <span className="material-icons">build</span>
-              </Link>
-              <Link to="/profile" className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center text-white text-sm font-medium" data-testid="link-profile">
-                DS
+              <Link to="/profile" className="w-10 h-10 bg-gradient-to-r from-secondary to-primary rounded-full flex items-center justify-center text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110" data-testid="link-profile">
+                <span className="material-icons text-sm">person</span>
               </Link>
             </div>
           </div>
@@ -82,7 +79,7 @@ export function Navigation() {
       </header>
 
       {/* Bottom navigation for mobile */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-40">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-primary/10 z-40 shadow-lg">
         <div className={cn("grid h-16", user?.role === 'admin' ? 'grid-cols-6' : 'grid-cols-5')}>
           <Link to="/" className={cn("flex flex-col items-center justify-center space-y-1 transition-colors",
             isActive("/") ? "text-primary" : "text-muted-foreground hover:text-primary"

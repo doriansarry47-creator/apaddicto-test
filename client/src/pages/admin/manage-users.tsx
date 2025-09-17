@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -55,10 +55,17 @@ export default function ManageUsers() {
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [activityFilter, setActivityFilter] = useState<string>("all");
 
-  const { data: users, isLoading } = useQuery<AdminUser[]>({
+  // Rafraîchir les données à chaque fois qu'on arrive sur la page
+  useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+  }, [queryClient]);
+
+  const { data: users, isLoading, refetch: refetchUsers } = useQuery<AdminUser[]>({
     queryKey: ["admin", "users"],
     queryFn: async () => apiRequest("GET", "/api/admin/users").then(res => res.json()),
     initialData: [],
+    staleTime: 0, // Forcer le refetch
+    cacheTime: 60000, // 1 minute de cache
   });
 
   const deleteUserMutation = useMutation({
@@ -133,10 +140,20 @@ export default function ManageUsers() {
           <Users className="h-8 w-8 text-primary" />
           <h1 className="text-3xl font-bold">Gestion des Utilisateurs</h1>
         </div>
-        <Button variant="outline" className="flex items-center space-x-2">
-          <Download className="h-4 w-4" />
-          <span>Exporter</span>
-        </Button>
+        <div className="flex space-x-2">
+          <Button 
+            variant="outline" 
+            onClick={() => refetchUsers()}
+            className="flex items-center space-x-2"
+          >
+            <span className="material-icons">refresh</span>
+            <span>Actualiser</span>
+          </Button>
+          <Button variant="outline" className="flex items-center space-x-2">
+            <Download className="h-4 w-4" />
+            <span>Exporter</span>
+          </Button>
+        </div>
       </div>
 
       {/* Filtres */}

@@ -8,10 +8,13 @@ import { StrategiesBox } from "@/components/strategies-box";
 import { GamificationProgress } from "@/components/gamification-progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthQuery } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
 import { getEmergencyExercises } from "@/lib/exercises-data";
+import RespirationPlayer from "@/components/interactive-exercises/RespirationPlayer";
 import type { User, UserStats, ExerciseSession, AntiCravingStrategy } from "@shared/schema";
 
 interface CravingStats {
@@ -24,6 +27,7 @@ export default function Dashboard() {
   const [showBeckColumn, setShowBeckColumn] = useState(false);
   const [showStrategiesBox, setShowStrategiesBox] = useState(false);
   const [showEmergencyStrategies, setShowEmergencyStrategies] = useState(false);
+  const [showRespirationDialog, setShowRespirationDialog] = useState(false);
   const { toast } = useToast();
   
   // Récupérer l'utilisateur authentifié
@@ -102,38 +106,28 @@ export default function Dashboard() {
     <>
       <Navigation />
       <main className="container mx-auto px-4 py-6 pb-20 md:pb-6">
-        {/* Hero Section - Page d'accueil personnalisée */}
-        <section className="text-center mb-12 py-8">
+        {/* Hero Section - Page d'accueil modernisée */}
+        <section className="text-center mb-8 py-6">
           <div className="max-w-4xl mx-auto">
-            <h1 className="text-4xl md:text-6xl font-bold text-primary mb-4">
-              Bienvenue dans Apaddicto
+            <h1 className="text-3xl md:text-5xl font-bold text-primary mb-6">
+              Apaddicto
             </h1>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <div className="flex items-center gap-2 text-lg">
-                <span className="material-icons text-primary">fitness_center</span>
-                <span>Exercices ciblés</span>
-              </div>
-              <div className="flex items-center gap-2 text-lg">
-                <span className="material-icons text-secondary">psychology</span>
-                <span>Suivi personnalisé</span>
-              </div>
-              <div className="flex items-center gap-2 text-lg">
-                <span className="material-icons text-warning">emoji_events</span>
-                <span>Motivation quotidienne</span>
-              </div>
-            </div>
             {user && (
-              <div className="mt-6 p-4 bg-primary/10 rounded-lg">
-                <p className="text-lg font-medium">Bonjour {user.firstName || 'Champion'} ! 👋</p>
-                <p className="text-muted-foreground">Prêt(e) à continuer votre parcours de rétablissement ?</p>
+              <div className="mb-6 p-6 bg-gradient-to-r from-primary/10 via-secondary/10 to-primary/10 rounded-xl border border-primary/20">
+                <p className="text-xl font-semibold text-foreground mb-2">
+                  Bonjour {user.firstName || 'Champion'} ! 👋
+                </p>
+                <p className="text-muted-foreground">
+                  Votre plateforme de thérapie sportive et de bien-être
+                </p>
               </div>
             )}
           </div>
         </section>
         
         {/* Dashboard Overview Cards */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8">
           {/* Today's Craving Level */}
           <Card className="shadow-material" data-testid="card-craving-level">
             <CardContent className="p-6">
@@ -218,7 +212,7 @@ export default function Dashboard() {
         </section>
 
         {/* Quick Actions */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8">
           <Card className="shadow-material" data-testid="card-quick-craving">
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -296,7 +290,7 @@ export default function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                   {antiCravingStrategies
                     .filter(strategy => strategy.cravingBefore > strategy.cravingAfter) // Strategies that worked
                     .sort((a, b) => (b.cravingBefore - b.cravingAfter) - (a.cravingBefore - a.cravingAfter)) // Sort by effectiveness
@@ -396,7 +390,7 @@ export default function Dashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 mb-6">
                 <Link to="/exercises?category=craving" className="w-full">
                   <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2 w-full" data-testid="button-craving-exercises">
                     <span className="material-icons text-destructive">emergency</span>
@@ -427,9 +421,65 @@ export default function Dashboard() {
                   </Button>
                 </Link>
               </div>
+              
+              {/* Interactive Breathing Exercises Section */}
+              <Card className="bg-gradient-to-r from-emerald-50 to-blue-50 border-emerald-200">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <span className="material-icons text-emerald-600">air</span>
+                      <CardTitle className="text-lg text-emerald-800">Exercices de Respiration Interactifs</CardTitle>
+                    </div>
+                    <Badge variant="secondary" className="bg-emerald-100 text-emerald-800">Nouveau</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-emerald-700 mb-4">
+                    Découvrez nos exercices de respiration guidés avec visualisation animée et personnalisation complète des durées.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 mb-4">
+                    <div className="flex items-center space-x-3 p-3 bg-white/60 rounded-lg">
+                      <span className="material-icons text-red-500">favorite</span>
+                      <div>
+                        <h4 className="font-medium text-sm">Cohérence Cardiaque</h4>
+                        <p className="text-xs text-muted-foreground">Synchronisation respiration-cœur</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3 p-3 bg-white/60 rounded-lg">
+                      <span className="material-icons text-blue-500">crop_square</span>
+                      <div>
+                        <h4 className="font-medium text-sm">Respiration Carrée</h4>
+                        <p className="text-xs text-muted-foreground">4 phases équilibrées</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3 p-3 bg-white/60 rounded-lg">
+                      <span className="material-icons text-green-500">change_history</span>
+                      <div>
+                        <h4 className="font-medium text-sm">Respiration Triangle</h4>
+                        <p className="text-xs text-muted-foreground">3 phases fluides</p>
+                      </div>
+                    </div>
+                  </div>
+                  <Dialog open={showRespirationDialog} onOpenChange={setShowRespirationDialog}>
+                    <DialogTrigger asChild>
+                      <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">
+                        Ouvrir les Exercices Interactifs
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-7xl h-[90vh] p-0">
+                      <DialogHeader className="sr-only">
+                        <DialogTitle>Exercices de Respiration Interactifs</DialogTitle>
+                      </DialogHeader>
+                      <RespirationPlayer />
+                    </DialogContent>
+                  </Dialog>
+                </CardContent>
+              </Card>
             </CardContent>
           </Card>
         </section>
+
+
 
         {/* Recent Activities Section */}
         {exerciseSessions && exerciseSessions.length > 0 && (

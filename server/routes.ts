@@ -31,6 +31,16 @@ export function registerRoutes(app: Express) {
         return res.status(400).json({ message: "Email et mot de passe requis" });
       }
 
+      // Validation de l'email
+      if (!email.includes('@')) {
+        return res.status(400).json({ message: "Format d'email invalide" });
+      }
+
+      // Validation du mot de passe
+      if (password.length < 4) {
+        return res.status(400).json({ message: "Le mot de passe doit contenir au moins 4 caractères" });
+      }
+
       const user = await AuthService.register({
         email,
         password,
@@ -71,16 +81,27 @@ export function registerRoutes(app: Express) {
       if (err) {
         return res.status(500).json({ message: "Erreur lors de la déconnexion" });
       }
+      // Clear session cookie
+      res.clearCookie('connect.sid');
       res.json({ message: "Logout successful" }); // ✅ cohérent avec le frontend
     });
   });
 
   app.get("/api/auth/me", async (req, res) => {
     if (!req.session || !req.session.user) {
-      return res.json({ user: null }); // ✅ cohérent avec le frontend
+      return res.status(401).json({ user: null, message: "Not authenticated" });
     }
-    const user = await AuthService.getUserById(req.session.user.id);
-    res.json({ user });
+    try {
+      const user = await AuthService.getUserById(req.session.user.id);
+      if (!user) {
+        // User was deleted, clear session
+        req.session.destroy(() => {});
+        return res.status(401).json({ user: null, message: "User not found" });
+      }
+      res.json({ user });
+    } catch (error) {
+      res.status(500).json({ user: null, message: "Server error" });
+    }
   });
 
   // ========================
@@ -93,6 +114,19 @@ export function registerRoutes(app: Express) {
       res.json(exercises);
     } catch (error) {
       res.status(500).json({ message: "Erreur lors de la récupération des exercices" });
+    }
+  });
+
+  app.get("/api/exercises/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const exercise = await storage.getExerciseById(id);
+      if (!exercise) {
+        return res.status(404).json({ message: "Exercice non trouvé" });
+      }
+      res.json(exercise);
+    } catch (error) {
+      res.status(500).json({ message: "Erreur lors de la récupération de l'exercice" });
     }
   });
 
@@ -595,23 +629,60 @@ export function registerRoutes(app: Express) {
       const userId = req.session.user!.id;
       const { strategies } = req.body;
       
-      console.log('Received strategies request:', { userId, strategiesCount: strategies?.length });
+      console.log('Received strategies request:', { userId, strategiesCount: strategies?.length, body: req.body });
       
       if (!Array.isArray(strategies)) {
-        console.error('Invalid strategies format:', typeof strategies);
-        return res.status(400).json({ message: "Les stratégies doivent être un tableau" });
+        console.error('Invalid strategies format:', { type: typeof strategies, value: strategies });
+        return res.status(400).json({ 
+          message: "Les stratégies doivent être un tableau",
+          received: typeof strategies,
+          expected: "array"
+        });
       }
 
       if (strategies.length === 0) {
         return res.status(400).json({ message: "Au moins une stratégie doit être fournie" });
       }
 
-      // Validate strategies structure
+      // Validate strategies structure with detailed logging
       for (let i = 0; i < strategies.length; i++) {
         const strategy = strategies[i];
-        if (!strategy.context || !strategy.exercise || !strategy.effort) {
-          console.error(`Invalid strategy at index ${i}:`, strategy);
-          return res.status(400).json({ message: `Stratégie ${i + 1}: contexte, exercice et effort sont requis` });
+        console.log(`Validating strategy ${i + 1}:`, strategy);
+        
+        const requiredFields = ['context', 'exercise', 'effort', 'duration', 'cravingBefore', 'cravingAfter'];
+        const missingFields = requiredFields.filter(field => 
+          strategy[field] === undefined || strategy[field] === null || strategy[field] === ''
+        );
+        
+        if (missingFields.length > 0) {
+          console.error(`Strategy ${i + 1} missing fields:`, missingFields);
+          return res.status(400).json({ 
+            message: `Stratégie ${i + 1}: champs manquants - ${missingFields.join(', ')}`,
+            strategy: strategy,
+            missingFields: missingFields
+          });
+        }
+
+        // Validate data types
+        if (typeof strategy.duration !== 'number' || strategy.duration <= 0) {
+          return res.status(400).json({ 
+            message: `Stratégie ${i + 1}: la durée doit être un nombre positif`,
+            received: strategy.duration
+          });
+        }
+        
+        if (typeof strategy.cravingBefore !== 'number' || strategy.cravingBefore < 0 || strategy.cravingBefore > 10) {
+          return res.status(400).json({ 
+            message: `Stratégie ${i + 1}: le craving avant doit être un nombre entre 0 et 10`,
+            received: strategy.cravingBefore
+          });
+        }
+        
+        if (typeof strategy.cravingAfter !== 'number' || strategy.cravingAfter < 0 || strategy.cravingAfter > 10) {
+          return res.status(400).json({ 
+            message: `Stratégie ${i + 1}: le craving après doit être un nombre entre 0 et 10`,
+            received: strategy.cravingAfter
+          });
         }
       }
 
@@ -621,12 +692,16 @@ export function registerRoutes(app: Express) {
       res.json({ 
         success: true, 
         strategies: savedStrategies,
-        message: `${savedStrategies.length} stratégie(s) sauvegardée(s) avec succès` 
+        message: `${savedStrategies.length} stratégie(s) sauvegardée(s) avec succès`,
+        count: savedStrategies.length
       });
     } catch (error) {
       console.error("Error saving anti-craving strategies:", error);
       const errorMessage = error instanceof Error ? error.message : "Erreur lors de la sauvegarde des stratégies";
-      res.status(500).json({ message: errorMessage });
+      res.status(500).json({ 
+        message: errorMessage,
+        error: error instanceof Error ? error.stack : String(error)
+      });
     }
   });
 
@@ -643,6 +718,234 @@ export function registerRoutes(app: Express) {
       console.error("Error fetching anti-craving strategies:", error);
       const errorMessage = error instanceof Error ? error.message : "Erreur lors de la récupération des stratégies";
       res.status(500).json({ message: errorMessage });
+    }
+  });
+
+  // ========================
+  // 🎯 NEW THERAPEUTIC FEATURES
+  // ========================
+
+  // Timer sessions
+  app.post("/api/timer-sessions", requireAuth, async (req, res) => {
+    try {
+      if (!req.session?.user) return res.status(401).json({ message: "Session non valide" });
+      const sessionData = {
+        ...req.body,
+        userId: req.session.user.id
+      };
+      const session = await storage.createTimerSession(sessionData);
+      res.json(session);
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Validation failed" });
+    }
+  });
+
+  app.get("/api/timer-sessions", requireAuth, async (req, res) => {
+    try {
+      if (!req.session?.user) return res.status(401).json({ message: "Session non valide" });
+      const userId = req.session.user.id;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const sessions = await storage.getTimerSessions(userId, limit);
+      res.json(sessions);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch timer sessions" });
+    }
+  });
+
+  // Visualization content
+  app.get("/api/visualizations", async (req, res) => {
+    try {
+      const content = await storage.getVisualizationContent();
+      res.json(content);
+    } catch (error) {
+      res.status(500).json({ message: "Erreur lors de la récupération des visualisations" });
+    }
+  });
+
+  app.post("/api/visualizations", requireAdmin, async (req, res) => {
+    try {
+      const content = await storage.createVisualizationContent(req.body);
+      res.json(content);
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Validation échouée" });
+    }
+  });
+
+  // Audio content
+  app.get("/api/audio-content", async (req, res) => {
+    try {
+      const content = await storage.getAudioContent();
+      res.json(content);
+    } catch (error) {
+      res.status(500).json({ message: "Erreur lors de la récupération du contenu audio" });
+    }
+  });
+
+  app.post("/api/audio-content", requireAdmin, async (req, res) => {
+    try {
+      const content = await storage.createAudioContent(req.body);
+      res.json(content);
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Validation échouée" });
+    }
+  });
+
+  // Professional reports
+  app.get("/api/admin/professional-reports", requireAdmin, async (req, res) => {
+    try {
+      const reports = await storage.getProfessionalReports(req.session.user!.id);
+      res.json(reports);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch professional reports" });
+    }
+  });
+
+  app.post("/api/admin/professional-reports", requireAdmin, async (req, res) => {
+    try {
+      const reportData = {
+        ...req.body,
+        therapistId: req.session.user!.id
+      };
+      const report = await storage.createProfessionalReport(reportData);
+      res.json(report);
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to create report" });
+    }
+  });
+
+  app.put("/api/admin/professional-reports/:reportId", requireAdmin, async (req, res) => {
+    try {
+      const { reportId } = req.params;
+      const report = await storage.updateProfessionalReport(reportId, req.body);
+      res.json(report);
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to update report" });
+    }
+  });
+
+  app.delete("/api/admin/professional-reports/:reportId", requireAdmin, async (req, res) => {
+    try {
+      const { reportId } = req.params;
+      await storage.deleteProfessionalReport(reportId);
+      res.json({ message: "Report deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete report" });
+    }
+  });
+
+  // Generate automatic reports
+  app.post("/api/admin/generate-report", requireAdmin, async (req, res) => {
+    try {
+      const { patientId, reportType } = req.body;
+      
+      // Generate report based on type
+      let startDate: Date, endDate: Date;
+      const now = new Date();
+      
+      switch (reportType) {
+        case 'weekly':
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          endDate = now;
+          break;
+        case 'monthly':
+          startDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+          endDate = now;
+          break;
+        default:
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          endDate = now;
+      }
+
+      const reportData = await storage.generateUserProgressReport(patientId, startDate, endDate);
+      
+      // Generate report content
+      const title = `Rapport ${reportType} - ${startDate.toLocaleDateString('fr-FR')} au ${endDate.toLocaleDateString('fr-FR')}`;
+      const content = `
+## Résumé de la période
+
+### Exercices
+- Nombre total d'exercices: ${reportData.exerciseStats?.count || 0}
+- Durée totale: ${Math.round((reportData.exerciseStats?.totalDuration || 0) / 60)} minutes
+- Niveau de craving moyen avant exercice: ${reportData.exerciseStats?.avgCravingBefore?.toFixed(1) || 'N/A'}/10
+- Niveau de craving moyen après exercice: ${reportData.exerciseStats?.avgCravingAfter?.toFixed(1) || 'N/A'}/10
+
+### Cravings
+- Nombre d'entrées: ${reportData.cravingStats?.count || 0}
+- Intensité moyenne: ${reportData.cravingStats?.avgIntensity?.toFixed(1) || 'N/A'}/10
+
+### Observations
+${reportData.exerciseStats?.avgCravingBefore && reportData.exerciseStats?.avgCravingAfter 
+  ? `Réduction moyenne du craving: ${(reportData.exerciseStats.avgCravingBefore - reportData.exerciseStats.avgCravingAfter).toFixed(1)} points`
+  : 'Données insuffisantes pour calculer l\'efficacité des exercices'
+}
+
+### Recommandations
+- ${reportData.exerciseStats?.count >= 3 ? 'Bonne assiduité dans les exercices' : 'Encourager une pratique plus régulière'}
+- ${reportData.cravingStats?.avgIntensity < 5 ? 'Niveau de craving globalement maîtrisé' : 'Focus sur les techniques de réduction du craving'}
+      `;
+
+      res.json({ title, content, data: reportData });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to generate report" });
+    }
+  });
+
+  // User notes (for therapist)
+  app.put("/api/admin/users/:userId/notes", requireAdmin, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { notes } = req.body;
+      await storage.updateUserNotes(userId, notes);
+      res.json({ message: "Notes updated successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update user notes" });
+    }
+  });
+
+  // Inactivity management
+  app.get("/api/admin/inactive-users", requireAdmin, async (req, res) => {
+    try {
+      const threshold = req.query.threshold ? parseInt(req.query.threshold as string) : undefined;
+      const users = await storage.getInactiveUsers(threshold);
+      res.json(users);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch inactive users" });
+    }
+  });
+
+  app.put("/api/admin/users/:userId/inactivity-threshold", requireAdmin, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { threshold } = req.body;
+      await storage.setUserInactivityThreshold(userId, threshold);
+      res.json({ message: "Inactivity threshold updated successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update inactivity threshold" });
+    }
+  });
+
+  // Exercise enhancements
+  app.get("/api/exercises/:exerciseId/enhancements", async (req, res) => {
+    try {
+      const { exerciseId } = req.params;
+      const enhancements = await storage.getExerciseEnhancements(exerciseId);
+      res.json(enhancements);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch exercise enhancements" });
+    }
+  });
+
+  app.post("/api/admin/exercises/:exerciseId/enhancements", requireAdmin, async (req, res) => {
+    try {
+      const { exerciseId } = req.params;
+      const enhancementData = {
+        ...req.body,
+        exerciseId
+      };
+      const enhancement = await storage.createExerciseEnhancement(enhancementData);
+      res.json(enhancement);
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to create enhancement" });
     }
   });
 

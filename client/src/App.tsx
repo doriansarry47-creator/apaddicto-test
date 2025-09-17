@@ -10,6 +10,9 @@ import { AdminRoute } from "@/components/admin-route";
 import Dashboard from "@/pages/dashboard";
 import Exercises from "@/pages/exercises";
 import ExerciseDetail from "@/pages/exercise-detail";
+// Note: Pages supprimées - fonctionnalités intégrées dans /exercises
+// import TherapeuticExercises from "@/pages/therapeutic-exercises";
+// import RelaxationExercises from "@/pages/relaxation-exercises";
 import Tracking from "@/pages/tracking";
 import Education from "@/pages/education";
 import Profile from "@/pages/profile";
@@ -22,6 +25,7 @@ import ManageExercises from "@/pages/admin/manage-exercises";
 import ManageContent from "@/pages/admin/manage-content";
 import ManageUsers from "@/pages/admin/manage-users";
 import ManageMedia from "@/pages/admin/manage-media";
+import ProfessionalReports from "@/pages/admin/professional-reports";
 import AdminDebug from "@/pages/admin/debug";
 
 
@@ -51,6 +55,17 @@ function AppContent() {
       <Route path="/tracking">
         <ProtectedRoute>
           <Tracking />
+        </ProtectedRoute>
+      </Route>
+      {/* Redirections for old routes - functionality integrated into /exercises */}
+      <Route path="/therapeutic-exercises">
+        <ProtectedRoute>
+          <Exercises />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/relaxation-exercises">
+        <ProtectedRoute>
+          <Exercises />
         </ProtectedRoute>
       </Route>
       <Route path="/education">
@@ -85,6 +100,11 @@ function AppContent() {
           <ManageUsers />
         </AdminRoute>
       </Route>
+      <Route path="/admin/professional-reports">
+        <AdminRoute>
+          <ProfessionalReports />
+        </AdminRoute>
+      </Route>
       <Route path="/admin/manage-media">
         <AdminRoute>
           <ManageMedia />
@@ -106,7 +126,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <div className="min-h-screen bg-background text-foreground font-roboto">
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 text-foreground font-roboto antialiased">
           <Toaster />
           <AppContent />
         </div>
