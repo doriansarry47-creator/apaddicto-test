@@ -106,38 +106,28 @@ export default function Dashboard() {
     <>
       <Navigation />
       <main className="container mx-auto px-4 py-6 pb-20 md:pb-6">
-        {/* Hero Section - Page d'accueil personnalisée */}
-        <section className="text-center mb-12 py-8">
+        {/* Hero Section - Page d'accueil modernisée */}
+        <section className="text-center mb-8 py-6">
           <div className="max-w-4xl mx-auto">
-            <h1 className="text-4xl md:text-6xl font-bold text-primary mb-4">
-              Bienvenue dans Apaddicto
+            <h1 className="text-3xl md:text-5xl font-bold text-primary mb-6">
+              Apaddicto
             </h1>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <div className="flex items-center gap-2 text-lg">
-                <span className="material-icons text-primary">fitness_center</span>
-                <span>Exercices ciblés</span>
-              </div>
-              <div className="flex items-center gap-2 text-lg">
-                <span className="material-icons text-secondary">psychology</span>
-                <span>Suivi personnalisé</span>
-              </div>
-              <div className="flex items-center gap-2 text-lg">
-                <span className="material-icons text-warning">emoji_events</span>
-                <span>Motivation quotidienne</span>
-              </div>
-            </div>
             {user && (
-              <div className="mt-6 p-4 bg-primary/10 rounded-lg">
-                <p className="text-lg font-medium">Bonjour {user.firstName || 'Champion'} ! 👋</p>
-                <p className="text-muted-foreground">Prêt(e) à continuer votre parcours de rétablissement ?</p>
+              <div className="mb-6 p-6 bg-gradient-to-r from-primary/10 via-secondary/10 to-primary/10 rounded-xl border border-primary/20">
+                <p className="text-xl font-semibold text-foreground mb-2">
+                  Bonjour {user.firstName || 'Champion'} ! 👋
+                </p>
+                <p className="text-muted-foreground">
+                  Votre plateforme de thérapie sportive et de bien-être
+                </p>
               </div>
             )}
           </div>
         </section>
         
         {/* Dashboard Overview Cards */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8">
           {/* Today's Craving Level */}
           <Card className="shadow-material" data-testid="card-craving-level">
             <CardContent className="p-6">
@@ -222,7 +212,7 @@ export default function Dashboard() {
         </section>
 
         {/* Quick Actions */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8">
           <Card className="shadow-material" data-testid="card-quick-craving">
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -300,7 +290,7 @@ export default function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                   {antiCravingStrategies
                     .filter(strategy => strategy.cravingBefore > strategy.cravingAfter) // Strategies that worked
                     .sort((a, b) => (b.cravingBefore - b.cravingAfter) - (a.cravingBefore - a.cravingAfter)) // Sort by effectiveness
@@ -400,7 +390,7 @@ export default function Dashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 mb-6">
                 <Link to="/exercises?category=craving" className="w-full">
                   <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2 w-full" data-testid="button-craving-exercises">
                     <span className="material-icons text-destructive">emergency</span>
@@ -447,7 +437,7 @@ export default function Dashboard() {
                   <p className="text-emerald-700 mb-4">
                     Découvrez nos exercices de respiration guidés avec visualisation animée et personnalisation complète des durées.
                   </p>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 mb-4">
                     <div className="flex items-center space-x-3 p-3 bg-white/60 rounded-lg">
                       <span className="material-icons text-red-500">favorite</span>
                       <div>

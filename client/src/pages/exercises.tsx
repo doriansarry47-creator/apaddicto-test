@@ -200,14 +200,15 @@ export default function Exercises() {
               {/* Category Filter */}
               <div>
                 <h3 className="text-sm font-medium text-foreground mb-3">Catégorie</h3>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1 sm:gap-2">
                   <Button
                     variant={selectedCategory === 'all' ? "default" : "outline"}
                     size="sm"
                     onClick={() => setSelectedCategory('all')}
                     data-testid="button-category-all"
+                    className="text-xs sm:text-sm px-2 sm:px-3"
                   >
-                    Toutes les catégories
+                    Toutes
                   </Button>
                   {Object.entries(categories).map(([key, label]) => (
                     <Button
@@ -216,6 +217,7 @@ export default function Exercises() {
                       size="sm"
                       onClick={() => setSelectedCategory(key as keyof typeof categories)}
                       data-testid={`button-category-${key}`}
+                      className="text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap"
                     >
                       {label}
                     </Button>
@@ -226,14 +228,15 @@ export default function Exercises() {
               {/* Level Filter */}
               <div>
                 <h3 className="text-sm font-medium text-foreground mb-3">Niveau</h3>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1 sm:gap-2">
                   <Button
                     variant={selectedLevel === 'all' ? "default" : "outline"}
                     size="sm"
                     onClick={() => setSelectedLevel('all')}
                     data-testid="button-level-all"
+                    className="text-xs sm:text-sm px-2 sm:px-3"
                   >
-                    Tous niveaux
+                    Tous
                   </Button>
                   {Object.entries(levels).map(([key, label]) => (
                     <Button
@@ -242,6 +245,7 @@ export default function Exercises() {
                       size="sm"
                       onClick={() => setSelectedLevel(key as keyof typeof levels)}
                       data-testid={`button-level-${key}`}
+                      className="text-xs sm:text-sm px-2 sm:px-3"
                     >
                       {label}
                     </Button>

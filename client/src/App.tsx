@@ -126,7 +126,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <div className="min-h-screen bg-background text-foreground font-roboto">
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 text-foreground font-roboto antialiased">
           <Toaster />
           <AppContent />
         </div>

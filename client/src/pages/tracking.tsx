@@ -367,7 +367,7 @@ export default function Tracking() {
 
         {/* Detailed Tracking */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5" data-testid="tabs-tracking">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 gap-1" data-testid="tabs-tracking">
             <TabsTrigger value="overview" data-testid="tab-overview">Vue d'ensemble</TabsTrigger>
             <TabsTrigger value="cravings" data-testid="tab-cravings">Cravings</TabsTrigger>
             <TabsTrigger value="exercises" data-testid="tab-exercises">Exercices</TabsTrigger>
@@ -634,9 +634,9 @@ export default function Tracking() {
                         </div>
                         
                         {session.cravingBefore !== null && session.cravingAfter !== null && (
-                          <div className="flex items-center space-x-4 text-sm">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm">
                             <span>Craving avant: <strong>{session.cravingBefore}/10</strong></span>
-                            <span className="material-icons text-primary">arrow_forward</span>
+                            <span className="material-icons text-primary hidden sm:inline">arrow_forward</span>
                             <span>Craving après: <strong>{session.cravingAfter}/10</strong></span>
                             {session.cravingBefore > session.cravingAfter && (
                               <Badge className="bg-success text-success-foreground">
@@ -693,7 +693,7 @@ export default function Tracking() {
                           )}
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div className="grid grid-cols-1 gap-4 text-sm overflow-hidden">
                           <div>
                             <h4 className="font-medium text-foreground mb-1">Situation:</h4>
                             <p className="text-muted-foreground">{analysis.situation}</p>
@@ -765,9 +765,9 @@ export default function Tracking() {
                           {strategy.exercise}
                         </div>
                         
-                        <div className="flex items-center space-x-4 text-sm">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm">
                           <span>Craving avant: <strong className={`${strategy.cravingBefore > 6 ? 'text-destructive' : strategy.cravingBefore > 3 ? 'text-warning' : 'text-success'}`}>{strategy.cravingBefore}/10</strong></span>
-                          <span className="material-icons text-primary">arrow_forward</span>
+                          <span className="material-icons text-primary hidden sm:inline">arrow_forward</span>
                           <span>Craving après: <strong className={`${strategy.cravingAfter > 6 ? 'text-destructive' : strategy.cravingAfter > 3 ? 'text-warning' : 'text-success'}`}>{strategy.cravingAfter}/10</strong></span>
                           {strategy.cravingBefore > strategy.cravingAfter && (
                             <Badge className="bg-success text-success-foreground">
