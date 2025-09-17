@@ -13,7 +13,7 @@ const authenticateUser = async (email, password) => {
   try {
     // Simple password check (in production, use proper hashing)
     const result = await pool.query(
-      'SELECT * FROM users WHERE email = $1 AND password_hash = crypt($2, password_hash)',
+      'SELECT * FROM users WHERE email = $1 AND password = crypt($2, password)',
       [email, password]
     );
     
@@ -37,7 +37,7 @@ const createUser = async (userData) => {
   
   try {
     const result = await pool.query(`
-      INSERT INTO users (email, password_hash, first_name, last_name, role, created_at, updated_at)
+      INSERT INTO users (email, password, first_name, last_name, role, created_at, updated_at)
       VALUES ($1, crypt($2, gen_salt('bf')), $3, $4, $5, NOW(), NOW())
       RETURNING id, email, first_name, last_name, role, created_at, updated_at
     `, [userData.email, userData.password, userData.firstName, userData.lastName, userData.role || 'patient']);
