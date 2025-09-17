@@ -27,6 +27,7 @@ export default function Dashboard() {
   const [showBeckColumn, setShowBeckColumn] = useState(false);
   const [showStrategiesBox, setShowStrategiesBox] = useState(false);
   const [showEmergencyStrategies, setShowEmergencyStrategies] = useState(false);
+  const [showRespirationDialog, setShowRespirationDialog] = useState(false);
   const { toast } = useToast();
   
   // Récupérer l'utilisateur authentifié
