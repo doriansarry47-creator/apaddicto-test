@@ -156,7 +156,7 @@ export class DbStorage implements IStorage {
     }
   }
 
-  private async updateUserStatsForBeckAnalysis(userId: string): Promise<void> {
+  async updateUserStatsForBeckAnalysis(userId: string): Promise<void> {
     // Ensure the column exists
     await this.ensureBeckAnalysesColumn();
     
@@ -289,7 +289,7 @@ export class DbStorage implements IStorage {
 
   async updatePsychoEducationContent(contentId: string, data: Partial<InsertPsychoEducationContent>): Promise<PsychoEducationContent> {
     const result = await getDB().update(psychoEducationContent)
-      .set({ ...data, updatedAt: new Date().toISOString() })
+      .set({ ...data, updatedAt: new Date() })
       .where(eq(psychoEducationContent.id, contentId))
       .returning();
     
@@ -700,7 +700,11 @@ export class DbStorage implements IStorage {
 
   // Professional reports
   async createProfessionalReport(report: InsertProfessionalReport): Promise<ProfessionalReport> {
-    return getDB().insert(professionalReports).values(report).returning().then(rows => rows[0]);
+    const reportData = {
+      ...report,
+      tags: Array.isArray(report.tags) ? report.tags : []
+    };
+    return getDB().insert(professionalReports).values(reportData).returning().then(rows => rows[0]);
   }
 
   async getProfessionalReports(therapistId?: string): Promise<ProfessionalReport[]> {
@@ -739,9 +743,14 @@ export class DbStorage implements IStorage {
   }
 
   async updateProfessionalReport(reportId: string, data: Partial<InsertProfessionalReport>): Promise<ProfessionalReport> {
+    const updateData = {
+      ...data,
+      tags: Array.isArray(data.tags) ? data.tags : data.tags || [],
+      updatedAt: new Date()
+    };
     return getDB()
       .update(professionalReports)
-      .set({ ...data, updatedAt: new Date() })
+      .set(updateData)
       .where(eq(professionalReports.id, reportId))
       .returning()
       .then(rows => rows[0]);
@@ -787,13 +796,22 @@ export class DbStorage implements IStorage {
   }
 
   async createAudioContent(content: InsertAudioContent): Promise<AudioContent> {
-    return getDB().insert(audioContent).values(content).returning().then(rows => rows[0]);
+    const audioData = {
+      ...content,
+      tags: Array.isArray(content.tags) ? content.tags : []
+    };
+    return getDB().insert(audioContent).values(audioData).returning().then(rows => rows[0]);
   }
 
   async updateAudioContent(contentId: string, data: Partial<InsertAudioContent>): Promise<AudioContent> {
+    const updateData = {
+      ...data,
+      tags: Array.isArray(data.tags) ? data.tags : data.tags || [],
+      updatedAt: new Date()
+    };
     return getDB()
       .update(audioContent)
-      .set({ ...data, updatedAt: new Date() })
+      .set(updateData)
       .where(eq(audioContent.id, contentId))
       .returning()
       .then(rows => rows[0]);
@@ -813,13 +831,22 @@ export class DbStorage implements IStorage {
   }
 
   async createExerciseEnhancement(enhancement: InsertExerciseEnhancement): Promise<ExerciseEnhancement> {
-    return getDB().insert(exerciseEnhancements).values(enhancement).returning().then(rows => rows[0]);
+    const enhancementData = {
+      ...enhancement,
+      audioUrls: Array.isArray(enhancement.audioUrls) ? enhancement.audioUrls : []
+    };
+    return getDB().insert(exerciseEnhancements).values(enhancementData).returning().then(rows => rows[0]);
   }
 
   async updateExerciseEnhancement(exerciseId: string, data: Partial<InsertExerciseEnhancement>): Promise<ExerciseEnhancement> {
+    const updateData = {
+      ...data,
+      audioUrls: Array.isArray(data.audioUrls) ? data.audioUrls : data.audioUrls || [],
+      updatedAt: new Date()
+    };
     return getDB()
       .update(exerciseEnhancements)
-      .set({ ...data, updatedAt: new Date() })
+      .set(updateData)
       .where(eq(exerciseEnhancements.exerciseId, exerciseId))
       .returning()
       .then(rows => rows[0]);

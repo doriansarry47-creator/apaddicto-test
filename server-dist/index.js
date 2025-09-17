@@ -542,7 +542,7 @@ var init_storage = __esm({
         return getDB().insert(psychoEducationContent).values(insertContent).returning().then((rows) => rows[0]);
       }
       async updatePsychoEducationContent(contentId, data) {
-        const result = await getDB().update(psychoEducationContent).set({ ...data, updatedAt: (/* @__PURE__ */ new Date()).toISOString() }).where(eq(psychoEducationContent.id, contentId)).returning();
+        const result = await getDB().update(psychoEducationContent).set({ ...data, updatedAt: /* @__PURE__ */ new Date() }).where(eq(psychoEducationContent.id, contentId)).returning();
         if (result.length === 0) {
           throw new Error("Content not found");
         }
@@ -803,7 +803,11 @@ var init_storage = __esm({
       }
       // Professional reports
       async createProfessionalReport(report) {
-        return getDB().insert(professionalReports).values(report).returning().then((rows) => rows[0]);
+        const reportData = {
+          ...report,
+          tags: Array.isArray(report.tags) ? report.tags : []
+        };
+        return getDB().insert(professionalReports).values(reportData).returning().then((rows) => rows[0]);
       }
       async getProfessionalReports(therapistId) {
         const query = getDB().select({
@@ -834,7 +838,12 @@ var init_storage = __esm({
         return query;
       }
       async updateProfessionalReport(reportId, data) {
-        return getDB().update(professionalReports).set({ ...data, updatedAt: /* @__PURE__ */ new Date() }).where(eq(professionalReports.id, reportId)).returning().then((rows) => rows[0]);
+        const updateData = {
+          ...data,
+          tags: Array.isArray(data.tags) ? data.tags : data.tags || [],
+          updatedAt: /* @__PURE__ */ new Date()
+        };
+        return getDB().update(professionalReports).set(updateData).where(eq(professionalReports.id, reportId)).returning().then((rows) => rows[0]);
       }
       async deleteProfessionalReport(reportId) {
         await getDB().delete(professionalReports).where(eq(professionalReports.id, reportId));
@@ -857,10 +866,19 @@ var init_storage = __esm({
         return getDB().select().from(audioContent).where(eq(audioContent.isActive, true)).orderBy(audioContent.category, audioContent.title);
       }
       async createAudioContent(content) {
-        return getDB().insert(audioContent).values(content).returning().then((rows) => rows[0]);
+        const audioData = {
+          ...content,
+          tags: Array.isArray(content.tags) ? content.tags : []
+        };
+        return getDB().insert(audioContent).values(audioData).returning().then((rows) => rows[0]);
       }
       async updateAudioContent(contentId, data) {
-        return getDB().update(audioContent).set({ ...data, updatedAt: /* @__PURE__ */ new Date() }).where(eq(audioContent.id, contentId)).returning().then((rows) => rows[0]);
+        const updateData = {
+          ...data,
+          tags: Array.isArray(data.tags) ? data.tags : data.tags || [],
+          updatedAt: /* @__PURE__ */ new Date()
+        };
+        return getDB().update(audioContent).set(updateData).where(eq(audioContent.id, contentId)).returning().then((rows) => rows[0]);
       }
       async deleteAudioContent(contentId) {
         await getDB().delete(audioContent).where(eq(audioContent.id, contentId));
@@ -870,10 +888,19 @@ var init_storage = __esm({
         return getDB().select().from(exerciseEnhancements).where(and(eq(exerciseEnhancements.exerciseId, exerciseId), eq(exerciseEnhancements.isActive, true))).then((rows) => rows[0]);
       }
       async createExerciseEnhancement(enhancement) {
-        return getDB().insert(exerciseEnhancements).values(enhancement).returning().then((rows) => rows[0]);
+        const enhancementData = {
+          ...enhancement,
+          audioUrls: Array.isArray(enhancement.audioUrls) ? enhancement.audioUrls : []
+        };
+        return getDB().insert(exerciseEnhancements).values(enhancementData).returning().then((rows) => rows[0]);
       }
       async updateExerciseEnhancement(exerciseId, data) {
-        return getDB().update(exerciseEnhancements).set({ ...data, updatedAt: /* @__PURE__ */ new Date() }).where(eq(exerciseEnhancements.exerciseId, exerciseId)).returning().then((rows) => rows[0]);
+        const updateData = {
+          ...data,
+          audioUrls: Array.isArray(data.audioUrls) ? data.audioUrls : data.audioUrls || [],
+          updatedAt: /* @__PURE__ */ new Date()
+        };
+        return getDB().update(exerciseEnhancements).set(updateData).where(eq(exerciseEnhancements.exerciseId, exerciseId)).returning().then((rows) => rows[0]);
       }
       // User management with inactivity tracking
       async getAllUsersWithStats() {
