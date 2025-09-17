@@ -1,22 +1,26 @@
 {
   "version": 2,
-  "buildCommand": "npm run vercel-build",
-  "outputDirectory": "dist",
-  "functions": {
-    "api/index.js": {
-      "runtime": "nodejs20.x",
-      "maxDuration": 30
-    }
-  },
-  "rewrites": [
+  "builds": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/index.js"
+      "src": "client/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "client/dist"
+      }
     },
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "src": "server-dist/**/*.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "server-dist/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "client/dist/index.html"
     }
   ]
 }
-
