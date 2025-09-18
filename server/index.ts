@@ -28,8 +28,14 @@ app.use(express.json());
 
 // === SERVIR LES FICHIERS STATIQUES ===
 const distPath = path.join(__dirname, '..', 'dist');
+const clientPath = path.join(__dirname, '..', 'client');
 console.log('📁 Serving static files from:', distPath);
+console.log('📁 Also serving client files from:', clientPath);
+
+// Servir les fichiers de build en priorité
 app.use(express.static(distPath));
+// Servir les fichiers du client aussi (pour le développement)
+app.use('/client', express.static(clientPath));
 
 // === SESSION ===
 app.use(session({

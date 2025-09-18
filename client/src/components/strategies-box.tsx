@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -245,124 +246,207 @@ export function StrategiesBox({ userId, onSuccess }: StrategiesBoxProps) {
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Table Header */}
+        {/* Responsive Table */}
         <div className="overflow-x-auto">
-          <div className="min-w-[800px]">
-            {/* Headers */}
-            <div className="grid grid-cols-7 gap-2 p-2 bg-muted/50 rounded-lg text-sm font-medium">
-              <div className="text-center">Contexte</div>
-              <div className="text-center">Exercices</div>
-              <div className="text-center">Effort / Intensité</div>
-              <div className="text-center">Durée (min)</div>
-              <div className="text-center">Craving Avant</div>
-              <div className="text-center">Craving Après</div>
-              <div className="text-center">Actions</div>
+          <div className="min-w-[800px] lg:min-w-full">
+            {/* Headers - Desktop */}
+            <div className="hidden md:grid md:grid-cols-7 gap-2 p-3 bg-gradient-to-r from-primary/5 to-secondary/5 rounded-lg text-sm font-medium border border-primary/10">
+              <div className="text-center font-semibold text-primary">Contexte</div>
+              <div className="text-center font-semibold text-primary">Exercices</div>
+              <div className="text-center font-semibold text-primary">Effort / Intensité</div>
+              <div className="text-center font-semibold text-primary">Durée (min)</div>
+              <div className="text-center font-semibold text-primary">Craving Avant</div>
+              <div className="text-center font-semibold text-primary">Craving Après</div>
+              <div className="text-center font-semibold text-primary">Actions</div>
             </div>
 
             {/* Strategy Rows */}
-            <div className="space-y-2 mt-4">
+            <div className="space-y-3 mt-4">
               {strategies.map((strategy, index) => (
-                <div key={strategy.id} className="grid grid-cols-7 gap-2 p-2 border rounded-lg">
-                  {/* Context */}
-                  <div className="flex flex-col">
-                    <select
-                      value={strategy.context}
-                      onChange={(e) => updateStrategy(strategy.id, 'context', e.target.value)}
-                      className="w-full p-2 border border-input rounded text-sm bg-background"
-                      data-testid={`select-context-${index}`}
-                    >
-                      {contexts.map(context => (
-                        <option key={context.key} value={context.key}>
-                          {context.label}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="text-xs text-muted-foreground mt-1 italic">
-                      {getExampleText(strategy.context)}
+                <div key={strategy.id} className="border border-border rounded-lg p-3 bg-background hover:bg-muted/30 transition-colors">
+                  {/* Mobile Header */}
+                  <div className="md:hidden mb-3 flex items-center justify-between">
+                    <h4 className="font-medium text-primary">Stratégie #{index + 1}</h4>
+                    <div className="flex items-center space-x-2">
+                      <Badge variant="outline" className="text-xs">
+                        {strategy.context === 'leisure' ? 'Loisirs' : 
+                         strategy.context === 'home' ? 'Domicile' : 'Travail'}
+                      </Badge>
+                      {strategies.length > 1 && (
+                        <Button
+                          onClick={() => removeRow(strategy.id)}
+                          variant="outline"
+                          size="sm"
+                          className="text-destructive hover:text-destructive h-6 w-6 p-0"
+                          data-testid={`button-remove-mobile-${index}`}
+                        >
+                          <span className="material-icons text-xs">delete</span>
+                        </Button>
+                      )}
                     </div>
                   </div>
 
-                  {/* Exercise */}
-                  <div>
-                    <textarea
-                      value={strategy.exercise}
-                      onChange={(e) => updateStrategy(strategy.id, 'exercise', e.target.value)}
-                      placeholder="Décrivez votre activité/stratégie..."
-                      className="w-full p-2 border border-input rounded text-sm resize-none h-16 bg-background"
-                      data-testid={`textarea-exercise-${index}`}
-                    />
-                  </div>
-
-                  {/* Effort */}
-                  <div>
-                    <select
-                      value={strategy.effort}
-                      onChange={(e) => updateStrategy(strategy.id, 'effort', e.target.value)}
-                      className="w-full p-2 border border-input rounded text-sm bg-background"
-                      data-testid={`select-effort-${index}`}
-                    >
-                      {effortLevels.map(level => (
-                        <option key={level.value} value={level.value}>
-                          {level.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Duration */}
-                  <div>
-                    <input
-                      type="number"
-                      min="1"
-                      max="180"
-                      value={strategy.duration}
-                      onChange={(e) => updateStrategy(strategy.id, 'duration', Number(e.target.value))}
-                      className="w-full p-2 border border-input rounded text-sm bg-background"
-                      data-testid={`input-duration-${index}`}
-                    />
-                  </div>
-
-                  {/* Craving Before */}
-                  <div>
-                    <select
-                      value={strategy.cravingBefore}
-                      onChange={(e) => updateStrategy(strategy.id, 'cravingBefore', Number(e.target.value))}
-                      className="w-full p-2 border border-input rounded text-sm bg-background"
-                      data-testid={`select-craving-before-${index}`}
-                    >
-                      {Array.from({length: 11}, (_, i) => (
-                        <option key={i} value={i}>{i}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Craving After */}
-                  <div>
-                    <select
-                      value={strategy.cravingAfter}
-                      onChange={(e) => updateStrategy(strategy.id, 'cravingAfter', Number(e.target.value))}
-                      className="w-full p-2 border border-input rounded text-sm bg-background"
-                      data-testid={`select-craving-after-${index}`}
-                    >
-                      {Array.from({length: 11}, (_, i) => (
-                        <option key={i} value={i}>{i}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex justify-center">
-                    {strategies.length > 1 && (
-                      <Button
-                        onClick={() => removeRow(strategy.id)}
-                        variant="outline"
-                        size="sm"
-                        className="text-destructive hover:text-destructive"
-                        data-testid={`button-remove-${index}`}
+                  {/* Content - Responsive Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-7 gap-3 md:gap-2">
+                    {/* Context */}
+                    <div className="flex flex-col">
+                      <label className="block md:hidden text-xs font-medium text-muted-foreground mb-1">Contexte</label>
+                      <select
+                        value={strategy.context}
+                        onChange={(e) => updateStrategy(strategy.id, 'context', e.target.value)}
+                        className="w-full p-3 md:p-2 border border-input rounded-lg text-sm bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        data-testid={`select-context-${index}`}
                       >
-                        <span className="material-icons text-sm">delete</span>
-                      </Button>
-                    )}
+                        {contexts.map(context => (
+                          <option key={context.key} value={context.key}>
+                            {context.label}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="text-xs text-muted-foreground mt-1 italic">
+                        {getExampleText(strategy.context)}
+                      </div>
+                    </div>
+
+                    {/* Exercise */}
+                    <div>
+                      <label className="block md:hidden text-xs font-medium text-muted-foreground mb-1">Exercice/Stratégie</label>
+                      <textarea
+                        value={strategy.exercise}
+                        onChange={(e) => updateStrategy(strategy.id, 'exercise', e.target.value)}
+                        placeholder="Décrivez votre activité/stratégie en détail..."
+                        className="w-full p-3 md:p-2 border border-input rounded-lg text-sm resize-none h-20 md:h-16 bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        data-testid={`textarea-exercise-${index}`}
+                      />
+                    </div>
+
+                    {/* Effort */}
+                    <div>
+                      <label className="block md:hidden text-xs font-medium text-muted-foreground mb-1">Effort / Intensité</label>
+                      <select
+                        value={strategy.effort}
+                        onChange={(e) => updateStrategy(strategy.id, 'effort', e.target.value)}
+                        className="w-full p-3 md:p-2 border border-input rounded-lg text-sm bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        data-testid={`select-effort-${index}`}
+                      >
+                        {effortLevels.map(level => (
+                          <option key={level.value} value={level.value}>
+                            {level.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Duration */}
+                    <div>
+                      <label className="block md:hidden text-xs font-medium text-muted-foreground mb-1">Durée (minutes)</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="180"
+                        value={strategy.duration}
+                        onChange={(e) => updateStrategy(strategy.id, 'duration', Number(e.target.value))}
+                        className="w-full p-3 md:p-2 border border-input rounded-lg text-sm bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        data-testid={`input-duration-${index}`}
+                      />
+                    </div>
+
+                    {/* Craving Before/After - Grouped on Mobile */}
+                    <div className="md:hidden">
+                      <label className="block text-xs font-medium text-muted-foreground mb-2">Niveau de Craving</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-xs text-muted-foreground mb-1">Avant</label>
+                          <select
+                            value={strategy.cravingBefore}
+                            onChange={(e) => updateStrategy(strategy.id, 'cravingBefore', Number(e.target.value))}
+                            className="w-full p-2 border border-input rounded text-sm bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                            data-testid={`select-craving-before-mobile-${index}`}
+                          >
+                            {Array.from({length: 11}, (_, i) => (
+                              <option key={i} value={i}>{i}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-muted-foreground mb-1">Après</label>
+                          <select
+                            value={strategy.cravingAfter}
+                            onChange={(e) => updateStrategy(strategy.id, 'cravingAfter', Number(e.target.value))}
+                            className="w-full p-2 border border-input rounded text-sm bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                            data-testid={`select-craving-after-mobile-${index}`}
+                          >
+                            {Array.from({length: 11}, (_, i) => (
+                              <option key={i} value={i}>{i}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Craving Before - Desktop Only */}
+                    <div className="hidden md:block">
+                      <select
+                        value={strategy.cravingBefore}
+                        onChange={(e) => updateStrategy(strategy.id, 'cravingBefore', Number(e.target.value))}
+                        className="w-full p-2 border border-input rounded text-sm bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        data-testid={`select-craving-before-${index}`}
+                      >
+                        {Array.from({length: 11}, (_, i) => (
+                          <option key={i} value={i}>{i}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Craving After - Desktop Only */}
+                    <div className="hidden md:block">
+                      <select
+                        value={strategy.cravingAfter}
+                        onChange={(e) => updateStrategy(strategy.id, 'cravingAfter', Number(e.target.value))}
+                        className="w-full p-2 border border-input rounded text-sm bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        data-testid={`select-craving-after-${index}`}
+                      >
+                        {Array.from({length: 11}, (_, i) => (
+                          <option key={i} value={i}>{i}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Actions - Desktop Only */}
+                    <div className="hidden md:flex justify-center">
+                      {strategies.length > 1 && (
+                        <Button
+                          onClick={() => removeRow(strategy.id)}
+                          variant="outline"
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
+                          data-testid={`button-remove-${index}`}
+                        >
+                          <span className="material-icons text-sm">delete</span>
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Mobile Results Summary */}
+                  <div className="md:hidden mt-3 p-2 bg-muted/20 rounded-lg">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Résultat:</span>
+                      <div className="flex items-center space-x-2">
+                        <Badge variant={strategy.cravingBefore > 6 ? "destructive" : strategy.cravingBefore > 3 ? "secondary" : "default"}>
+                          {strategy.cravingBefore}/10
+                        </Badge>
+                        <span className="material-icons text-xs text-muted-foreground">arrow_forward</span>
+                        <Badge variant={strategy.cravingAfter > 6 ? "destructive" : strategy.cravingAfter > 3 ? "secondary" : "default"}>
+                          {strategy.cravingAfter}/10
+                        </Badge>
+                        {strategy.cravingBefore > strategy.cravingAfter && (
+                          <Badge className="bg-success text-success-foreground text-xs">
+                            -{strategy.cravingBefore - strategy.cravingAfter}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}
