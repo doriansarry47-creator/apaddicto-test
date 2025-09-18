@@ -1,5 +1,5 @@
 {
-  "name": "rest-express",
+  "name": "apaddicto-app",
   "version": "1.0.0",
   "type": "module",
   "license": "MIT",
@@ -135,6 +135,6 @@
     "bufferutil": "^4.0.8"
   },
   "overrides": {
-    "rollup": "npm:@rollup/wasm-node@^4.49.0"
+    "rollup": "@rollup/wasm-node@^4.49.0"
   }
 }
