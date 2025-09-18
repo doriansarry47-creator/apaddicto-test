@@ -185,34 +185,87 @@ export class DbStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const newUser = await getDB().insert(users).values(insertUser).returning().then(rows => rows[0]);
-    
-    // Ensure beck_analyses_completed column exists before trying to use it
-    await this.ensureBeckAnalysesColumn();
-    
-    // Initialize stats for the new user
     try {
-      await getDB().insert(userStats).values({ 
-        userId: newUser.id,
-        exercisesCompleted: 0,
-        totalDuration: 0,
-        currentStreak: 0,
-        longestStreak: 0,
-        beckAnalysesCompleted: 0
+      // Validation supplémentaire côté storage
+      if (!insertUser.email || !insertUser.password) {
+        throw new Error('Email et mot de passe sont requis');
+      }
+
+      // Vérification finale avant insertion (triple sécurité)
+      const existingUser = await this.getUserByEmail(insertUser.email);
+      if (existingUser) {
+        throw new Error('Un utilisateur avec cet email existe déjà');
+      }
+
+      const newUser = await getDB().insert(users).values(insertUser).returning().then(rows => {
+        if (!rows || rows.length === 0) {
+          throw new Error('Échec de la création de l\'utilisateur');
+        }
+        return rows[0];
       });
+      
+      // Ensure beck_analyses_completed column exists before trying to use it
+      await this.ensureBeckAnalysesColumn();
+      
+      // Initialize stats for the new user
+      try {
+        await getDB().insert(userStats).values({ 
+          userId: newUser.id,
+          exercisesCompleted: 0,
+          totalDuration: 0,
+          currentStreak: 0,
+          longestStreak: 0,
+          beckAnalysesCompleted: 0
+        });
+      } catch (error) {
+        // Fallback: try without beckAnalysesCompleted if it still fails
+        console.log('⚠️ Tentative d\'insertion sans beck_analyses_completed...');
+        try {
+          await getDB().insert(userStats).values({ 
+            userId: newUser.id,
+            exercisesCompleted: 0,
+            totalDuration: 0,
+            currentStreak: 0,
+            longestStreak: 0
+          });
+        } catch (statsError) {
+          console.error('Erreur création userStats:', statsError);
+          // Continue même si la création des stats échoue
+        }
+      }
+      
+      return newUser;
     } catch (error) {
-      // Fallback: try without beckAnalysesCompleted if it still fails
-      console.log('⚠️ Tentative d\'insertion sans beck_analyses_completed...');
-      await getDB().insert(userStats).values({ 
-        userId: newUser.id,
-        exercisesCompleted: 0,
-        totalDuration: 0,
-        currentStreak: 0,
-        longestStreak: 0
-      });
+      // Gestion robuste des erreurs
+      if (error instanceof Error) {
+        // Erreurs de contrainte d'unicité
+        if (error.message.includes('duplicate key value') || 
+            error.message.includes('unique constraint') ||
+            error.message.includes('users_email_unique') ||
+            error.message.includes('UNIQUE constraint failed')) {
+          throw new Error('Un utilisateur avec cet email existe déjà');
+        }
+        
+        // Erreurs de validation
+        if (error.message.includes('null value') || 
+            error.message.includes('not-null constraint')) {
+          throw new Error('Données manquantes pour la création de l\'utilisateur');
+        }
+        
+        // Erreurs de connexion
+        if (error.message.includes('connection') || 
+            error.message.includes('timeout') ||
+            error.message.includes('ECONNREFUSED')) {
+          throw new Error('Problème de connexion à la base de données');
+        }
+        
+        // Re-throw l'erreur originale si elle est explicite
+        throw error;
+      }
+      
+      // Erreur générique
+      throw new Error('Erreur lors de la création de l\'utilisateur');
     }
-    
-    return newUser;
   }
 
   async updateUser(userId: string, data: Partial<Omit<User, 'id' | 'password' | 'role' | 'createdAt' | 'updatedAt'>>): Promise<User> {
