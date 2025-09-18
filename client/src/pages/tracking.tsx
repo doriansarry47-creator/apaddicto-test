@@ -733,64 +733,148 @@ export default function Tracking() {
           <TabsContent value="strategies" className="space-y-6">
             <Card className="shadow-material" data-testid="card-strategies-history">
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <span className="material-icons mr-2 text-warning">fitness_center</span>
-                  Historique des Stratégies Anti-Craving
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <span className="material-icons mr-2 text-warning">fitness_center</span>
+                    Historique des Stratégies Anti-Craving
+                  </div>
+                  <Badge variant="outline" className="hidden sm:inline-flex">
+                    {antiCravingStrategies?.length || 0} stratégie{(antiCravingStrategies?.length || 0) > 1 ? 's' : ''} testée{(antiCravingStrategies?.length || 0) > 1 ? 's' : ''}
+                  </Badge>
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {antiCravingStrategies && antiCravingStrategies.length > 0 ? (
-                  <div className="space-y-4">
-                    {antiCravingStrategies.map((strategy: AntiCravingStrategy) => (
-                      <div key={strategy.id} className="border border-border rounded-lg p-4" data-testid={`strategy-${strategy.id}`}>
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-sm text-muted-foreground">
-                            {formatDate(strategy.createdAt)}
-                          </span>
-                          <div className="flex items-center space-x-2">
-                            <Badge variant="outline" className="capitalize">
-                              {strategy.context === 'leisure' ? 'Loisirs' : 
-                               strategy.context === 'home' ? 'Domicile' : 'Travail'}
-                            </Badge>
-                            <Badge variant="outline" className="capitalize">
-                              {strategy.effort}
-                            </Badge>
-                            <Badge variant="outline">
-                              {strategy.duration} min
-                            </Badge>
+                  <>
+                    {/* Desktop Table View */}
+                    <div className="hidden lg:block overflow-x-auto">
+                      <table className="w-full border-collapse border border-border rounded-lg">
+                        <thead>
+                          <tr className="bg-gradient-to-r from-primary/5 to-secondary/5">
+                            <th className="border border-border p-3 text-left text-sm font-semibold text-primary">Date</th>
+                            <th className="border border-border p-3 text-left text-sm font-semibold text-primary">Contexte</th>
+                            <th className="border border-border p-3 text-left text-sm font-semibold text-primary">Exercice/Stratégie</th>
+                            <th className="border border-border p-3 text-center text-sm font-semibold text-primary">Effort</th>
+                            <th className="border border-border p-3 text-center text-sm font-semibold text-primary">Durée</th>
+                            <th className="border border-border p-3 text-center text-sm font-semibold text-primary">Avant</th>
+                            <th className="border border-border p-3 text-center text-sm font-semibold text-primary">Après</th>
+                            <th className="border border-border p-3 text-center text-sm font-semibold text-primary">Résultat</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {antiCravingStrategies.map((strategy: AntiCravingStrategy) => (
+                            <tr key={strategy.id} className="hover:bg-muted/30 transition-colors" data-testid={`strategy-row-${strategy.id}`}>
+                              <td className="border border-border p-3 text-sm text-muted-foreground">
+                                {formatDate(strategy.createdAt)}
+                              </td>
+                              <td className="border border-border p-3">
+                                <Badge variant="outline" className="capitalize text-xs">
+                                  {strategy.context === 'leisure' ? 'Loisirs' : 
+                                   strategy.context === 'home' ? 'Domicile' : 'Travail'}
+                                </Badge>
+                              </td>
+                              <td className="border border-border p-3 text-sm font-medium text-foreground max-w-xs">
+                                <div className="truncate" title={strategy.exercise}>
+                                  {strategy.exercise}
+                                </div>
+                              </td>
+                              <td className="border border-border p-3 text-center">
+                                <Badge variant="outline" className="capitalize text-xs">
+                                  {strategy.effort}
+                                </Badge>
+                              </td>
+                              <td className="border border-border p-3 text-center text-sm">
+                                {strategy.duration} min
+                              </td>
+                              <td className="border border-border p-3 text-center">
+                                <Badge variant={strategy.cravingBefore > 6 ? "destructive" : strategy.cravingBefore > 3 ? "secondary" : "default"}>
+                                  {strategy.cravingBefore}/10
+                                </Badge>
+                              </td>
+                              <td className="border border-border p-3 text-center">
+                                <Badge variant={strategy.cravingAfter > 6 ? "destructive" : strategy.cravingAfter > 3 ? "secondary" : "default"}>
+                                  {strategy.cravingAfter}/10
+                                </Badge>
+                              </td>
+                              <td className="border border-border p-3 text-center">
+                                {strategy.cravingBefore > strategy.cravingAfter && (
+                                  <Badge className="bg-success text-success-foreground">
+                                    <span className="material-icons text-xs mr-1">trending_down</span>
+                                    -{strategy.cravingBefore - strategy.cravingAfter}
+                                  </Badge>
+                                )}
+                                {strategy.cravingBefore === strategy.cravingAfter && (
+                                  <Badge variant="outline">
+                                    <span className="material-icons text-xs mr-1">remove</span>
+                                    Stable
+                                  </Badge>
+                                )}
+                                {strategy.cravingBefore < strategy.cravingAfter && (
+                                  <Badge variant="destructive">
+                                    <span className="material-icons text-xs mr-1">trending_up</span>
+                                    +{strategy.cravingAfter - strategy.cravingBefore}
+                                  </Badge>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Mobile/Tablet Card View */}
+                    <div className="lg:hidden space-y-4">
+                      {antiCravingStrategies.map((strategy: AntiCravingStrategy) => (
+                        <div key={strategy.id} className="border border-border rounded-lg p-4 bg-background hover:bg-muted/30 transition-colors" data-testid={`strategy-${strategy.id}`}>
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="text-sm text-muted-foreground">
+                              {formatDate(strategy.createdAt)}
+                            </span>
+                            <div className="flex items-center space-x-2">
+                              <Badge variant="outline" className="capitalize text-xs">
+                                {strategy.context === 'leisure' ? 'Loisirs' : 
+                                 strategy.context === 'home' ? 'Domicile' : 'Travail'}
+                              </Badge>
+                              <Badge variant="outline" className="capitalize text-xs">
+                                {strategy.effort}
+                              </Badge>
+                              <Badge variant="outline" className="text-xs">
+                                {strategy.duration} min
+                              </Badge>
+                            </div>
+                          </div>
+                          
+                          <div className="text-sm font-medium text-foreground mb-3">
+                            {strategy.exercise}
+                          </div>
+                          
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm">
+                            <span>Craving avant: <strong className={`${strategy.cravingBefore > 6 ? 'text-destructive' : strategy.cravingBefore > 3 ? 'text-warning' : 'text-success'}`}>{strategy.cravingBefore}/10</strong></span>
+                            <span className="material-icons text-primary hidden sm:inline">arrow_forward</span>
+                            <span>Craving après: <strong className={`${strategy.cravingAfter > 6 ? 'text-destructive' : strategy.cravingAfter > 3 ? 'text-warning' : 'text-success'}`}>{strategy.cravingAfter}/10</strong></span>
+                            {strategy.cravingBefore > strategy.cravingAfter && (
+                              <Badge className="bg-success text-success-foreground">
+                                <span className="material-icons text-sm mr-1">trending_down</span>
+                                -{strategy.cravingBefore - strategy.cravingAfter} points
+                              </Badge>
+                            )}
+                            {strategy.cravingBefore === strategy.cravingAfter && (
+                              <Badge variant="outline">
+                                <span className="material-icons text-sm mr-1">remove</span>
+                                Stable
+                              </Badge>
+                            )}
+                            {strategy.cravingBefore < strategy.cravingAfter && (
+                              <Badge variant="destructive">
+                                <span className="material-icons text-sm mr-1">trending_up</span>
+                                +{strategy.cravingAfter - strategy.cravingBefore} points
+                              </Badge>
+                            )}
                           </div>
                         </div>
-                        
-                        <div className="text-sm font-medium text-foreground mb-2">
-                          {strategy.exercise}
-                        </div>
-                        
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm">
-                          <span>Craving avant: <strong className={`${strategy.cravingBefore > 6 ? 'text-destructive' : strategy.cravingBefore > 3 ? 'text-warning' : 'text-success'}`}>{strategy.cravingBefore}/10</strong></span>
-                          <span className="material-icons text-primary hidden sm:inline">arrow_forward</span>
-                          <span>Craving après: <strong className={`${strategy.cravingAfter > 6 ? 'text-destructive' : strategy.cravingAfter > 3 ? 'text-warning' : 'text-success'}`}>{strategy.cravingAfter}/10</strong></span>
-                          {strategy.cravingBefore > strategy.cravingAfter && (
-                            <Badge className="bg-success text-success-foreground">
-                              <span className="material-icons text-sm mr-1">trending_down</span>
-                              -{strategy.cravingBefore - strategy.cravingAfter} points
-                            </Badge>
-                          )}
-                          {strategy.cravingBefore === strategy.cravingAfter && (
-                            <Badge variant="outline">
-                              <span className="material-icons text-sm mr-1">remove</span>
-                              Stable
-                            </Badge>
-                          )}
-                          {strategy.cravingBefore < strategy.cravingAfter && (
-                            <Badge variant="destructive">
-                              <span className="material-icons text-sm mr-1">trending_up</span>
-                              +{strategy.cravingAfter - strategy.cravingBefore} points
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  </>
                 ) : (
                   <div className="text-center py-8" data-testid="empty-strategies">
                     <span className="material-icons text-6xl text-muted-foreground mb-4">fitness_center</span>
