@@ -1,0 +1,29 @@
+import { Router } from "express";
+import { db } from "../db/index.js";
+import { sql } from "drizzle-orm";
+
+const router = Router();
+
+// ✅ Déjà existant
+router.get("/test-db", async (_req, res) => {
+  try {
+    const result = await db.execute(sql`SELECT 1 as one`);
+    res.json({ ok: true, result: result.rows });
+  } catch (e) {
+    console.error("Database connection test failed:", e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// ✅ Nouvelle route /api/users
+router.get("/users", async (_req, res) => {
+  try {
+    const result = await db.execute(sql`SELECT * FROM users`);
+    res.json({ ok: true, users: result.rows });
+  } catch (e) {
+    console.error("Failed to fetch users:", e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+export default router;

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover" />
+    <title>Activité Physique Adaptée – Gestion des Cravings</title>
+    <meta name="description" content="Application thérapeutique d'activité physique adaptée pour patients en addictologie : suivi des cravings, régulation émotionnelle, motivation et parcours personnalisé." />
+    <meta name="content-language" content="fr-FR" />
+    <meta name="robots" content="index,follow" />
+    <link rel="canonical" href="https://www.example.com/" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:title" content="Activité Physique Adaptée – Outil d’aide en addictologie" />
+    <meta property="og:description" content="Suivi des cravings, activités physiques adaptées et outils de régulation émotionnelle." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://www.example.com/" />
+    <meta property="og:image" content="https://www.example.com/assets/og-image.jpg" />
+    <meta property="og:locale" content="fr_FR" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Activité Physique Adaptée – Gestion des Cravings" />
+    <meta name="twitter:description" content="Application d'accompagnement en addictologie avec suivi des cravings et outils de régulation." />
+    <meta name="twitter:image" content="https://www.example.com/assets/og-image.jpg" />
+
+    <!-- PWA / Couleurs -->
+    <meta name="theme-color" content="#0A5FFF" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="APA Addicto" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+    <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+
+    <!-- Préconnexion / Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #ffffff;
+        --fg: #1d1d1f;
+        --font-stack: "Roboto", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root { --bg: #0d1117; --fg: #e6edf3; }
+      }
+      html, body { margin:0; padding:0; background:var(--bg); color:var(--fg); font-family:var(--font-stack); min-height:100%; }
+      #root { min-height:100dvh; display:flex; flex-direction:column; }
+      .loading-app { flex:1; display:flex; align-items:center; justify-content:center; font-size:0.95rem; opacity:0.7; }
+      noscript { background:#ffefef; color:#5a0000; padding:1rem; display:block; font-size:0.9rem; border-bottom:1px solid #e0bcbc; }
+    </style>
+
+    <!-- (Optionnel) CSP à ajuster avant activation
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://vercel.live https://replit.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; img-src 'self' data: https:; font-src https://fonts.gstatic.com; connect-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests;" />
+    -->
+  </head>
+  <body>
+    <noscript>Cette application nécessite JavaScript pour fonctionner. Activez JavaScript.</noscript>
+    <div id="root"><div class="loading-app" aria-live="polite">Chargement de l'application thérapeutique...</div></div>
+    <!-- En développement (Vite) -->
+    <script type="module" src="/src/main.tsx"></script>
+    <!-- Replit banner (dev uniquement) -->
+    <script async src="https://replit.com/public/js/replit-dev-banner.js"></script>
+    <!-- Vercel Live (dev seulement - retirer en prod si inutile) -->
+    <script async data-explicit-opt-in="true" data-deployment-id="dpl_4Tpn1HyU1HaqNUvwhRcKUP5AhaEG" src="https://vercel.live/_next-live/feedback/feedback.js"></script>
+  </body>
+</html>

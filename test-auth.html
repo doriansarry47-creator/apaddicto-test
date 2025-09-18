@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Authentification Apaddicto</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        h1, h2 {
+            color: #333;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .success {
+            color: #28a745;
+            background-color: #d4edda;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .error {
+            color: #dc3545;
+            background-color: #f8d7da;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .user-info {
+            background-color: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .status {
+            text-align: center;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .status.connected {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status.disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .btn-logout {
+            background-color: #dc3545;
+        }
+        .btn-logout:hover {
+            background-color: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏃‍♂️ Apaddicto - Test Authentification</h1>
+        
+        <div id="status" class="status disconnected">
+            ❌ Non connecté
+        </div>
+
+        <div id="user-info" style="display: none;" class="user-info">
+            <h3>👤 Informations utilisateur :</h3>
+            <div id="user-details"></div>
+            <button onclick="logout()" class="btn-logout">Se déconnecter</button>
+        </div>
+
+        <div id="auth-forms">
+            <h2>🔐 Connexion</h2>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="login-email">Email :</label>
+                    <input type="email" id="login-email" required>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Mot de passe :</label>
+                    <input type="password" id="login-password" required>
+                </div>
+                <button type="submit">Se connecter</button>
+            </form>
+
+            <h2>📝 Inscription</h2>
+            <form id="register-form">
+                <div class="form-group">
+                    <label for="register-email">Email :</label>
+                    <input type="email" id="register-email" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-password">Mot de passe :</label>
+                    <input type="password" id="register-password" required minlength="6">
+                </div>
+                <div class="form-group">
+                    <label for="register-firstName">Prénom :</label>
+                    <input type="text" id="register-firstName">
+                </div>
+                <div class="form-group">
+                    <label for="register-lastName">Nom :</label>
+                    <input type="text" id="register-lastName">
+                </div>
+                <div class="form-group">
+                    <label for="register-role">Rôle :</label>
+                    <select id="register-role">
+                        <option value="patient">Patient</option>
+                        <option value="admin">Administrateur</option>
+                    </select>
+                </div>
+                <button type="submit">S'inscrire</button>
+            </form>
+        </div>
+
+        <div id="messages"></div>
+    </div>
+
+    <div class="container">
+        <h2>🔧 Tests de l'API</h2>
+        <button onclick="testDatabase()">Tester la base de données</button>
+        <button onclick="checkMe()">Vérifier mon profil</button>
+        <div id="api-results"></div>
+    </div>
+
+    <script>
+        const BASE_URL = window.location.origin;
+        
+        function showMessage(message, isError = false) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = isError ? 'error' : 'success';
+            messageDiv.textContent = message;
+            messagesDiv.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 5000);
+        }
+
+        function showApiResult(result) {
+            const resultsDiv = document.getElementById('api-results');
+            resultsDiv.innerHTML = '<pre>' + JSON.stringify(result, null, 2) + '</pre>';
+        }
+
+        function updateUserInterface(user) {
+            const statusDiv = document.getElementById('status');
+            const userInfoDiv = document.getElementById('user-info');
+            const authFormsDiv = document.getElementById('auth-forms');
+            const userDetailsDiv = document.getElementById('user-details');
+
+            if (user) {
+                statusDiv.className = 'status connected';
+                statusDiv.textContent = '✅ Connecté';
+                userInfoDiv.style.display = 'block';
+                authFormsDiv.style.display = 'none';
+                userDetailsDiv.innerHTML = `
+                    <p><strong>ID :</strong> ${user.id}</p>
+                    <p><strong>Email :</strong> ${user.email}</p>
+                    <p><strong>Nom :</strong> ${user.firstName || 'N/A'} ${user.lastName || 'N/A'}</p>
+                    <p><strong>Rôle :</strong> ${user.role}</p>
+                `;
+            } else {
+                statusDiv.className = 'status disconnected';
+                statusDiv.textContent = '❌ Non connecté';
+                userInfoDiv.style.display = 'none';
+                authFormsDiv.style.display = 'block';
+            }
+        }
+
+        async function login(email, password) {
+            try {
+                const response = await fetch(`${BASE_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ email, password }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showMessage(data.message || 'Connexion réussie');
+                    updateUserInterface(data.user);
+                } else {
+                    showMessage(data.message || 'Erreur de connexion', true);
+                }
+            } catch (error) {
+                showMessage('Erreur réseau : ' + error.message, true);
+            }
+        }
+
+        async function register(email, password, firstName, lastName, role) {
+            try {
+                const response = await fetch(`${BASE_URL}/api/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ email, password, firstName, lastName, role }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showMessage(data.message || 'Inscription réussie');
+                    updateUserInterface(data.user);
+                } else {
+                    showMessage(data.message || 'Erreur d\'inscription', true);
+                }
+            } catch (error) {
+                showMessage('Erreur réseau : ' + error.message, true);
+            }
+        }
+
+        async function logout() {
+            try {
+                const response = await fetch(`${BASE_URL}/api/auth/logout`, {
+                    method: 'POST',
+                    credentials: 'include',
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showMessage(data.message || 'Déconnexion réussie');
+                    updateUserInterface(null);
+                } else {
+                    showMessage(data.message || 'Erreur de déconnexion', true);
+                }
+            } catch (error) {
+                showMessage('Erreur réseau : ' + error.message, true);
+            }
+        }
+
+        async function checkMe() {
+            try {
+                const response = await fetch(`${BASE_URL}/api/auth/me`, {
+                    credentials: 'include',
+                });
+
+                const data = await response.json();
+                showApiResult(data);
+
+                if (response.ok && data.user) {
+                    updateUserInterface(data.user);
+                }
+            } catch (error) {
+                showApiResult({ error: error.message });
+            }
+        }
+
+        async function testDatabase() {
+            try {
+                const response = await fetch(`${BASE_URL}/api/test-db`);
+                const data = await response.json();
+                showApiResult(data);
+            } catch (error) {
+                showApiResult({ error: error.message });
+            }
+        }
+
+        // Event listeners
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            await login(email, password);
+        });
+
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            const firstName = document.getElementById('register-firstName').value;
+            const lastName = document.getElementById('register-lastName').value;
+            const role = document.getElementById('register-role').value;
+            await register(email, password, firstName, lastName, role);
+        });
+
+        // Check authentication status on page load
+        window.addEventListener('load', checkMe);
+    </script>
+</body>
+</html>
