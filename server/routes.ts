@@ -6,6 +6,7 @@ import { insertCravingEntrySchema, insertExerciseSessionSchema, insertBeckAnalys
 import { z } from "zod";
 import { getDB } from './db.js';
 import { sql } from 'drizzle-orm';
+import { authRateLimiter } from './rate-limiter.js';
 
 export function registerRoutes(app: Express) {
 
@@ -25,6 +26,16 @@ export function registerRoutes(app: Express) {
 
   app.post("/api/auth/register", async (req, res) => {
     try {
+      // Rate limiting basé sur l'IP
+      const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
+      
+      if (authRateLimiter.isRateLimited(`register:${clientIp}`)) {
+        const remainingTime = Math.ceil(authRateLimiter.getRemainingTime(`register:${clientIp}`) / 1000 / 60);
+        return res.status(429).json({ 
+          message: `Trop de tentatives d'inscription. Réessayez dans ${remainingTime} minutes.`
+        });
+      }
+
       const { email, password, firstName, lastName, role } = req.body;
 
       if (!email || !password) {
@@ -42,6 +53,10 @@ export function registerRoutes(app: Express) {
       req.session.user = user;
       res.json({ user }); // ✅ cohérent avec le frontend
     } catch (error) {
+      // Enregistrer la tentative d'inscription échouée
+      const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
+      authRateLimiter.recordAttempt(`register:${clientIp}`);
+      
       console.error("Registration error:", error);
       
       // Améliorer les messages d'erreur pour l'utilisateur
@@ -67,6 +82,16 @@ export function registerRoutes(app: Express) {
 
   app.post("/api/auth/login", async (req, res) => {
     try {
+      // Rate limiting basé sur l'IP
+      const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
+      
+      if (authRateLimiter.isRateLimited(`login:${clientIp}`)) {
+        const remainingTime = Math.ceil(authRateLimiter.getRemainingTime(`login:${clientIp}`) / 1000 / 60);
+        return res.status(429).json({ 
+          message: `Trop de tentatives de connexion. Réessayez dans ${remainingTime} minutes.`
+        });
+      }
+
       const { email, password } = req.body;
 
       if (!email || !password) {
@@ -77,6 +102,10 @@ export function registerRoutes(app: Express) {
       req.session.user = user;
       res.json({ user }); // ✅ cohérent avec le frontend
     } catch (error) {
+      // Enregistrer la tentative de connexion échouée
+      const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
+      authRateLimiter.recordAttempt(`login:${clientIp}`);
+      
       console.error("Login error:", error);
       
       let statusCode = 401;

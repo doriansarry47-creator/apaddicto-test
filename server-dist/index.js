@@ -1734,6 +1734,63 @@ function requireAdmin(req, res, next) {
 init_schema();
 init_db();
 import { sql as sql3 } from "drizzle-orm";
+
+// server/rate-limiter.ts
+var RateLimiter = class {
+  attempts = /* @__PURE__ */ new Map();
+  maxAttempts;
+  windowMs;
+  constructor(maxAttempts = 5, windowMs = 15 * 60 * 1e3) {
+    this.maxAttempts = maxAttempts;
+    this.windowMs = windowMs;
+  }
+  isRateLimited(identifier) {
+    const now = Date.now();
+    const entry = this.attempts.get(identifier);
+    if (!entry) {
+      return false;
+    }
+    if (now > entry.resetTime) {
+      this.attempts.delete(identifier);
+      return false;
+    }
+    return entry.attempts >= this.maxAttempts;
+  }
+  recordAttempt(identifier) {
+    const now = Date.now();
+    const entry = this.attempts.get(identifier);
+    if (!entry || now > entry.resetTime) {
+      this.attempts.set(identifier, {
+        attempts: 1,
+        resetTime: now + this.windowMs
+      });
+    } else {
+      entry.attempts++;
+    }
+  }
+  getRemainingTime(identifier) {
+    const entry = this.attempts.get(identifier);
+    if (!entry) return 0;
+    return Math.max(0, entry.resetTime - Date.now());
+  }
+  // Nettoyer les entrées expirées (à appeler périodiquement)
+  cleanup() {
+    const now = Date.now();
+    for (const [key, entry] of this.attempts.entries()) {
+      if (now > entry.resetTime) {
+        this.attempts.delete(key);
+      }
+    }
+  }
+};
+var authRateLimiter = new RateLimiter(5, 15 * 60 * 1e3);
+var generalRateLimiter = new RateLimiter(100, 60 * 1e3);
+setInterval(() => {
+  authRateLimiter.cleanup();
+  generalRateLimiter.cleanup();
+}, 60 * 60 * 1e3);
+
+// server/routes.ts
 function registerRoutes(app2) {
   app2.get("/api/test-db", async (_req, res) => {
     try {
@@ -1746,6 +1803,13 @@ function registerRoutes(app2) {
   });
   app2.post("/api/auth/register", async (req, res) => {
     try {
+      const clientIp = req.ip || req.connection.remoteAddress || "unknown";
+      if (authRateLimiter.isRateLimited(`register:${clientIp}`)) {
+        const remainingTime = Math.ceil(authRateLimiter.getRemainingTime(`register:${clientIp}`) / 1e3 / 60);
+        return res.status(429).json({
+          message: `Trop de tentatives d'inscription. R\xE9essayez dans ${remainingTime} minutes.`
+        });
+      }
       const { email, password, firstName, lastName, role } = req.body;
       if (!email || !password) {
         return res.status(400).json({ message: "Email et mot de passe requis" });
@@ -1760,6 +1824,8 @@ function registerRoutes(app2) {
       req.session.user = user;
       res.json({ user });
     } catch (error) {
+      const clientIp = req.ip || req.connection.remoteAddress || "unknown";
+      authRateLimiter.recordAttempt(`register:${clientIp}`);
       console.error("Registration error:", error);
       let statusCode = 400;
       let message = "Erreur lors de l'inscription";
@@ -1778,6 +1844,13 @@ function registerRoutes(app2) {
   });
   app2.post("/api/auth/login", async (req, res) => {
     try {
+      const clientIp = req.ip || req.connection.remoteAddress || "unknown";
+      if (authRateLimiter.isRateLimited(`login:${clientIp}`)) {
+        const remainingTime = Math.ceil(authRateLimiter.getRemainingTime(`login:${clientIp}`) / 1e3 / 60);
+        return res.status(429).json({
+          message: `Trop de tentatives de connexion. R\xE9essayez dans ${remainingTime} minutes.`
+        });
+      }
       const { email, password } = req.body;
       if (!email || !password) {
         return res.status(400).json({ message: "Email et mot de passe requis" });
@@ -1786,6 +1859,8 @@ function registerRoutes(app2) {
       req.session.user = user;
       res.json({ user });
     } catch (error) {
+      const clientIp = req.ip || req.connection.remoteAddress || "unknown";
+      authRateLimiter.recordAttempt(`login:${clientIp}`);
       console.error("Login error:", error);
       let statusCode = 401;
       let message = "Erreur de connexion";
@@ -2691,6 +2766,78 @@ debugTablesRouter.delete("/debug/tables/purge", async (_req, res) => {
 
 // server/index.ts
 import { Pool as Pool4 } from "pg";
+
+// server/security-middleware.ts
+function sanitizeInput(req, res, next) {
+  function sanitizeObject(obj) {
+    if (typeof obj === "string") {
+      return obj.trim().replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "").replace(/javascript:/gi, "").replace(/on\w+\s*=/gi, "");
+    }
+    if (Array.isArray(obj)) {
+      return obj.map(sanitizeObject);
+    }
+    if (obj !== null && typeof obj === "object") {
+      const sanitized = {};
+      for (const key in obj) {
+        if (obj.hasOwnProperty(key)) {
+          sanitized[key] = sanitizeObject(obj[key]);
+        }
+      }
+      return sanitized;
+    }
+    return obj;
+  }
+  if (req.body) {
+    req.body = sanitizeObject(req.body);
+  }
+  if (req.query) {
+    req.query = sanitizeObject(req.query);
+  }
+  if (req.params) {
+    req.params = sanitizeObject(req.params);
+  }
+  next();
+}
+function securityHeaders(req, res, next) {
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader(
+    "Content-Security-Policy",
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self';"
+  );
+  next();
+}
+function validatePayloadSize(maxSize = 1024 * 1024) {
+  return (req, res, next) => {
+    const contentLength = parseInt(req.headers["content-length"] || "0");
+    if (contentLength > maxSize) {
+      return res.status(413).json({
+        message: "Payload trop volumineux"
+      });
+    }
+    next();
+  };
+}
+function csrfProtection(req, res, next) {
+  if (req.method === "GET") {
+    return next();
+  }
+  const origin = req.headers.origin;
+  const host = req.headers.host;
+  if (process.env.NODE_ENV === "development") {
+    return next();
+  }
+  if (origin && host && !origin.endsWith(host)) {
+    return res.status(403).json({
+      message: "Origine non autoris\xE9e"
+    });
+  }
+  next();
+}
+
+// server/index.ts
 var __filename = fileURLToPath(import.meta.url);
 var __dirname = path.dirname(__filename);
 var app = express();
@@ -2700,6 +2847,10 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
+app.use(securityHeaders);
+app.use(validatePayloadSize(5 * 1024 * 1024));
+app.use(sanitizeInput);
+app.use(csrfProtection);
 var distPath = path.join(__dirname, "..", "dist");
 var clientPath = path.join(__dirname, "..", "client");
 console.log("\u{1F4C1} Serving static files from:", distPath);
