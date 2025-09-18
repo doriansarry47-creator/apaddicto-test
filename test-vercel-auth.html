@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Authentication - Apaddicto</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="max-w-md w-full space-y-8">
+        <div class="text-center">
+            <h2 class="text-3xl font-bold text-gray-900">Test Authentication</h2>
+            <p class="mt-2 text-sm text-gray-600">Test du système d'authentification Vercel</p>
+        </div>
+
+        <!-- Register Form -->
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h3 class="text-lg font-medium mb-4">Inscription</h3>
+            <form id="registerForm" class="space-y-4">
+                <div>
+                    <input type="email" id="regEmail" placeholder="Email" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                </div>
+                <div>
+                    <input type="password" id="regPassword" placeholder="Mot de passe" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                </div>
+                <div>
+                    <input type="text" id="regFirstName" placeholder="Prénom" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                </div>
+                <div>
+                    <input type="text" id="regLastName" placeholder="Nom" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                </div>
+                <button type="submit"
+                        class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
+                    S'inscrire
+                </button>
+            </form>
+        </div>
+
+        <!-- Login Form -->
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h3 class="text-lg font-medium mb-4">Connexion</h3>
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <input type="email" id="loginEmail" placeholder="Email" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                </div>
+                <div>
+                    <input type="password" id="loginPassword" placeholder="Mot de passe" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                </div>
+                <button type="submit"
+                        class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700">
+                    Se connecter
+                </button>
+            </form>
+        </div>
+
+        <!-- Status Display -->
+        <div id="status" class="bg-white p-6 rounded-lg shadow">
+            <h3 class="text-lg font-medium mb-4">Statut</h3>
+            <div id="statusContent" class="text-sm text-gray-600">
+                Prêt pour les tests...
+            </div>
+            <button onclick="checkSession()"
+                    class="mt-4 bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700">
+                Vérifier la session
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = window.location.origin;
+        
+        function updateStatus(message, isError = false) {
+            const statusContent = document.getElementById('statusContent');
+            statusContent.innerHTML = message;
+            statusContent.className = isError ? 'text-sm text-red-600' : 'text-sm text-green-600';
+        }
+
+        // Register functionality
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+            const firstName = document.getElementById('regFirstName').value;
+            const lastName = document.getElementById('regLastName').value;
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password, firstName, lastName }),
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    updateStatus(`✅ Inscription réussie ! Utilisateur: ${data.user.email}`);
+                    document.getElementById('registerForm').reset();
+                    
+                    // Auto-fill login form
+                    document.getElementById('loginEmail').value = email;
+                    document.getElementById('loginPassword').value = password;
+                } else {
+                    updateStatus(`❌ Erreur inscription: ${data.message}`, true);
+                }
+            } catch (error) {
+                updateStatus(`❌ Erreur réseau: ${error.message}`, true);
+            }
+        });
+
+        // Login functionality
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password }),
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    updateStatus(`✅ Connexion réussie ! Bienvenue ${data.user.firstName} ${data.user.lastName}`);
+                    document.getElementById('loginForm').reset();
+                } else {
+                    updateStatus(`❌ Erreur connexion: ${data.message}`, true);
+                }
+            } catch (error) {
+                updateStatus(`❌ Erreur réseau: ${error.message}`, true);
+            }
+        });
+
+        // Check session
+        async function checkSession() {
+            try {
+                const response = await fetch(`${BASE_URL}/api/auth/profile`, {
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    updateStatus(`✅ Session active ! Utilisateur: ${data.user.email} (${data.user.role})`);
+                } else {
+                    updateStatus(`❌ Aucune session active`, true);
+                }
+            } catch (error) {
+                updateStatus(`❌ Erreur vérification: ${error.message}`, true);
+            }
+        }
+
+        // Check health on load
+        window.addEventListener('load', async () => {
+            try {
+                const response = await fetch(`${BASE_URL}/api/health`);
+                const data = await response.json();
+                updateStatus(`🟢 API Health: ${data.status} - ${data.message}`);
+            } catch (error) {
+                updateStatus(`🔴 API non accessible: ${error.message}`, true);
+            }
+        });
+    </script>
+</body>
+</html>
