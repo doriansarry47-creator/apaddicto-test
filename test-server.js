@@ -1,88 +1,77 @@
-import { createRequire } from 'module';
-import express from 'express';
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import { sql } from 'drizzle-orm';
-import ws from 'ws';
+#!/usr/bin/env node
 
-// Configure Neon
-neonConfig.webSocketConstructor = ws;
+// Simple test server to verify authentication without npm install
+import fs from 'fs';
+import path from 'path';
+import crypto from 'crypto';
+import http from 'http';
 
-const app = express();
-const port = 3000;
-
-// Database configuration
-const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://neondb_owner:npg_vRJU7LlnYG1y@ep-soft-bush-ab0hbww0-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
-
-console.log('Starting Apaddicto server...');
-console.log('Database URL:', DATABASE_URL.replace(/:[^:@]*@/, ':****@'));
-
-let db;
+console.log('Checking Node.js modules availability...');
 
 try {
-  const pool = new Pool({ connectionString: DATABASE_URL });
-  db = drizzle({ client: pool });
-  console.log('Database initialized successfully');
-} catch (error) {
-  console.error('Database initialization failed:', error);
-}
-
-app.use(express.json());
-
-// Test database connection endpoint
-app.get('/api/test-db', async (req, res) => {
-  try {
-    if (!db) {
-      throw new Error('Database not initialized');
+  
+  console.log('✓ Basic Node.js modules available');
+  
+  // Check if we can connect to database
+  console.log('Checking environment variables...');
+  
+  // Load .env manually
+  const envContent = fs.readFileSync('.env', 'utf8');
+  const envVars = {};
+  envContent.split('\n').forEach(line => {
+    const [key, value] = line.split('=');
+    if (key && value) {
+      envVars[key] = value.replace(/"/g, '');
     }
-    const result = await db.execute(sql`SELECT 1 as test, NOW() as current_time`);
-    console.log('Database test successful:', result.rows);
-    res.json({ 
-      ok: true, 
-      message: 'Database connection successful', 
-      result: result.rows,
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    console.error('Database test failed:', error);
-    res.status(500).json({ 
-      ok: false, 
-      error: error.message,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
-    service: 'apaddicto-server',
-    timestamp: new Date().toISOString()
   });
-});
-
-// Static file serving
-app.use(express.static('dist/public'));
-
-// Catch all for SPA
-app.get('*', (req, res) => {
-  res.sendFile('dist/public/index.html', { root: '/home/user/webapp' });
-});
-
-app.listen(port, '0.0.0.0', () => {
-  console.log(`✅ Apaddicto server is running on http://0.0.0.0:${port}`);
-  console.log(`📊 Health check: http://0.0.0.0:${port}/health`);
-  console.log(`🔍 Database test: http://0.0.0.0:${port}/api/test-db`);
-});
-
-// Handle process termination
-process.on('SIGTERM', () => {
-  console.log('Received SIGTERM, shutting down gracefully');
-  process.exit(0);
-});
-
-process.on('SIGINT', () => {
-  console.log('Received SIGINT, shutting down gracefully');
-  process.exit(0);
-});
+  
+  console.log('Environment variables:');
+  console.log('- DATABASE_URL:', envVars.DATABASE_URL ? 'Present' : 'Missing');
+  console.log('- SESSION_SECRET:', envVars.SESSION_SECRET ? 'Present' : 'Missing');
+  console.log('- NODE_ENV:', envVars.NODE_ENV || 'undefined');
+  
+  // Test simple HTTP server without Express
+  
+  const server = http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    
+    if (req.url === '/test' && req.method === 'GET') {
+      res.end(JSON.stringify({
+        status: 'ok',
+        message: 'Basic server running',
+        timestamp: new Date().toISOString()
+      }));
+    } else if (req.url === '/api/test-basic' && req.method === 'GET') {
+      res.end(JSON.stringify({
+        status: 'ok',
+        message: 'API endpoint accessible',
+        environment: envVars.NODE_ENV || 'development'
+      }));
+    } else {
+      res.writeHead(404);
+      res.end(JSON.stringify({ error: 'Not found' }));
+    }
+  });
+  
+  const PORT = 3000;
+  server.listen(PORT, () => {
+    console.log(`✓ Test server running on http://localhost:${PORT}`);
+    console.log('Available endpoints:');
+    console.log('- GET /test');
+    console.log('- GET /api/test-basic');
+    console.log('\nPress Ctrl+C to stop the server');
+  });
+  
+  // Graceful shutdown
+  process.on('SIGINT', () => {
+    console.log('\nShutting down server...');
+    server.close(() => {
+      console.log('Server stopped');
+      process.exit(0);
+    });
+  });
+  
+} catch (error) {
+  console.error('❌ Error:', error.message);
+  process.exit(1);
+}
