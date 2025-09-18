@@ -31,16 +31,6 @@ export function registerRoutes(app: Express) {
         return res.status(400).json({ message: "Email et mot de passe requis" });
       }
 
-      // Validation de l'email
-      if (!email.includes('@')) {
-        return res.status(400).json({ message: "Format d'email invalide" });
-      }
-
-      // Validation du mot de passe
-      if (password.length < 4) {
-        return res.status(400).json({ message: "Le mot de passe doit contenir au moins 4 caractères" });
-      }
-
       const user = await AuthService.register({
         email,
         password,
@@ -52,9 +42,26 @@ export function registerRoutes(app: Express) {
       req.session.user = user;
       res.json({ user }); // ✅ cohérent avec le frontend
     } catch (error) {
-      res.status(400).json({
-        message: error instanceof Error ? error.message : "Erreur lors de l'inscription"
-      });
+      console.error("Registration error:", error);
+      
+      // Améliorer les messages d'erreur pour l'utilisateur
+      let statusCode = 400;
+      let message = "Erreur lors de l'inscription";
+      
+      if (error instanceof Error) {
+        message = error.message;
+        
+        // Codes d'erreur spécifiques selon le type d'erreur
+        if (message.includes('existe déjà')) {
+          statusCode = 409; // Conflict
+        } else if (message.includes('non autorisé')) {
+          statusCode = 403; // Forbidden
+        } else if (message.includes('invalide') || message.includes('requis')) {
+          statusCode = 400; // Bad Request
+        }
+      }
+      
+      res.status(statusCode).json({ message });
     }
   });
 
@@ -70,9 +77,23 @@ export function registerRoutes(app: Express) {
       req.session.user = user;
       res.json({ user }); // ✅ cohérent avec le frontend
     } catch (error) {
-      res.status(401).json({
-        message: error instanceof Error ? error.message : "Erreur de connexion"
-      });
+      console.error("Login error:", error);
+      
+      let statusCode = 401;
+      let message = "Erreur de connexion";
+      
+      if (error instanceof Error) {
+        message = error.message;
+        
+        // Code d'erreur spécifique pour les comptes désactivés
+        if (message.includes('désactivé')) {
+          statusCode = 403; // Forbidden
+        } else if (message.includes('requis')) {
+          statusCode = 400; // Bad Request
+        }
+      }
+      
+      res.status(statusCode).json({ message });
     }
   });
 

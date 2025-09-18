@@ -125,7 +125,20 @@ export function useRegisterMutation() {
       const data = await safeJson(response);
 
       if (!response.ok) {
-        throw new Error(data?.message || "Registration failed");
+        // Améliorer les messages d'erreur selon le code de statut
+        let errorMessage = "Erreur lors de l'inscription";
+        
+        if (response.status === 409) {
+          errorMessage = data?.message || "Un compte avec cet email existe déjà";
+        } else if (response.status === 403) {
+          errorMessage = data?.message || "Accès non autorisé";
+        } else if (response.status === 400) {
+          errorMessage = data?.message || "Données invalides";
+        } else {
+          errorMessage = data?.message || "Erreur du serveur";
+        }
+        
+        throw new Error(errorMessage);
       }
 
       return data;

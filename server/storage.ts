@@ -179,7 +179,9 @@ export class DbStorage implements IStorage {
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    return getDB().select().from(users).where(eq(users.email, email)).then(rows => rows[0]);
+    // Normaliser l'email pour une recherche cohérente
+    const normalizedEmail = email.toLowerCase().trim();
+    return getDB().select().from(users).where(eq(users.email, normalizedEmail)).then(rows => rows[0]);
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {

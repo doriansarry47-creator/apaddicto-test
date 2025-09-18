@@ -27,71 +27,118 @@ export class AuthService {
     lastName?: string;
     role?: string;
   }): Promise<AuthUser> {
-    // Vérifier si l'utilisateur existe déjà
-    const existingUser = await storage.getUserByEmail(userData.email);
-    if (existingUser) {
-      throw new Error('Un utilisateur avec cet email existe déjà');
+    try {
+      // Normaliser l'email
+      const normalizedEmail = userData.email.toLowerCase().trim();
+      
+      // Validation de base de l'email
+      if (!normalizedEmail || !normalizedEmail.includes('@')) {
+        throw new Error('Format d\'email invalide');
+      }
+
+      // Validation du mot de passe
+      if (!userData.password || userData.password.length < 4) {
+        throw new Error('Le mot de passe doit contenir au moins 4 caractères');
+      }
+
+      // Vérifier si l'utilisateur existe déjà
+      const existingUser = await storage.getUserByEmail(normalizedEmail);
+      if (existingUser) {
+        throw new Error('Un utilisateur avec cet email existe déjà');
+      }
+
+      // SÉCURITÉ: Empêcher l'inscription en tant qu'admin sauf pour l'email autorisé
+      const authorizedAdminEmail = 'doriansarry@yahoo.fr';
+      const requestedRole = userData.role || 'patient';
+      
+      if (requestedRole === 'admin' && normalizedEmail !== authorizedAdminEmail.toLowerCase()) {
+        throw new Error('Accès administrateur non autorisé pour cet email');
+      }
+
+      // Hacher le mot de passe
+      const hashedPassword = await this.hashPassword(userData.password);
+
+      // Créer l'utilisateur avec l'email normalisé
+      const newUser: InsertUser = {
+        email: normalizedEmail,
+        password: hashedPassword,
+        firstName: userData.firstName || null,
+        lastName: userData.lastName || null,
+        role: requestedRole,
+      };
+
+      const user = await storage.createUser(newUser);
+      
+      return {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+      };
+    } catch (error) {
+      // Améliorer la gestion des erreurs de base de données
+      if (error instanceof Error) {
+        // Détecter les erreurs de contrainte d'unicité de la base de données
+        if (error.message.includes('duplicate key value') || 
+            error.message.includes('unique constraint') ||
+            error.message.includes('users_email_unique')) {
+          throw new Error('Un utilisateur avec cet email existe déjà');
+        }
+        
+        // Réthrow l'erreur avec le message original si c'est une erreur connue
+        throw error;
+      }
+      
+      // Erreur générique pour les cas inconnus
+      throw new Error('Erreur lors de l\'inscription. Veuillez réessayer.');
     }
-
-    // SÉCURITÉ: Empêcher l'inscription en tant qu'admin sauf pour l'email autorisé
-    const authorizedAdminEmail = 'doriansarry@yahoo.fr';
-    const requestedRole = userData.role || 'patient';
-    
-    if (requestedRole === 'admin' && userData.email.toLowerCase() !== authorizedAdminEmail.toLowerCase()) {
-      throw new Error('Accès administrateur non autorisé pour cet email');
-    }
-
-    // Hacher le mot de passe
-    const hashedPassword = await this.hashPassword(userData.password);
-
-    // Créer l'utilisateur
-    const newUser: InsertUser = {
-      email: userData.email,
-      password: hashedPassword,
-      firstName: userData.firstName || null,
-      lastName: userData.lastName || null,
-      role: requestedRole,
-    };
-
-    const user = await storage.createUser(newUser);
-    
-    return {
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      role: user.role,
-    };
   }
 
   static async login(email: string, password: string): Promise<AuthUser> {
-    // Trouver l'utilisateur par email
-    const user = await storage.getUserByEmail(email);
-    if (!user) {
-      throw new Error('Email ou mot de passe incorrect');
+    try {
+      // Normaliser l'email pour la recherche
+      const normalizedEmail = email.toLowerCase().trim();
+      
+      // Validation de base
+      if (!normalizedEmail || !password) {
+        throw new Error('Email et mot de passe requis');
+      }
+
+      // Trouver l'utilisateur par email
+      const user = await storage.getUserByEmail(normalizedEmail);
+      if (!user) {
+        throw new Error('Email ou mot de passe incorrect');
+      }
+
+      // Vérifier le mot de passe
+      const isValidPassword = await this.verifyPassword(password, user.password);
+      if (!isValidPassword) {
+        throw new Error('Email ou mot de passe incorrect');
+      }
+
+      // Vérifier si l'utilisateur est actif
+      if (!user.isActive) {
+        throw new Error('Compte désactivé');
+      }
+
+      // Mettre à jour la dernière connexion
+      await storage.updateUserLastLogin(user.id);
+
+      return {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+      };
+    } catch (error) {
+      // Améliorer la gestion des erreurs de login
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Erreur lors de la connexion. Veuillez réessayer.');
     }
-
-    // Vérifier le mot de passe
-    const isValidPassword = await this.verifyPassword(password, user.password);
-    if (!isValidPassword) {
-      throw new Error('Email ou mot de passe incorrect');
-    }
-
-    // Vérifier si l'utilisateur est actif
-    if (!user.isActive) {
-      throw new Error('Compte désactivé');
-    }
-
-    // Mettre à jour la dernière connexion
-    await storage.updateUserLastLogin(user.id);
-
-    return {
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      role: user.role,
-    };
   }
 
   static async getUserById(id: string): Promise<AuthUser | null> {

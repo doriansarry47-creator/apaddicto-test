@@ -464,7 +464,8 @@ var init_storage = __esm({
         return getDB().select().from(users).where(eq(users.id, id)).then((rows) => rows[0]);
       }
       async getUserByEmail(email) {
-        return getDB().select().from(users).where(eq(users.email, email)).then((rows) => rows[0]);
+        const normalizedEmail = email.toLowerCase().trim();
+        return getDB().select().from(users).where(eq(users.email, normalizedEmail)).then((rows) => rows[0]);
       }
       async createUser(insertUser) {
         const newUser = await getDB().insert(users).values(insertUser).returning().then((rows) => rows[0]);
@@ -1519,52 +1520,80 @@ var AuthService = class {
     return bcrypt.compare(password, hashedPassword);
   }
   static async register(userData) {
-    const existingUser = await storage.getUserByEmail(userData.email);
-    if (existingUser) {
-      throw new Error("Un utilisateur avec cet email existe d\xE9j\xE0");
+    try {
+      const normalizedEmail = userData.email.toLowerCase().trim();
+      if (!normalizedEmail || !normalizedEmail.includes("@")) {
+        throw new Error("Format d'email invalide");
+      }
+      if (!userData.password || userData.password.length < 4) {
+        throw new Error("Le mot de passe doit contenir au moins 4 caract\xE8res");
+      }
+      const existingUser = await storage.getUserByEmail(normalizedEmail);
+      if (existingUser) {
+        throw new Error("Un utilisateur avec cet email existe d\xE9j\xE0");
+      }
+      const authorizedAdminEmail = "doriansarry@yahoo.fr";
+      const requestedRole = userData.role || "patient";
+      if (requestedRole === "admin" && normalizedEmail !== authorizedAdminEmail.toLowerCase()) {
+        throw new Error("Acc\xE8s administrateur non autoris\xE9 pour cet email");
+      }
+      const hashedPassword = await this.hashPassword(userData.password);
+      const newUser = {
+        email: normalizedEmail,
+        password: hashedPassword,
+        firstName: userData.firstName || null,
+        lastName: userData.lastName || null,
+        role: requestedRole
+      };
+      const user = await storage.createUser(newUser);
+      return {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role
+      };
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message.includes("duplicate key value") || error.message.includes("unique constraint") || error.message.includes("users_email_unique")) {
+          throw new Error("Un utilisateur avec cet email existe d\xE9j\xE0");
+        }
+        throw error;
+      }
+      throw new Error("Erreur lors de l'inscription. Veuillez r\xE9essayer.");
     }
-    const authorizedAdminEmail = "doriansarry@yahoo.fr";
-    const requestedRole = userData.role || "patient";
-    if (requestedRole === "admin" && userData.email.toLowerCase() !== authorizedAdminEmail.toLowerCase()) {
-      throw new Error("Acc\xE8s administrateur non autoris\xE9 pour cet email");
-    }
-    const hashedPassword = await this.hashPassword(userData.password);
-    const newUser = {
-      email: userData.email,
-      password: hashedPassword,
-      firstName: userData.firstName || null,
-      lastName: userData.lastName || null,
-      role: requestedRole
-    };
-    const user = await storage.createUser(newUser);
-    return {
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      role: user.role
-    };
   }
   static async login(email, password) {
-    const user = await storage.getUserByEmail(email);
-    if (!user) {
-      throw new Error("Email ou mot de passe incorrect");
+    try {
+      const normalizedEmail = email.toLowerCase().trim();
+      if (!normalizedEmail || !password) {
+        throw new Error("Email et mot de passe requis");
+      }
+      const user = await storage.getUserByEmail(normalizedEmail);
+      if (!user) {
+        throw new Error("Email ou mot de passe incorrect");
+      }
+      const isValidPassword = await this.verifyPassword(password, user.password);
+      if (!isValidPassword) {
+        throw new Error("Email ou mot de passe incorrect");
+      }
+      if (!user.isActive) {
+        throw new Error("Compte d\xE9sactiv\xE9");
+      }
+      await storage.updateUserLastLogin(user.id);
+      return {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role
+      };
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error("Erreur lors de la connexion. Veuillez r\xE9essayer.");
     }
-    const isValidPassword = await this.verifyPassword(password, user.password);
-    if (!isValidPassword) {
-      throw new Error("Email ou mot de passe incorrect");
-    }
-    if (!user.isActive) {
-      throw new Error("Compte d\xE9sactiv\xE9");
-    }
-    await storage.updateUserLastLogin(user.id);
-    return {
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      role: user.role
-    };
   }
   static async getUserById(id) {
     const user = await storage.getUser(id);
@@ -1658,12 +1687,6 @@ function registerRoutes(app2) {
       if (!email || !password) {
         return res.status(400).json({ message: "Email et mot de passe requis" });
       }
-      if (!email.includes("@")) {
-        return res.status(400).json({ message: "Format d'email invalide" });
-      }
-      if (password.length < 4) {
-        return res.status(400).json({ message: "Le mot de passe doit contenir au moins 4 caract\xE8res" });
-      }
       const user = await AuthService.register({
         email,
         password,
@@ -1674,9 +1697,20 @@ function registerRoutes(app2) {
       req.session.user = user;
       res.json({ user });
     } catch (error) {
-      res.status(400).json({
-        message: error instanceof Error ? error.message : "Erreur lors de l'inscription"
-      });
+      console.error("Registration error:", error);
+      let statusCode = 400;
+      let message = "Erreur lors de l'inscription";
+      if (error instanceof Error) {
+        message = error.message;
+        if (message.includes("existe d\xE9j\xE0")) {
+          statusCode = 409;
+        } else if (message.includes("non autoris\xE9")) {
+          statusCode = 403;
+        } else if (message.includes("invalide") || message.includes("requis")) {
+          statusCode = 400;
+        }
+      }
+      res.status(statusCode).json({ message });
     }
   });
   app2.post("/api/auth/login", async (req, res) => {
@@ -1689,9 +1723,18 @@ function registerRoutes(app2) {
       req.session.user = user;
       res.json({ user });
     } catch (error) {
-      res.status(401).json({
-        message: error instanceof Error ? error.message : "Erreur de connexion"
-      });
+      console.error("Login error:", error);
+      let statusCode = 401;
+      let message = "Erreur de connexion";
+      if (error instanceof Error) {
+        message = error.message;
+        if (message.includes("d\xE9sactiv\xE9")) {
+          statusCode = 403;
+        } else if (message.includes("requis")) {
+          statusCode = 400;
+        }
+      }
+      res.status(statusCode).json({ message });
     }
   });
   app2.post("/api/auth/logout", (req, res) => {
