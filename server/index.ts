@@ -8,6 +8,7 @@ import { registerRoutes } from './routes.js';
 import './migrate.js';
 import { debugTablesRouter } from './debugTables.js';
 import { Pool } from 'pg';
+import { sanitizeInput, securityHeaders, validatePayloadSize, csrfProtection } from './security-middleware.js';
 
 // Pour obtenir __dirname dans ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -25,6 +26,12 @@ app.use(cors({
 
 // === PARSING JSON ===
 app.use(express.json());
+
+// === MIDDLEWARES DE SÉCURITÉ ===
+app.use(securityHeaders);
+app.use(validatePayloadSize(5 * 1024 * 1024)); // 5MB max
+app.use(sanitizeInput);
+app.use(csrfProtection);
 
 // === SERVIR LES FICHIERS STATIQUES ===
 const distPath = path.join(__dirname, '..', 'dist');
