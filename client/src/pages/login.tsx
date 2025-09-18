@@ -44,6 +44,27 @@ export default function Login() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validation côté client
+    const { email, password } = loginForm;
+    
+    if (!email.trim()) {
+      toast({
+        title: "Email requis",
+        description: "Veuillez saisir votre adresse email",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!password) {
+      toast({
+        title: "Mot de passe requis",
+        description: "Veuillez saisir votre mot de passe",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       await loginMutation.mutateAsync(loginForm);
       toast({
@@ -53,9 +74,15 @@ export default function Login() {
       // Redirection immédiate après login réussi
       setLocation("/");
     } catch (error) {
+      let errorMessage = "Vérifiez vos identifiants";
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
       toast({
         title: "Erreur de connexion",
-        description: error instanceof Error ? error.message : "Vérifiez vos identifiants",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -64,18 +91,94 @@ export default function Login() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validation côté client
+    const { email, password, firstName, lastName } = registerForm;
+    
+    // Validation email
+    if (!email.trim()) {
+      toast({
+        title: "Email requis",
+        description: "Veuillez saisir votre adresse email",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      toast({
+        title: "Email invalide",
+        description: "Veuillez saisir une adresse email valide",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validation mot de passe
+    if (!password) {
+      toast({
+        title: "Mot de passe requis",
+        description: "Veuillez saisir un mot de passe",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (password.length < 4) {
+      toast({
+        title: "Mot de passe trop court",
+        description: "Le mot de passe doit contenir au moins 4 caractères",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (password.length > 100) {
+      toast({
+        title: "Mot de passe trop long",
+        description: "Le mot de passe ne peut pas dépasser 100 caractères",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validation des noms (optionnels mais limités)
+    if (firstName && firstName.length > 50) {
+      toast({
+        title: "Prénom trop long",
+        description: "Le prénom ne peut pas dépasser 50 caractères",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (lastName && lastName.length > 50) {
+      toast({
+        title: "Nom trop long",
+        description: "Le nom ne peut pas dépasser 50 caractères",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       await registerMutation.mutateAsync(registerForm);
       toast({
         title: "Inscription réussie",
-        description: "Votre compte a été créé avec succès",
+        description: "Votre compte a été créé avec succès. Bienvenue !",
       });
       // Redirection immédiate après inscription réussie
       setLocation("/");
     } catch (error) {
+      let errorMessage = "Une erreur est survenue lors de l'inscription";
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
       toast({
         title: "Erreur d'inscription",
-        description: error instanceof Error ? error.message : "Vérifiez vos informations",
+        description: errorMessage,
         variant: "destructive",
       });
     }

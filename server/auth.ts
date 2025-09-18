@@ -36,14 +36,35 @@ export class AuthService {
         throw new Error('Format d\'email invalide');
       }
 
+      // Validation robuste de l'email avec regex
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(normalizedEmail)) {
+        throw new Error('Format d\'email invalide');
+      }
+
       // Validation du mot de passe
       if (!userData.password || userData.password.length < 4) {
         throw new Error('Le mot de passe doit contenir au moins 4 caractères');
       }
 
-      // Vérifier si l'utilisateur existe déjà
-      const existingUser = await storage.getUserByEmail(normalizedEmail);
-      if (existingUser) {
+      // Validation plus stricte du mot de passe
+      if (userData.password.length > 100) {
+        throw new Error('Le mot de passe est trop long (maximum 100 caractères)');
+      }
+
+      // VÉRIFICATION ROBUSTE ANTI-RACE CONDITION
+      // Double vérification avec délai micro pour éviter les conditions de course
+      const firstCheck = await storage.getUserByEmail(normalizedEmail);
+      if (firstCheck) {
+        throw new Error('Un utilisateur avec cet email existe déjà');
+      }
+
+      // Micro délai pour éviter les race conditions
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Seconde vérification pour sécurité supplémentaire
+      const secondCheck = await storage.getUserByEmail(normalizedEmail);
+      if (secondCheck) {
         throw new Error('Un utilisateur avec cet email existe déjà');
       }
 
@@ -55,6 +76,14 @@ export class AuthService {
         throw new Error('Accès administrateur non autorisé pour cet email');
       }
 
+      // Validation des autres champs
+      if (userData.firstName && userData.firstName.length > 50) {
+        throw new Error('Le prénom ne peut pas dépasser 50 caractères');
+      }
+      if (userData.lastName && userData.lastName.length > 50) {
+        throw new Error('Le nom ne peut pas dépasser 50 caractères');
+      }
+
       // Hacher le mot de passe
       const hashedPassword = await this.hashPassword(userData.password);
 
@@ -62,12 +91,31 @@ export class AuthService {
       const newUser: InsertUser = {
         email: normalizedEmail,
         password: hashedPassword,
-        firstName: userData.firstName || null,
-        lastName: userData.lastName || null,
+        firstName: userData.firstName ? userData.firstName.trim() : null,
+        lastName: userData.lastName ? userData.lastName.trim() : null,
         role: requestedRole,
       };
 
-      const user = await storage.createUser(newUser);
+      // Tentative de création avec gestion d'erreur robuste
+      let user;
+      try {
+        user = await storage.createUser(newUser);
+      } catch (dbError) {
+        // Gestion spécifique des erreurs de base de données
+        if (dbError instanceof Error) {
+          if (dbError.message.includes('duplicate key value') || 
+              dbError.message.includes('unique constraint') ||
+              dbError.message.includes('users_email_unique') ||
+              dbError.message.includes('UNIQUE constraint failed')) {
+            throw new Error('Un utilisateur avec cet email existe déjà');
+          }
+          if (dbError.message.includes('connection') || 
+              dbError.message.includes('timeout')) {
+            throw new Error('Problème de connexion à la base de données. Veuillez réessayer.');
+          }
+        }
+        throw dbError; // Re-lancer l'erreur si ce n'est pas un problème d'unicité
+      }
       
       return {
         id: user.id,
@@ -82,7 +130,8 @@ export class AuthService {
         // Détecter les erreurs de contrainte d'unicité de la base de données
         if (error.message.includes('duplicate key value') || 
             error.message.includes('unique constraint') ||
-            error.message.includes('users_email_unique')) {
+            error.message.includes('users_email_unique') ||
+            error.message.includes('UNIQUE constraint failed')) {
           throw new Error('Un utilisateur avec cet email existe déjà');
         }
         

@@ -468,28 +468,60 @@ var init_storage = __esm({
         return getDB().select().from(users).where(eq(users.email, normalizedEmail)).then((rows) => rows[0]);
       }
       async createUser(insertUser) {
-        const newUser = await getDB().insert(users).values(insertUser).returning().then((rows) => rows[0]);
-        await this.ensureBeckAnalysesColumn();
         try {
-          await getDB().insert(userStats).values({
-            userId: newUser.id,
-            exercisesCompleted: 0,
-            totalDuration: 0,
-            currentStreak: 0,
-            longestStreak: 0,
-            beckAnalysesCompleted: 0
+          if (!insertUser.email || !insertUser.password) {
+            throw new Error("Email et mot de passe sont requis");
+          }
+          const existingUser = await this.getUserByEmail(insertUser.email);
+          if (existingUser) {
+            throw new Error("Un utilisateur avec cet email existe d\xE9j\xE0");
+          }
+          const newUser = await getDB().insert(users).values(insertUser).returning().then((rows) => {
+            if (!rows || rows.length === 0) {
+              throw new Error("\xC9chec de la cr\xE9ation de l'utilisateur");
+            }
+            return rows[0];
           });
+          await this.ensureBeckAnalysesColumn();
+          try {
+            await getDB().insert(userStats).values({
+              userId: newUser.id,
+              exercisesCompleted: 0,
+              totalDuration: 0,
+              currentStreak: 0,
+              longestStreak: 0,
+              beckAnalysesCompleted: 0
+            });
+          } catch (error) {
+            console.log("\u26A0\uFE0F Tentative d'insertion sans beck_analyses_completed...");
+            try {
+              await getDB().insert(userStats).values({
+                userId: newUser.id,
+                exercisesCompleted: 0,
+                totalDuration: 0,
+                currentStreak: 0,
+                longestStreak: 0
+              });
+            } catch (statsError) {
+              console.error("Erreur cr\xE9ation userStats:", statsError);
+            }
+          }
+          return newUser;
         } catch (error) {
-          console.log("\u26A0\uFE0F Tentative d'insertion sans beck_analyses_completed...");
-          await getDB().insert(userStats).values({
-            userId: newUser.id,
-            exercisesCompleted: 0,
-            totalDuration: 0,
-            currentStreak: 0,
-            longestStreak: 0
-          });
+          if (error instanceof Error) {
+            if (error.message.includes("duplicate key value") || error.message.includes("unique constraint") || error.message.includes("users_email_unique") || error.message.includes("UNIQUE constraint failed")) {
+              throw new Error("Un utilisateur avec cet email existe d\xE9j\xE0");
+            }
+            if (error.message.includes("null value") || error.message.includes("not-null constraint")) {
+              throw new Error("Donn\xE9es manquantes pour la cr\xE9ation de l'utilisateur");
+            }
+            if (error.message.includes("connection") || error.message.includes("timeout") || error.message.includes("ECONNREFUSED")) {
+              throw new Error("Probl\xE8me de connexion \xE0 la base de donn\xE9es");
+            }
+            throw error;
+          }
+          throw new Error("Erreur lors de la cr\xE9ation de l'utilisateur");
         }
-        return newUser;
       }
       async updateUser(userId, data) {
         const updatedUser = await getDB().update(users).set({ ...data, updatedAt: /* @__PURE__ */ new Date() }).where(eq(users.id, userId)).returning();
@@ -1525,11 +1557,23 @@ var AuthService = class {
       if (!normalizedEmail || !normalizedEmail.includes("@")) {
         throw new Error("Format d'email invalide");
       }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(normalizedEmail)) {
+        throw new Error("Format d'email invalide");
+      }
       if (!userData.password || userData.password.length < 4) {
         throw new Error("Le mot de passe doit contenir au moins 4 caract\xE8res");
       }
-      const existingUser = await storage.getUserByEmail(normalizedEmail);
-      if (existingUser) {
+      if (userData.password.length > 100) {
+        throw new Error("Le mot de passe est trop long (maximum 100 caract\xE8res)");
+      }
+      const firstCheck = await storage.getUserByEmail(normalizedEmail);
+      if (firstCheck) {
+        throw new Error("Un utilisateur avec cet email existe d\xE9j\xE0");
+      }
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      const secondCheck = await storage.getUserByEmail(normalizedEmail);
+      if (secondCheck) {
         throw new Error("Un utilisateur avec cet email existe d\xE9j\xE0");
       }
       const authorizedAdminEmail = "doriansarry@yahoo.fr";
@@ -1537,15 +1581,34 @@ var AuthService = class {
       if (requestedRole === "admin" && normalizedEmail !== authorizedAdminEmail.toLowerCase()) {
         throw new Error("Acc\xE8s administrateur non autoris\xE9 pour cet email");
       }
+      if (userData.firstName && userData.firstName.length > 50) {
+        throw new Error("Le pr\xE9nom ne peut pas d\xE9passer 50 caract\xE8res");
+      }
+      if (userData.lastName && userData.lastName.length > 50) {
+        throw new Error("Le nom ne peut pas d\xE9passer 50 caract\xE8res");
+      }
       const hashedPassword = await this.hashPassword(userData.password);
       const newUser = {
         email: normalizedEmail,
         password: hashedPassword,
-        firstName: userData.firstName || null,
-        lastName: userData.lastName || null,
+        firstName: userData.firstName ? userData.firstName.trim() : null,
+        lastName: userData.lastName ? userData.lastName.trim() : null,
         role: requestedRole
       };
-      const user = await storage.createUser(newUser);
+      let user;
+      try {
+        user = await storage.createUser(newUser);
+      } catch (dbError) {
+        if (dbError instanceof Error) {
+          if (dbError.message.includes("duplicate key value") || dbError.message.includes("unique constraint") || dbError.message.includes("users_email_unique") || dbError.message.includes("UNIQUE constraint failed")) {
+            throw new Error("Un utilisateur avec cet email existe d\xE9j\xE0");
+          }
+          if (dbError.message.includes("connection") || dbError.message.includes("timeout")) {
+            throw new Error("Probl\xE8me de connexion \xE0 la base de donn\xE9es. Veuillez r\xE9essayer.");
+          }
+        }
+        throw dbError;
+      }
       return {
         id: user.id,
         email: user.email,
@@ -1555,7 +1618,7 @@ var AuthService = class {
       };
     } catch (error) {
       if (error instanceof Error) {
-        if (error.message.includes("duplicate key value") || error.message.includes("unique constraint") || error.message.includes("users_email_unique")) {
+        if (error.message.includes("duplicate key value") || error.message.includes("unique constraint") || error.message.includes("users_email_unique") || error.message.includes("UNIQUE constraint failed")) {
           throw new Error("Un utilisateur avec cet email existe d\xE9j\xE0");
         }
         throw error;
@@ -2638,8 +2701,11 @@ app.use(cors({
 }));
 app.use(express.json());
 var distPath = path.join(__dirname, "..", "dist");
+var clientPath = path.join(__dirname, "..", "client");
 console.log("\u{1F4C1} Serving static files from:", distPath);
+console.log("\u{1F4C1} Also serving client files from:", clientPath);
 app.use(express.static(distPath));
+app.use("/client", express.static(clientPath));
 app.use(session({
   secret: process.env.SESSION_SECRET || "fallback-secret",
   resave: false,
